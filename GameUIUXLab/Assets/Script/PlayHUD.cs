@@ -8,8 +8,9 @@ public class PlayHUD : MonoBehaviour
     [SerializeField] private TextMeshProUGUI timeText;
     [SerializeField] private Slider hpSlider;
 
+    [SerializeField] private RunTimer runTimer;
+
     private int turn = 1;
-    private float playTime;
     private float currentHp = 100f;
     private float maxHp = 100f;
 
@@ -23,7 +24,6 @@ public class PlayHUD : MonoBehaviour
 
     private void Update()
     {
-        playTime += Time.deltaTime;
         RefreshTimeUI();
     }
 
@@ -41,7 +41,6 @@ public class PlayHUD : MonoBehaviour
 
     private void RefreshUI()
     {
-
         RefreshTurnUI();
         RefreshTimeUI();
         RefreshHpUI();
@@ -54,7 +53,7 @@ public class PlayHUD : MonoBehaviour
 
     private void RefreshTimeUI()
     {
-        timeText.text = $"Time : {playTime:00:00}";
+        timeText.text = $"Time : {runTimer.PlayTime:00:00}";
     }
 
     private void RefreshHpUI()
