@@ -1837,6 +1837,7 @@ GameObject:
   - component: {fileID: 787058647}
   - component: {fileID: 787058646}
   - component: {fileID: 787058645}
+  - component: {fileID: 787058648}
   m_Layer: 0
   m_Name: RetryButton
   m_TagString: Untagged
@@ -1958,6 +1959,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 787058643}
   m_CullTransparentMesh: 1
+--- !u!114 &787058648
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 787058643}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab5ca43d29343da4bbdfedad7907f783, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIFirstSelection
+  firstSelected: {fileID: 787058643}
 --- !u!1 &903192887
 GameObject:
   m_ObjectHideFlags: 0
@@ -1973,7 +1987,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &903192888
 RectTransform:
   m_ObjectHideFlags: 0
@@ -3045,7 +3059,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 76c392e42b5098c458856cdf6ecaaaa1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.EventSystems.EventSystem
-  m_FirstSelected: {fileID: 0}
+  m_FirstSelected: {fileID: 1530969525}
   m_sendNavigationEvents: 1
   m_DragThreshold: 10
 --- !u!4 &1379685725
@@ -3478,6 +3492,7 @@ GameObject:
   - component: {fileID: 1530969529}
   - component: {fileID: 1530969528}
   - component: {fileID: 1530969527}
+  - component: {fileID: 1530969530}
   m_Layer: 0
   m_Name: StartButton
   m_TagString: Untagged
@@ -3599,6 +3614,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1530969525}
   m_CullTransparentMesh: 1
+--- !u!114 &1530969530
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1530969525}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab5ca43d29343da4bbdfedad7907f783, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIFirstSelection
+  firstSelected: {fileID: 1530969525}
 --- !u!1 &1816895650
 GameObject:
   m_ObjectHideFlags: 0
@@ -3946,6 +3974,7 @@ GameObject:
   - component: {fileID: 2093928349}
   - component: {fileID: 2093928348}
   - component: {fileID: 2093928347}
+  - component: {fileID: 2093928350}
   m_Layer: 0
   m_Name: ResumeButton
   m_TagString: Untagged
@@ -4067,6 +4096,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2093928345}
   m_CullTransparentMesh: 1
+--- !u!114 &2093928350
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2093928345}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab5ca43d29343da4bbdfedad7907f783, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIFirstSelection
+  firstSelected: {fileID: 2093928345}
 --- !u!1001 &6501972958818590823
 PrefabInstance:
   m_ObjectHideFlags: 0
