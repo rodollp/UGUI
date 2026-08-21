@@ -12,5 +12,7 @@ public class UIFirstSelection : MonoBehaviour
 
         EventSystem.current.SetSelectedGameObject(null);
         EventSystem.current.SetSelectedGameObject(firstSelected);
+
+        
     }
 }
