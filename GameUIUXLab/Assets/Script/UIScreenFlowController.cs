@@ -21,6 +21,9 @@ public class UIScreenFlowController : MonoBehaviour
    
     private UIScreenState currentState;
 
+    public bool IsPlaying => currentState == UIScreenState.Play;
+    public bool IsPaused => currentState == UIScreenState.Pause;
+
     void Start()
     {
         ShowTitleScreen();
