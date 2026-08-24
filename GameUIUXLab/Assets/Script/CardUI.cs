@@ -4,13 +4,12 @@ using UnityEngine.EventSystems;
 [RequireComponent(typeof(RectTransform))]
 public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
-    [Header("Card Visual")]
-    [SerializeField] private RectTransform cardVisual;
-
     [Header("Hover Settings")]
     [SerializeField] private float hoverMoveY = 100f;
     [SerializeField] private float hoverScale = 1.3f;
     [SerializeField] private float moveSpeed = 12f;
+
+    private RectTransform rectTransform;
 
     private Vector2 originalPosition;
     private Vector3 originalScale;
@@ -20,8 +19,10 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
     private void Awake()
     {
-        originalPosition = cardVisual.anchoredPosition;
-        originalScale = cardVisual.localScale;
+        rectTransform = GetComponent<RectTransform>();
+
+        originalPosition = rectTransform.anchoredPosition;
+        originalScale = rectTransform.localScale;
 
         targetPosition = originalPosition;
         targetScale = originalScale;
@@ -29,14 +30,14 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
     private void Update()
     {
-        cardVisual.anchoredPosition = Vector2.Lerp(
-            cardVisual.anchoredPosition,
+        rectTransform.anchoredPosition = Vector2.Lerp(
+            rectTransform.anchoredPosition,
             targetPosition,
             moveSpeed * Time.deltaTime
         );
 
-        cardVisual.localScale = Vector3.Lerp(
-            cardVisual.localScale,
+        rectTransform.localScale = Vector3.Lerp(
+            rectTransform.localScale,
             targetScale,
             moveSpeed * Time.deltaTime
         );
