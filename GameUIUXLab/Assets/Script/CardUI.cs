@@ -30,17 +30,9 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
     private void Update()
     {
-        rectTransform.anchoredPosition = Vector2.Lerp(
-            rectTransform.anchoredPosition,
-            targetPosition,
-            moveSpeed * Time.deltaTime
-        );
+        rectTransform.anchoredPosition = Vector2.Lerp(rectTransform.anchoredPosition,targetPosition,moveSpeed * Time.deltaTime);
 
-        rectTransform.localScale = Vector3.Lerp(
-            rectTransform.localScale,
-            targetScale,
-            moveSpeed * Time.deltaTime
-        );
+        rectTransform.localScale = Vector3.Lerp(rectTransform.localScale,targetScale,moveSpeed * Time.deltaTime);
     }
 
     public void OnPointerEnter(PointerEventData eventData)
