@@ -764,7 +764,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardUI
   hoverMoveY: 100
   hoverScale: 1.3
-  moveSpeed: 12
+  moveSpeed: 10
 --- !u!114 &4895305661739287581
 MonoBehaviour:
   m_ObjectHideFlags: 0

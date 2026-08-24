@@ -11,8 +11,8 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
     private RectTransform rectTransform;
 
-    private Vector2 originalPosition;
-    private Vector3 originalScale;
+    private Vector2 basePosition;
+    private Vector3 baseScale;
 
     private Vector2 targetPosition;
     private Vector3 targetScale;
@@ -21,29 +21,44 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
         rectTransform = GetComponent<RectTransform>();
 
-        originalPosition = rectTransform.anchoredPosition;
-        originalScale = rectTransform.localScale;
+        basePosition = rectTransform.anchoredPosition;
+        baseScale = rectTransform.localScale;
 
-        targetPosition = originalPosition;
-        targetScale = originalScale;
+        targetPosition = basePosition;
+        targetScale = baseScale;
     }
 
     private void Update()
     {
-        rectTransform.anchoredPosition = Vector2.Lerp(rectTransform.anchoredPosition,targetPosition,moveSpeed * Time.deltaTime);
+        rectTransform.anchoredPosition = Vector2.Lerp(
+            rectTransform.anchoredPosition,
+            targetPosition,
+            moveSpeed * Time.deltaTime
+        );
 
-        rectTransform.localScale = Vector3.Lerp(rectTransform.localScale,targetScale,moveSpeed * Time.deltaTime);
+        rectTransform.localScale = Vector3.Lerp(
+            rectTransform.localScale,
+            targetScale,
+            moveSpeed * Time.deltaTime
+        );
     }
 
     public void OnPointerEnter(PointerEventData eventData)
     {
-        targetPosition = originalPosition + Vector2.up * hoverMoveY;
-        targetScale = originalScale * hoverScale;
+        targetPosition = basePosition + Vector2.up * hoverMoveY;
+        targetScale = baseScale * hoverScale;
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        targetPosition = originalPosition;
-        targetScale = originalScale;
+        targetPosition = basePosition;
+        targetScale = baseScale;
+    }
+
+    public void SetBasePosition(Vector2 position)
+    {
+        basePosition = position;
+
+        targetPosition = basePosition;
     }
 }
