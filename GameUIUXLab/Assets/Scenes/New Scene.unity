@@ -529,9 +529,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 336202233}
-        m_TargetAssemblyTypeName: UIScreenFlowController, Assembly-CSharp
-        m_MethodName: ShowTitleScreen
+      - m_Target: {fileID: 1291257165}
+        m_TargetAssemblyTypeName: UIGameManager, Assembly-CSharp
+        m_MethodName: ReturnToTitle
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -3170,6 +3170,7 @@ GameObject:
   - component: {fileID: 1291257163}
   - component: {fileID: 1291257162}
   - component: {fileID: 1291257164}
+  - component: {fileID: 1291257165}
   m_Layer: 0
   m_Name: GameObject
   m_TagString: Untagged
@@ -3220,6 +3221,20 @@ MonoBehaviour:
   toastRoot: {fileID: 1882255556}
   toastPrefab: {fileID: 3351031247491933559, guid: 3368001d41ef590469a7380bc7efa711, type: 3}
   poolSize: 2
+--- !u!114 &1291257165
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1291257161}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0732aa7499b65ea409757e09b01f5ce9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIGameManager
+  screenFlowController: {fileID: 336202233}
+  hand: {fileID: 632313514}
 --- !u!1 &1343820626
 GameObject:
   m_ObjectHideFlags: 0

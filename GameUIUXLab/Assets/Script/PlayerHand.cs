@@ -103,4 +103,16 @@ public class PlayerHand : MonoBehaviour
             );
         }
     }
+
+    public void ClearHand()
+    {
+        foreach (CardUI card in cardPool)
+        {
+            if (card.gameObject.activeSelf)
+            {
+                card.gameObject.SetActive(false);
+            }
+        }
+        RefreshLayout();
+    }
 }
