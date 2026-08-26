@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -10,12 +11,15 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     [SerializeField] private float moveSpeed = 12f;
 
     private RectTransform rectTransform;
+    private CardManager cardManager;
 
     private Vector2 basePosition;
     private Vector3 baseScale;
 
     private Vector2 targetPosition;
     private Vector3 targetScale;
+
+    public event Action<CardUI> OnCardClicked;
 
     private void Awake()
     {
@@ -42,7 +46,10 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
             moveSpeed * Time.deltaTime
         );
     }
-
+    public void OnClickCard()
+    {
+     OnCardClicked?.Invoke(this);
+    }
     public void OnPointerEnter(PointerEventData eventData)
     {
         targetPosition = basePosition + Vector2.up * hoverMoveY;

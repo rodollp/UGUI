@@ -9,6 +9,7 @@ public class PlayHUD : MonoBehaviour
     [SerializeField] private Slider hpSlider;
 
     [SerializeField] private RunTimer runTimer;
+    [SerializeField] private UIScreenFlowController screenFlowController;
 
     private int turn = 1;
     private float currentHp = 100f;
@@ -30,13 +31,32 @@ public class PlayHUD : MonoBehaviour
     public void TakeDamage()
     {
         currentHp = Mathf.Max(0f, currentHp - 10f);
+
         RefreshHpUI();
+
+        if (currentHp <= 0f)
+        {
+            GameOver();
+        }
     }
 
     public void NextTurn()
     {
         turn++;
         RefreshTurnUI();
+    }
+
+    private void GameOver()
+    {
+        screenFlowController.ShowResultScreen();
+    }
+
+    public void ResetHUD()
+    {
+        turn = 1;
+        currentHp = maxHp;
+
+        RefreshUI();
     }
 
     private void RefreshUI()

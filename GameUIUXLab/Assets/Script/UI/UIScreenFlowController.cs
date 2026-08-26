@@ -7,7 +7,8 @@ public class UIScreenFlowController : MonoBehaviour
         Title,
         Play,
         Pause,
-        Result
+        Result,
+        Refresh
     }
 
 
@@ -16,6 +17,7 @@ public class UIScreenFlowController : MonoBehaviour
         
     [SerializeField] private GameObject pauseScreen;
     [SerializeField] private GameObject resultScreen;
+    [SerializeField] private GameObject refreshScreen;
 
     [SerializeField] private RunTimer runTimer;
    
@@ -67,6 +69,13 @@ public class UIScreenFlowController : MonoBehaviour
 
         runTimer.StopTimer();
     }
+
+    public void ShowRefreshScreen()
+    {
+        SetActiveScreen(UIScreenState.Refresh);
+        Time.timeScale = 0f;
+        runTimer.StopTimer();
+    }
     private void SetActiveScreen(UIScreenState nextState)
     {
         currentState = nextState;
@@ -74,5 +83,6 @@ public class UIScreenFlowController : MonoBehaviour
         playScreen.SetActive(currentState == UIScreenState.Play);
         pauseScreen.SetActive(currentState == UIScreenState.Pause);
         resultScreen.SetActive(currentState == UIScreenState.Result);
+        refreshScreen.SetActive(currentState == UIScreenState.Refresh);
     }
 }

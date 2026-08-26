@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -10,9 +11,11 @@ public class PlayerHand : MonoBehaviour
     [Header("Hand Layout")]
     [SerializeField] private float cardSpacing = 220f;
     [SerializeField] private float maxHandWidth = 1200f;
-
     [SerializeField] private float cardHigh = -100f;
+
     private readonly List<CardUI> cardPool = new();
+
+    public event Action<CardUI> OnCardClicked;
 
     private void Awake()
     {
@@ -25,10 +28,17 @@ public class PlayerHand : MonoBehaviour
         {
             CardUI card = Instantiate(cardPrefab, transform);
 
+            card.OnCardClicked += HandleCardClicked;
+
             card.gameObject.SetActive(false);
 
             cardPool.Add(card);
         }
+    }
+
+    private void HandleCardClicked(CardUI card)
+    {
+        OnCardClicked?.Invoke(card);
     }
 
     public void AddCard()
@@ -46,19 +56,17 @@ public class PlayerHand : MonoBehaviour
         }
     }
 
-    public void RemoveCard()
+    public void RemoveCard(CardUI card)
     {
-        for (int i = cardPool.Count - 1; i >= 0; i--)
-        {
-            if (cardPool[i].gameObject.activeSelf)
-            {
-                cardPool[i].gameObject.SetActive(false);
+        if (card == null)
+            return;
 
-                RefreshLayout();
+        if (!cardPool.Contains(card))
+            return;
 
-                return;
-            }
-        }
+        card.gameObject.SetActive(false);
+
+        RefreshLayout();
     }
 
     private void RefreshLayout()
@@ -91,7 +99,6 @@ public class PlayerHand : MonoBehaviour
         }
 
         float totalWidth = spacing * (cardCount - 1);
-
         float startX = -totalWidth * 0.5f;
 
         for (int i = 0; i < cardCount; i++)
@@ -113,6 +120,7 @@ public class PlayerHand : MonoBehaviour
                 card.gameObject.SetActive(false);
             }
         }
+
         RefreshLayout();
     }
 }

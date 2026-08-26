@@ -6,6 +6,8 @@ public class CardManager : MonoBehaviour
     [SerializeField] private PlayerHand playerHand;
     [SerializeField] private PlayHUD playHUD;
 
+    [SerializeField] private UIManager uiManager;
+
     [Header("Deck Settings")]
     [SerializeField] private int startDeckCount = 20;
     [SerializeField] private int drawCount = 5;
@@ -14,11 +16,23 @@ public class CardManager : MonoBehaviour
     private int discardPileCount;
     private int handCount;
 
+    private void Awake()
+    {
+        playerHand.OnCardClicked += UseCard;
+    }
+
+    private void OnDestroy()
+    {
+        playerHand.OnCardClicked -= UseCard;
+    }
     /// <summary>
     /// 전투 시작
     /// </summary>
     public void StartBattle()
     {
+        playHUD.ResetHUD();
+        playerHand.ClearHand();
+
         drawPileCount = startDeckCount;
         discardPileCount = 0;
         handCount = 0;
@@ -33,13 +47,11 @@ public class CardManager : MonoBehaviour
     {
         for (int i = 0; i < drawCount; i++)
         {
-            // 드로우 더미가 비었다면 버림 더미 재사용
             if (drawPileCount <= 0)
             {
                 RefillDrawPile();
             }
 
-            // 버림 더미까지 없으면 더 이상 뽑을 카드가 없음
             if (drawPileCount <= 0)
             {
                 return;
@@ -53,25 +65,42 @@ public class CardManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 현재 손패 전체를 버림 더미로 이동
+    /// 현재 손패 전체 버리기
     /// </summary>
     private void DiscardHand()
     {
-        int currentHandCount = handCount;
+        discardPileCount += handCount;
 
-        for (int i = 0; i < currentHandCount; i++)
+        handCount = 0;
+
+        playerHand.ClearHand();
+    }
+
+    /// <summary>
+    /// 카드 한 장 사용
+    /// </summary>
+    public void UseCard(CardUI card)
+    {
+        if (card == null)
+            return;
+
+        playerHand.RemoveCard(card);
+
+        discardPileCount++;
+
+        if (handCount > 0)
         {
-            playerHand.RemoveCard();
-
-            discardPileCount++;
             handCount--;
         }
+
+        // 지금 테스트용
+        playHUD.TakeDamage();
+
+        uiManager.ShowToast("카드를 사용했습니다."); 
     }
 
     /// <summary>
     /// 버림 더미를 다시 드로우 더미로 이동
-    /// 현재는 실제 CardData가 없기 때문에 숫자만 이동한다.
-    /// 나중에는 List<CardData>를 Shuffle하면 된다.
     /// </summary>
     private void RefillDrawPile()
     {
@@ -87,24 +116,17 @@ public class CardManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 턴 종료 버튼에서 호출
+    /// 턴 종료
     /// </summary>
     public void EndTurn()
     {
-        // 1. 현재 손패 버리기
+        // 1. 현재 손패 전부 버리기
         DiscardHand();
-
-        // 여기 나중에
-        // EnemyTurn();
-        // 상태이상 처리
-        // 방어도 초기화
-        // 에너지 회복
-        // 등이 들어간다.
 
         // 2. 턴 증가
         playHUD.NextTurn();
 
-        // 3. 새로운 카드 드로우
+        // 3. 새로운 카드 5장 드로우
         DrawCards();
     }
 }
