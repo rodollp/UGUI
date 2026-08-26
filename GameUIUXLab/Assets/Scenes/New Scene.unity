@@ -948,6 +948,54 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!1 &324513331
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 324513333}
+  - component: {fileID: 324513332}
+  m_Layer: 0
+  m_Name: CardManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &324513332
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 324513331}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7dacea2922f1c3f44b1b133a1be2473f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CardManager
+  playerHand: {fileID: 632313514}
+  playHUD: {fileID: 94125204}
+  startDeckCount: 20
+  drawCount: 5
+--- !u!4 &324513333
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 324513331}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1068.5472, y: 508.48453, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &324684099
 GameObject:
   m_ObjectHideFlags: 0
@@ -2313,7 +2361,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\uB9C8\uC774\uB124\uC784"
+  m_text: "\uD134 \uC218"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: d34f9d5d675e14e419b3f7d92b27040b, type: 2}
   m_sharedMaterial: {fileID: 4576162118946551881, guid: d34f9d5d675e14e419b3f7d92b27040b, type: 2}
@@ -3172,7 +3220,7 @@ GameObject:
   - component: {fileID: 1291257164}
   - component: {fileID: 1291257165}
   m_Layer: 0
-  m_Name: GameObject
+  m_Name: GameManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3707,9 +3755,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 94125204}
-        m_TargetAssemblyTypeName: PlayHUD, Assembly-CSharp
-        m_MethodName: NextTurn
+      - m_Target: {fileID: 324513332}
+        m_TargetAssemblyTypeName: CardManager, Assembly-CSharp
+        m_MethodName: EndTurn
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -4628,6 +4676,18 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+      - m_Target: {fileID: 324513332}
+        m_TargetAssemblyTypeName: CardManager, Assembly-CSharp
+        m_MethodName: StartBattle
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &4788052343607246211
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5015,3 +5075,4 @@ SceneRoots:
   - {fileID: 275114418}
   - {fileID: 1379685725}
   - {fileID: 1291257163}
+  - {fileID: 324513333}

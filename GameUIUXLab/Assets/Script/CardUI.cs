@@ -61,4 +61,6 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
         targetPosition = basePosition;
     }
+
+    
 }
