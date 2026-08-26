@@ -1,67 +1,62 @@
-# Screen
-## Title Screen 
-- 시작 버튼
-- 종료 버튼
-- 설정 버튼
-- 카드 모음집
+# Unity UGUI 카드 게임 UI/UX 프로젝트
 
+Unity UGUI를 활용하여 제작한 카드 게임 형태의 UI/UX 실습 프로젝트입니다.
 
-## PlayHud
-- 카드 UI
-- 플레이어 체력바
-- 적 체력바
-- 적 행동
-- 카드 덱
-- 턴 수 
-- 플레이 시간 
+카드 손패 관리, 화면 전환, HUD, 일시정지, 토스트 메시지 등
+게임에서 사용되는 기본적인 UI 시스템 구현을 목표로 제작했습니다.
 
-## PauseMenu
-- 계속하기 버튼
-- 설정 버튼
-- 타이틀 돌아가기 버튼
-- 저장 후 종료 버튼
+## 주요 기능
 
-## ResultScreen
-- 처치한 적 수
-- 총 플레이 시간
-- 총합 점수
-- 다시하기 버튼
- 
+### 화면 전환
+- Title
+- Play
+- Pause
+- Result
+- Refresh
+- 화면 상태에 따른 `Time.timeScale` 제어
 
- # input interface
-- 카드 선택 : 마우스 좌클릭 유지 후 드래그 / 단축키 설정
-- 카드 선택 취소 : 마우스 우클릭 / 좌클릭 때기
-- 설정 : esc / 마우스 좌클릭 UI 버튼 
-- 덱 확인 : 마우스 좌클릭 UI 버튼 
+### 카드 시스템
+- Object Pooling을 이용한 카드 UI 관리
+- 전투 시작 시 카드 드로우
+- 턴 종료 시 손패 전체 버리기
+- 버림 더미를 이용한 드로우 더미 재구성
+- 카드 사용 시 해당 카드 제거
+- 카드 수에 따른 손패 자동 정렬
 
+### 카드 UI
+- 마우스 Hover 시 카드 위치 상승
+- Hover 시 카드 확대
+- 카드 클릭 이벤트 처리
+- 이벤트를 이용한 `CardUI → PlayerHand → CardManager` 연결
 
-# UI Prefab 후보
-- Card UI
-- HealthBarUI
-- EnemyUI
+### HUD
+- 플레이 시간 표시
+- 턴 수 표시
+- HP Slider
+- HP가 0이 되면 Result 화면으로 전환
 
-## Canvas
+### Toast Message
+- Object Pooling 방식으로 Toast UI 관리
+- 카드 사용 시 Toast Message 출력
 
-Canvas
-|- UI
-   |- Screen Title
-   |- PlayHUD
-     |- PlayerHand
-       |- CardUI
-     |- HealthBar
-     |- Time
-     |- Score
-     |- TurnText
-     |- EndTurnButton
-     |- EnemyHUD
-   |- Screen Pause
-   |- Screen Card Deck
-   |- Screen Result
-   
-## 리소스와 콘셉트
-- 글꼴 : 한글 
-- 버튼 아이콘 : 모양을 따라 간다. 설정 버튼은 톱니, 덱 확인은 카드 
-- 카드 상태 : 손에 있는 카드에 마우스를 가져다 대면 카드 테두리가 파랗게 빛난다. 그리고 부각되게 선택한 카드를 위로 올린다
-- 턴 종료 버튼 : 마우스를 가져다 대면 불이 들어오고 누르면 턴 종료가 되었음으로 불이 꺼지는 방향
+### 입력
+- Unity Input System 사용
+- ESC 키를 이용한 Pause 
+- UI 버튼을 이용한 화면 전환
 
+## 주요 스크립트
 
+- `CardManager` : 카드 드로우, 사용, 버림 더미 관리 //구현 중
+- `CardUI` : 카드 클릭 및 Hover 처리
+- `PlayerHand` : 카드 풀링 및 손패 배치
+- `UIScreenFlowController` : UI 화면 상태 전환
+- `PlayHUD` : HP, 턴, 플레이 시간 표시 //아직 직접 대입중
+- `RunTimer` : 플레이 시간 관리
+- `UIManager` : Toast Message 풀링 및 출력
+- `PauseInputController` : ESC 입력 처리 // 캔슬이나 버튼을 누르는 형식 미구현
+
+## 프로젝트 목적
+
+Unity UI/UX 구조를 학습하고,
+카드 게임에서 사용할 수 있는 기본적인 화면 전환과
+카드 인터랙션 시스템을 구현하기 위해 제작했습니다.
