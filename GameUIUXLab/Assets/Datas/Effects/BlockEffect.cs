@@ -1,5 +1,6 @@
 using UnityEngine;
 
+[CreateAssetMenu(fileName = "DamageEffect", menuName = "Card Effects/Block")]
 public class BlockEffect : CardEffect
 {
     [SerializeField] private int block; 
