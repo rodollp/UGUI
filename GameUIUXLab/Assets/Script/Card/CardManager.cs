@@ -7,11 +7,11 @@ public class CardManager : MonoBehaviour
     [SerializeField] private PlayHUD playHUD;
 
     [SerializeField] private UIManager uiManager;
+    [SerializeField] private RunManager runManager;
 
 
     [Header("Deck Settings")]
     [SerializeField] private StarterDeckData starterDeckData;
-    [SerializeField] private int startDeckCount = 20;
     [SerializeField] private int drawCount = 5;
 
     private MasterDeck masterDeck;
@@ -33,14 +33,22 @@ public class CardManager : MonoBehaviour
     /// </summary>
     public void StartBattle()
     {
+        if (runManager.MasterDeck == null)
+        {
+            Debug.LogError("MasterDeck이 생성되지 않았습니다.");
+            return;
+        }
+
         playHUD.ResetHUD();
         playerHand.ClearHand();
 
-        
+        // 현재는 실제 DrawPile이 없으므로 카드 수만 사용
+        drawPileCount = runManager.MasterDeck.Cards.Count;
 
-        drawPileCount = startDeckCount;
         discardPileCount = 0;
         handCount = 0;
+
+        Debug.Log($"전투 시작! 덱 카드 수: {drawPileCount}");
 
         DrawCards();
     }
