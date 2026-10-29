@@ -8,10 +8,13 @@ public class CardManager : MonoBehaviour
 
     [SerializeField] private UIManager uiManager;
 
+
     [Header("Deck Settings")]
+    [SerializeField] private StarterDeckData starterDeckData;
     [SerializeField] private int startDeckCount = 20;
     [SerializeField] private int drawCount = 5;
 
+    private MasterDeck masterDeck;
     private int drawPileCount;
     private int discardPileCount;
     private int handCount;
@@ -32,6 +35,8 @@ public class CardManager : MonoBehaviour
     {
         playHUD.ResetHUD();
         playerHand.ClearHand();
+
+        
 
         drawPileCount = startDeckCount;
         discardPileCount = 0;
