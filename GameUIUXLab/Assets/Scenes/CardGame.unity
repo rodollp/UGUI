@@ -3995,9 +3995,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 336202233}
-        m_TargetAssemblyTypeName: UIScreenFlowController, Assembly-CSharp
-        m_MethodName: ShowPlayScreen
+      - m_Target: {fileID: 878746020}
+        m_TargetAssemblyTypeName: RunManager, Assembly-CSharp
+        m_MethodName: StartNewRun
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -4019,9 +4019,9 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 878746020}
-        m_TargetAssemblyTypeName: RunManager, Assembly-CSharp
-        m_MethodName: StartNewRun
+      - m_Target: {fileID: 336202233}
+        m_TargetAssemblyTypeName: UIScreenFlowController, Assembly-CSharp
+        m_MethodName: ShowPlayScreen
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
