@@ -48,7 +48,7 @@ public class CardManager : MonoBehaviour
         discardPileCount = 0;
         handCount = 0;
 
-        Debug.Log($"전투 시작! 덱 카드 수: {drawPileCount}");
+        
 
         DrawCards();
     }
@@ -71,6 +71,7 @@ public class CardManager : MonoBehaviour
             }
 
             playerHand.AddCard();
+            
 
             drawPileCount--;
             handCount++;
