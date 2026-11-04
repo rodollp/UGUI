@@ -14,7 +14,10 @@ public class CardManager : MonoBehaviour
     [SerializeField] private StarterDeckData starterDeckData;
     [SerializeField] private int drawCount = 5;
 
+
+    
     private MasterDeck masterDeck;
+    private BattleDeck battleDeck;
     private int drawPileCount;
     private int discardPileCount;
     private int handCount;
@@ -22,6 +25,7 @@ public class CardManager : MonoBehaviour
     private void Awake()
     {
         playerHand.OnCardClicked += UseCard;
+        
     }
 
     private void OnDestroy()
@@ -60,21 +64,15 @@ public class CardManager : MonoBehaviour
     {
         for (int i = 0; i < drawCount; i++)
         {
-            if (drawPileCount <= 0)
+            CardInstance card = battleDeck.Draw();
+            if (card == null)
             {
-                RefillDrawPile();
-            }
-
-            if (drawPileCount <= 0)
-            {
-                return;
+                return ;
             }
 
             playerHand.AddCard();
             
 
-            drawPileCount--;
-            handCount++;
         }
     }
 
