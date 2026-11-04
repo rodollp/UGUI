@@ -73,4 +73,21 @@ public class BattleDeck
 
         Shuffle();
     }
+
+
+    public bool DiscardCard(CardInstance card)
+    {
+        if (!hand.Remove(card))
+            return false;
+
+        discardPile.Add(card);
+        return true;
+    }
+
+    public void DiscardHand()
+    {
+        discardPile.AddRange(hand);
+        hand.Clear();
+    }
+
 }

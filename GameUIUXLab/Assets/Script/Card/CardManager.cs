@@ -1,3 +1,4 @@
+
 using UnityEngine;
 
 public class CardManager : MonoBehaviour
@@ -5,36 +6,27 @@ public class CardManager : MonoBehaviour
     [Header("References")]
     [SerializeField] private PlayerHand playerHand;
     [SerializeField] private PlayHUD playHUD;
-
     [SerializeField] private UIManager uiManager;
     [SerializeField] private RunManager runManager;
 
-
     [Header("Deck Settings")]
-    [SerializeField] private StarterDeckData starterDeckData;
     [SerializeField] private int drawCount = 5;
 
-
-    
-    private MasterDeck masterDeck;
     private BattleDeck battleDeck;
-    private int drawPileCount;
-    private int discardPileCount;
-    private int handCount;
 
     private void Awake()
     {
         playerHand.OnCardClicked += UseCard;
-        
     }
 
     private void OnDestroy()
     {
-        playerHand.OnCardClicked -= UseCard;
+        if (playerHand != null)
+        {
+            playerHand.OnCardClicked -= UseCard;
+        }
     }
-    /// <summary>
-    /// 전투 시작
-    /// </summary>
+
     public void StartBattle()
     {
         if (runManager.MasterDeck == null)
@@ -43,102 +35,68 @@ public class CardManager : MonoBehaviour
             return;
         }
 
+        battleDeck = new BattleDeck(runManager.MasterDeck);
+        battleDeck.Shuffle();
+
         playHUD.ResetHUD();
         playerHand.ClearHand();
-
-        // 현재는 실제 DrawPile이 없으므로 카드 수만 사용
-        drawPileCount = runManager.MasterDeck.Cards.Count;
-
-        discardPileCount = 0;
-        handCount = 0;
-
-        
 
         DrawCards();
     }
 
-    /// <summary>
-    /// 카드 drawCount 만큼 드로우
-    /// </summary>
     private void DrawCards()
     {
+        if (battleDeck == null)
+            return;
+
         for (int i = 0; i < drawCount; i++)
         {
             CardInstance card = battleDeck.Draw();
+
             if (card == null)
-            {
-                return ;
-            }
+                return;
 
-            playerHand.AddCard();
-            
-
+            playerHand.AddCard(card);
         }
     }
 
-    /// <summary>
-    /// 현재 손패 전체 버리기
-    /// </summary>
     private void DiscardHand()
     {
-        discardPileCount += handCount;
+        if (battleDeck == null)
+            return;
 
-        handCount = 0;
-
+        battleDeck.DiscardHand();
         playerHand.ClearHand();
     }
 
-    /// <summary>
-    /// 카드 한 장 사용
-    /// </summary>
-    public void UseCard(CardUI card)
+    public void UseCard(CardUI cardUI)
     {
+        if (battleDeck == null || cardUI == null)
+            return;
+
+        CardInstance card = cardUI.CardInstance;
+
         if (card == null)
             return;
 
-        playerHand.RemoveCard(card);
-
-        discardPileCount++;
-
-        if (handCount > 0)
-        {
-            handCount--;
-        }
-
-        // 지금 테스트용
-        playHUD.TakeDamage();
-
-        uiManager.ShowToast("카드를 사용했습니다."); 
-    }
-
-    /// <summary>
-    /// 버림 더미를 다시 드로우 더미로 이동
-    /// </summary>
-    private void RefillDrawPile()
-    {
-        if (discardPileCount <= 0)
-        {
+        if (!battleDeck.DiscardCard(card))
             return;
-        }
 
-        drawPileCount = discardPileCount;
-        discardPileCount = 0;
+        playerHand.RemoveCard(cardUI);
 
-        Debug.Log("버림 더미를 섞어 새로운 드로우 더미를 만들었습니다.");
+        playHUD.TakeDamage();
+        uiManager.ShowToast("카드를 사용했습니다.");
     }
 
-    /// <summary>
-    /// 턴 종료
-    /// </summary>
     public void EndTurn()
     {
-        // 1. 현재 손패 전부 버리기
+        if (battleDeck == null)
+            return;
+
         DiscardHand();
 
-        // 2. 턴 증가
         playHUD.NextTurn();
 
-        // 3. 새로운 카드 5장 드로우
         DrawCards();
     }
 }

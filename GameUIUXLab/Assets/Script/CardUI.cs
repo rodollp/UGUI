@@ -21,6 +21,13 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
     public event Action<CardUI> OnCardClicked;
 
+    public CardInstance CardInstance { get; private set; }
+
+    public void SetCard(CardInstance cardInstance)
+    {
+        CardInstance = cardInstance;
+    }
+
     private void Awake()
     {
         rectTransform = GetComponent<RectTransform>();

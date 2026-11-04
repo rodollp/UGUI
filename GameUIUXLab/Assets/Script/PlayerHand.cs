@@ -41,20 +41,25 @@ public class PlayerHand : MonoBehaviour
         OnCardClicked?.Invoke(card);
     }
 
-    public void AddCard()
+
+    public void AddCard(CardInstance cardInstance)
     {
+        if (cardInstance == null)
+            return;
+
         foreach (CardUI card in cardPool)
         {
             if (!card.gameObject.activeSelf)
             {
+                card.SetCard(cardInstance);
                 card.gameObject.SetActive(true);
 
                 RefreshLayout();
-
                 return;
             }
         }
     }
+
 
     public void RemoveCard(CardUI card)
     {
