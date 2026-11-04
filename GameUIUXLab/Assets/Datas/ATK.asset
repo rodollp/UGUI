@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: ATK
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   CardID: 0
-  CardName: At
+  CardName: "\uD0C0\uACA9"
   Type: 0
   EnergyCost: 1
   Effects:

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: BLO
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   CardID: 1
-  CardName: BLO
+  CardName: "\uBC29\uC5B4"
   Type: 1
   EnergyCost: 1
   Effects:
