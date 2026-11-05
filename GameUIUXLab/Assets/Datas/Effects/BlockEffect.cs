@@ -8,4 +8,10 @@ public class BlockEffect : CardEffect
     {
         Debug.Log($"방어 출력 {block}");
     }
+
+    public override string GetDescription()
+    {
+        return $"방어도를 {block} 얻습니다";
+    }
+
 }

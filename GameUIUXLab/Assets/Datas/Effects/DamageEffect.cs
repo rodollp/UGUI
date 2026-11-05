@@ -9,4 +9,9 @@ public class DamageEffect : CardEffect
     {
         Debug.Log($"카드 공격 효과 실행: {damage} 데미지");
     }
+
+    public override string GetDescription()
+    {
+        return $"피해를 {damage} 입힙니다";
+    }
 }

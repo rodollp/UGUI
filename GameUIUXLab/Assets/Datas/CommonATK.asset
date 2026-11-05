@@ -12,4 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 825039c3ceac7db4fa62f2377d0843bc, type: 3}
   m_Name: CommonATK
   m_EditorClassIdentifier: Assembly-CSharp::DamageEffect
-  damage: 0
+  damage: 6

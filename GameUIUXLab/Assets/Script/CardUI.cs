@@ -72,7 +72,7 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         costText.text = cardInstance.CurrentCost.ToString();
         typeText.text = data.Type.ToString();
 
-        descriptionText.text = "카드 효과 설명";
+        descriptionText.text = data.Effects.ToString();
     }
 
     public void ClearCard()
