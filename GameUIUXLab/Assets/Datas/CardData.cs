@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public enum CardType
@@ -17,4 +18,10 @@ public class CardData : ScriptableObject
     public int EnergyCost;
 
     public List<CardEffect> Effects;
+
+    public string GetDescription()
+    {
+        return string.Join("\n",
+            Effects.Select(effect => effect.GetDescription()));
+    }
 }

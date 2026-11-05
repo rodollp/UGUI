@@ -1,5 +1,6 @@
 
 using System;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -72,7 +73,7 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         costText.text = cardInstance.CurrentCost.ToString();
         typeText.text = data.Type.ToString();
 
-        descriptionText.text = data.Effects.ToString();
+        descriptionText.text = data.GetDescription();
     }
 
     public void ClearCard()
