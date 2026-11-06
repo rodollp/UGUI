@@ -84,7 +84,7 @@ public class CardManager : MonoBehaviour
 
         playerHand.RemoveCard(cardUI);
 
-        playHUD.TakeDamage();
+        
         uiManager.ShowToast("카드를 사용했습니다.");
     }
 

@@ -12,13 +12,10 @@ public class PlayHUD : MonoBehaviour
     [SerializeField] private UIScreenFlowController screenFlowController;
 
     private int turn = 1;
-    private float currentHp = 100f;
-    private float maxHp = 100f;
 
     private void Start()
     {
         hpSlider.minValue = 0f;
-        hpSlider.maxValue = maxHp;
 
         RefreshUI();
     }
@@ -28,17 +25,6 @@ public class PlayHUD : MonoBehaviour
         RefreshTimeUI();
     }
 
-    public void TakeDamage()
-    {
-        currentHp = Mathf.Max(0f, currentHp - 10f);
-
-        RefreshHpUI();
-
-        if (currentHp <= 0f)
-        {
-            GameOver();
-        }
-    }
 
     public void NextTurn()
     {
@@ -54,7 +40,6 @@ public class PlayHUD : MonoBehaviour
     public void ResetHUD()
     {
         turn = 1;
-        currentHp = maxHp;
 
         RefreshUI();
     }
@@ -63,7 +48,7 @@ public class PlayHUD : MonoBehaviour
     {
         RefreshTurnUI();
         RefreshTimeUI();
-        RefreshHpUI();
+        
     }
 
     private void RefreshTurnUI()
@@ -76,8 +61,5 @@ public class PlayHUD : MonoBehaviour
         timeText.text = $"Time : {runTimer.PlayTime:00:00}";
     }
 
-    private void RefreshHpUI()
-    {
-        hpSlider.value = currentHp;
-    }
+    
 }
