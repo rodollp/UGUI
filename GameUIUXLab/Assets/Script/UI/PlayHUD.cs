@@ -6,7 +6,7 @@ public class PlayHUD : MonoBehaviour
 {
     [SerializeField] private TextMeshProUGUI turnText;
     [SerializeField] private TextMeshProUGUI timeText;
-    [SerializeField] private Slider hpSlider;
+    
 
     [SerializeField] private RunTimer runTimer;
     [SerializeField] private UIScreenFlowController screenFlowController;
@@ -15,7 +15,7 @@ public class PlayHUD : MonoBehaviour
 
     private void Start()
     {
-        hpSlider.minValue = 0f;
+   
 
         RefreshUI();
     }

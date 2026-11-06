@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 public class HealthBarUI : MonoBehaviour
 {
-    [SerializeField] private Image hpSlider;
+    [SerializeField] private Image hpFill;
     [SerializeField] private TextMeshProUGUI hpText;
 
     private CreatureStatus status;
@@ -22,7 +22,7 @@ public class HealthBarUI : MonoBehaviour
 
     private void RefreshUI()
     {
-        hpSlider.fillAmount = (float)status.CurrentHp / status.MaxHp;
+        hpFill.fillAmount = (float)status.CurrentHp / status.MaxHp;
         hpText.text = $"{status.CurrentHp} / {status.MaxHp}";
     }
 

@@ -3,6 +3,7 @@ using UnityEngine;
 public class Enemy : MonoBehaviour
 {
     [SerializeField] private EnemyData enemyData;
+    [SerializeField] private HealthBarUI healthBarUI;
 
     private EnemyStatus enemyStatus;
 
@@ -11,5 +12,7 @@ public class Enemy : MonoBehaviour
     private void Awake()
     {
         enemyStatus = new EnemyStatus(enemyData.MaxHp);
+
+        healthBarUI.Initialize(enemyStatus);
     }
 }
