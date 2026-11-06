@@ -16,7 +16,6 @@ public class PlayHUD : MonoBehaviour
     private void Start()
     {
    
-
         RefreshUI();
     }
 
