@@ -7,6 +7,11 @@ public class RunManager : MonoBehaviour
 
     public MasterDeck MasterDeck { get; private set; }
 
+    public PlayerStatus PlayerStatus { get; private set; }
+
+    [Header("Player Settings")]
+    [SerializeField] private int startingMaxHp = 80;
+
     public void StartNewRun()
     {
         if (starterDeckData == null)
@@ -16,7 +21,9 @@ public class RunManager : MonoBehaviour
         }
 
         MasterDeck = new MasterDeck(starterDeckData);
+        PlayerStatus = new PlayerStatus(startingMaxHp);
 
         Debug.Log($"새 게임 시작! 보유 카드: {MasterDeck.Cards.Count}장");
+        Debug.Log($"시작 체력 {PlayerStatus.CurrentHp}");
     }
 }
