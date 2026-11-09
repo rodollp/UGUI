@@ -1,12 +1,11 @@
 
 using System;
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
 [RequireComponent(typeof(RectTransform))]
-public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBeginDragHandler,IDragHandler,IEndDragHandler
 {
     [Header("Card Information")]
     [SerializeField] private TMP_Text costText;
@@ -20,12 +19,16 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     [SerializeField] private float moveSpeed = 12f;
 
     private RectTransform rectTransform;
+    private RectTransform parentRect;
 
     private Vector2 basePosition;
     private Vector3 baseScale;
 
     private Vector2 targetPosition;
     private Vector3 targetScale;
+
+    private bool isDragging;
+    private Vector2 dragOffset;
 
     public event Action<CardUI> OnCardClicked;
 
@@ -34,6 +37,7 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     private void Awake()
     {
         rectTransform = GetComponent<RectTransform>();
+        parentRect = rectTransform.parent as RectTransform;
 
         basePosition = rectTransform.anchoredPosition;
         baseScale = rectTransform.localScale;
@@ -44,11 +48,14 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
     private void Update()
     {
-        rectTransform.anchoredPosition = Vector2.Lerp(
-            rectTransform.anchoredPosition,
-            targetPosition,
-            moveSpeed * Time.deltaTime
-        );
+        if (!isDragging)
+        {
+            rectTransform.anchoredPosition = Vector2.Lerp(
+                rectTransform.anchoredPosition,
+                targetPosition,
+                moveSpeed * Time.deltaTime
+            );
+        }
 
         rectTransform.localScale = Vector3.Lerp(
             rectTransform.localScale,
@@ -72,13 +79,14 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         nameText.text = data.CardName;
         costText.text = cardInstance.CurrentCost.ToString();
         typeText.text = data.Type.ToString();
-
         descriptionText.text = data.GetDescription();
     }
 
     public void ClearCard()
     {
         CardInstance = null;
+
+        isDragging = false;
 
         nameText.text = "";
         costText.text = "";
@@ -93,7 +101,7 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
     public void OnClickCard()
     {
-        if (CardInstance == null)
+        if (CardInstance == null || isDragging)
             return;
 
         OnCardClicked?.Invoke(this);
@@ -101,12 +109,63 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
     public void OnPointerEnter(PointerEventData eventData)
     {
+        if (isDragging)
+            return;
+
         targetPosition = basePosition + Vector2.up * hoverMoveY;
         targetScale = baseScale * hoverScale;
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
+        if (isDragging)
+            return;
+
+        targetPosition = basePosition;
+        targetScale = baseScale;
+    }
+
+    public void OnBeginDrag(PointerEventData eventData)
+    {
+        if (CardInstance == null)
+            return;
+
+        isDragging = true;
+
+        targetScale = baseScale * hoverScale;
+
+        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            parentRect,
+            eventData.position,
+            eventData.pressEventCamera,
+            out Vector2 localPoint))
+        {
+            dragOffset = rectTransform.anchoredPosition - localPoint;
+        }
+    }
+
+    public void OnDrag(PointerEventData eventData)
+    {
+        if (!isDragging)
+            return;
+
+        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            parentRect,
+            eventData.position,
+            eventData.pressEventCamera,
+            out Vector2 localPoint))
+        {
+            rectTransform.anchoredPosition = localPoint + dragOffset;
+        }
+    }
+
+    public void OnEndDrag(PointerEventData eventData)
+    {
+        if (!isDragging)
+            return;
+
+        isDragging = false;
+
         targetPosition = basePosition;
         targetScale = baseScale;
     }
@@ -114,6 +173,10 @@ public class CardUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     public void SetBasePosition(Vector2 position)
     {
         basePosition = position;
-        targetPosition = basePosition;
+
+        if (!isDragging)
+        {
+            targetPosition = basePosition;
+        }
     }
 }

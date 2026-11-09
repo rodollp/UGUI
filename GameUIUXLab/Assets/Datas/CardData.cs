@@ -1,3 +1,4 @@
+
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -9,12 +10,19 @@ public enum CardType
     Power
 }
 
+public enum CardTargetType
+{
+    None,
+    Enemy
+}
+
 [CreateAssetMenu(fileName = "CardData", menuName = "Scriptable Objects/CardData")]
 public class CardData : ScriptableObject
 {
     public uint CardID;
     public string CardName;
     public CardType Type;
+    public CardTargetType TargetType;
     public int EnergyCost;
 
     public List<CardEffect> Effects;

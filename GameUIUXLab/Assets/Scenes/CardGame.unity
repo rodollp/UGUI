@@ -1451,6 +1451,53 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 425178010}
   m_CullTransparentMesh: 1
+--- !u!1 &455213933
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 455213934}
+  - component: {fileID: 455213935}
+  m_Layer: 0
+  m_Name: BattleManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &455213934
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 455213933}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -4.64645, y: 0.15249, z: 0.35355}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &455213935
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 455213933}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c26621723a31ab348aaede6f6e25c7e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BattleManager
+  runManager: {fileID: 878746020}
+  player: {fileID: 1054693053}
+  cardManager: {fileID: 324513332}
 --- !u!1 &515591306
 GameObject:
   m_ObjectHideFlags: 0
@@ -2239,6 +2286,17 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1031738309}
   m_CullTransparentMesh: 1
+--- !u!114 &1054693053 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 2956683028760989952, guid: b6cbee51efe5da24b821c61b28f821a9, type: 3}
+  m_PrefabInstance: {fileID: 1134851443}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b9d831a243da50f4cba8b50859ffcdd2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Player
 --- !u!1 &1075522102
 GameObject:
   m_ObjectHideFlags: 0
@@ -3949,8 +4007,8 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 324513332}
-        m_TargetAssemblyTypeName: CardManager, Assembly-CSharp
+      - m_Target: {fileID: 455213935}
+        m_TargetAssemblyTypeName: BattleManager, Assembly-CSharp
         m_MethodName: StartBattle
         m_Mode: 1
         m_Arguments:
@@ -4353,3 +4411,4 @@ SceneRoots:
   - {fileID: 878746021}
   - {fileID: 1407353876}
   - {fileID: 1134851443}
+  - {fileID: 455213934}
