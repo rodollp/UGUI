@@ -2696,14 +2696,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 2956683028760989952, guid: b6cbee51efe5da24b821c61b28f821a9, type: 3}
-      propertyPath: runManager
-      value: 
-      objectReference: {fileID: 878746020}
-    - target: {fileID: 2956683028760989952, guid: b6cbee51efe5da24b821c61b28f821a9, type: 3}
-      propertyPath: healthBarUI
-      value: 
-      objectReference: {fileID: 1585834355}
     - target: {fileID: 8554443196694646295, guid: b6cbee51efe5da24b821c61b28f821a9, type: 3}
       propertyPath: m_Name
       value: Player
@@ -2876,10 +2868,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 156386828521138691, guid: 3ae86a9e228672042b37a99c99652abe, type: 3}
-      propertyPath: m_Layer
-      value: 6
-      objectReference: {fileID: 0}
     - target: {fileID: 281231871859979102, guid: 3ae86a9e228672042b37a99c99652abe, type: 3}
       propertyPath: m_LocalPosition.x
       value: -0.054686517
@@ -2920,37 +2908,9 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 2797731306898404768, guid: 3ae86a9e228672042b37a99c99652abe, type: 3}
-      propertyPath: m_Layer
-      value: 6
-      objectReference: {fileID: 0}
-    - target: {fileID: 4103562866582890382, guid: 3ae86a9e228672042b37a99c99652abe, type: 3}
-      propertyPath: m_Layer
-      value: 6
-      objectReference: {fileID: 0}
-    - target: {fileID: 6988891179547885747, guid: 3ae86a9e228672042b37a99c99652abe, type: 3}
-      propertyPath: m_Layer
-      value: 6
-      objectReference: {fileID: 0}
-    - target: {fileID: 7316007710433682305, guid: 3ae86a9e228672042b37a99c99652abe, type: 3}
-      propertyPath: m_Layer
-      value: 6
-      objectReference: {fileID: 0}
-    - target: {fileID: 7676868112601133428, guid: 3ae86a9e228672042b37a99c99652abe, type: 3}
-      propertyPath: m_Layer
-      value: 6
-      objectReference: {fileID: 0}
-    - target: {fileID: 8289075878797438749, guid: 3ae86a9e228672042b37a99c99652abe, type: 3}
-      propertyPath: m_Layer
-      value: 6
-      objectReference: {fileID: 0}
     - target: {fileID: 8554443196694646295, guid: 3ae86a9e228672042b37a99c99652abe, type: 3}
       propertyPath: m_Name
       value: Normal
-      objectReference: {fileID: 0}
-    - target: {fileID: 8554443196694646295, guid: 3ae86a9e228672042b37a99c99652abe, type: 3}
-      propertyPath: m_Layer
-      value: 6
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -3227,17 +3187,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1512731471}
   m_CullTransparentMesh: 1
---- !u!114 &1585834355 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 5248007614870627251, guid: b6cbee51efe5da24b821c61b28f821a9, type: 3}
-  m_PrefabInstance: {fileID: 1134851443}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 77ca82874bbf7f64abe0e5bcb5ee7bde, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HealthBarUI
 --- !u!1 &1668874629
 GameObject:
   m_ObjectHideFlags: 0
