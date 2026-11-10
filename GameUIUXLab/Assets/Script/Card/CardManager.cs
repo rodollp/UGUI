@@ -114,13 +114,13 @@ public class CardManager : MonoBehaviour
 
                     Debug.Log($"선택된 적: {target.name}");
 
-                    UseCard(cardUI);
+                    UseCard(cardUI, target);
                     break;
                 }
         }
     }
 
-    public void UseCard(CardUI cardUI)
+    public void UseCard(CardUI cardUI, Enemy target = null)
     {
         if (battleDeck == null || cardUI == null)
             return;
@@ -130,9 +130,32 @@ public class CardManager : MonoBehaviour
         if (card == null)
             return;
 
+        if (runManager.PlayerStatus == null)
+        {
+            Debug.LogError("PlayerStatus가 생성되지 않았습니다.");
+            return;
+        }
+
+        // 카드 효과에 필요한 정보 생성
+        CardEffectContext context = new CardEffectContext(
+            runManager.PlayerStatus,
+            target != null ? target.Status : null
+        );
+
+        // 카드에 등록된 효과 실행
+        foreach (CardEffect effect in card.CardData.Effects)
+        {
+            if (effect == null)
+                continue;
+
+            effect.Execute(context);
+        }
+
+        // 사용한 카드를 버린 더미로 이동
         if (!battleDeck.DiscardCard(card))
             return;
 
+        // 손패 UI에서 제거
         playerHand.RemoveCard(cardUI);
 
         uiManager.ShowToast("카드를 사용했습니다.");

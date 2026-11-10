@@ -5,9 +5,14 @@ public class DamageEffect : CardEffect
 {
     [SerializeField] private int damage;
 
-    public override void Execute()
+    public override void Execute(CardEffectContext context)
     {
-        Debug.Log($"카드 공격 효과 실행: {damage} 데미지");
+        if (context == null || context.Target == null)
+            return;
+
+        int finalDamage = context.Player.AttackPower + damage;
+
+        context.Target.TakeDamage(finalDamage);
     }
 
     public override string GetDescription()

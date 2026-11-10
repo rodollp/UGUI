@@ -31,13 +31,22 @@ public class HealthBarUI : MonoBehaviour
         if (status == null)
             return;
 
+        // 체력 표시
         hpFill.fillAmount = status.MaxHp > 0
             ? (float)status.CurrentHp / status.MaxHp
             : 0f;
 
         hpText.text = $"{status.CurrentHp} / {status.MaxHp}";
 
-        // CreatureStatus의 실제 블록 프로퍼티 이름에 맞춰 연결
+        // 방어도 표시
+        bool hasBlock = status.CurrentBlock > 0;
+
+        blockGroup.SetActive(hasBlock);
+
+        if (hasBlock)
+        {
+            blockText.text = status.CurrentBlock.ToString();
+        }
     }
 
     private void OnDestroy()

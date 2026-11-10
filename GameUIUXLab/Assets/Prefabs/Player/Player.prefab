@@ -128,7 +128,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b9d831a243da50f4cba8b50859ffcdd2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Player
-  runManager: {fileID: 0}
   healthBarUI: {fileID: 5248007614870627251}
 --- !u!1001 &8539738567006124300
 PrefabInstance:
