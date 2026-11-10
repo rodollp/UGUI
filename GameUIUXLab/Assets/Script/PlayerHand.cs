@@ -16,6 +16,7 @@ public class PlayerHand : MonoBehaviour
     private readonly List<CardUI> cardPool = new();
 
     public event Action<CardUI> OnCardClicked;
+    public event Action<CardUI, Vector2> OnCardDropped;
 
     private void Awake()
     {
@@ -29,6 +30,7 @@ public class PlayerHand : MonoBehaviour
             CardUI card = Instantiate(cardPrefab, transform);
 
             card.OnCardClicked += HandleCardClicked;
+            card.OnCardDropped += HandleCardDropped;
 
             card.gameObject.SetActive(false);
 
@@ -40,8 +42,10 @@ public class PlayerHand : MonoBehaviour
     {
         OnCardClicked?.Invoke(card);
     }
-
-
+    private void HandleCardDropped(CardUI card, Vector2 screenPosition)
+    {
+        OnCardDropped?.Invoke(card, screenPosition);
+    }
     public void AddCard(CardInstance cardInstance)
     {
         if (cardInstance == null)

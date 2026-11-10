@@ -712,7 +712,9 @@ MonoBehaviour:
   playHUD: {fileID: 94125204}
   uiManager: {fileID: 1291257164}
   runManager: {fileID: 878746020}
+  targetSelector: {fileID: 1668874630}
   drawCount: 5
+  useHeightRatio: 0.35
 --- !u!4 &324513333
 Transform:
   m_ObjectHideFlags: 0
@@ -2874,6 +2876,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 156386828521138691, guid: 3ae86a9e228672042b37a99c99652abe, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: 281231871859979102, guid: 3ae86a9e228672042b37a99c99652abe, type: 3}
       propertyPath: m_LocalPosition.x
       value: -0.054686517
@@ -2914,9 +2920,37 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2797731306898404768, guid: 3ae86a9e228672042b37a99c99652abe, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 4103562866582890382, guid: 3ae86a9e228672042b37a99c99652abe, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 6988891179547885747, guid: 3ae86a9e228672042b37a99c99652abe, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 7316007710433682305, guid: 3ae86a9e228672042b37a99c99652abe, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 7676868112601133428, guid: 3ae86a9e228672042b37a99c99652abe, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8289075878797438749, guid: 3ae86a9e228672042b37a99c99652abe, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: 8554443196694646295, guid: 3ae86a9e228672042b37a99c99652abe, type: 3}
       propertyPath: m_Name
       value: Normal
+      objectReference: {fileID: 0}
+    - target: {fileID: 8554443196694646295, guid: 3ae86a9e228672042b37a99c99652abe, type: 3}
+      propertyPath: m_Layer
+      value: 6
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -3204,6 +3238,55 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77ca82874bbf7f64abe0e5bcb5ee7bde, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HealthBarUI
+--- !u!1 &1668874629
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1668874631}
+  - component: {fileID: 1668874630}
+  m_Layer: 0
+  m_Name: TargetSelector
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1668874630
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1668874629}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 994dacb3f1aad6d4e954bcabf8f6fa4c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TargetSelector
+  targetCamera: {fileID: 146365202}
+  enemyLayer:
+    serializedVersion: 2
+    m_Bits: 64
+  maxDistance: 100
+--- !u!4 &1668874631
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1668874629}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -4.64645, y: 0.15249, z: 0.35355}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1816895650
 GameObject:
   m_ObjectHideFlags: 0
@@ -4412,3 +4495,4 @@ SceneRoots:
   - {fileID: 1407353876}
   - {fileID: 1134851443}
   - {fileID: 455213934}
+  - {fileID: 1668874631}

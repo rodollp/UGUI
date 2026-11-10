@@ -15,6 +15,7 @@ MonoBehaviour:
   CardID: 0
   CardName: "\uD0C0\uACA9"
   Type: 0
+  TargetType: 1
   EnergyCost: 1
   Effects:
   - {fileID: 11400000, guid: 0de5d097f17d68544a99379cae255a5f, type: 2}

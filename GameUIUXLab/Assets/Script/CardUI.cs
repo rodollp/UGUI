@@ -31,6 +31,7 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
     private Vector2 dragOffset;
 
     public event Action<CardUI> OnCardClicked;
+    public event Action<CardUI,Vector2> OnCardDropped;
 
     public CardInstance CardInstance { get; private set; }
 
@@ -165,6 +166,8 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
             return;
 
         isDragging = false;
+
+        OnCardDropped?.Invoke(this, eventData.position);
 
         targetPosition = basePosition;
         targetScale = baseScale;
