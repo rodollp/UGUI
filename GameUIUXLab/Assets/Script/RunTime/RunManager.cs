@@ -1,32 +1,45 @@
-
 using UnityEngine;
 
 public class RunManager : MonoBehaviour
 {
     [Header("Player Data")]
     [SerializeField] private PlayerData playerData;
+    [Header("Stages (in floor order)")]
+    [SerializeField] private StageData[] stages;
 
     public MasterDeck MasterDeck { get; private set; }
     public PlayerStatus PlayerStatus { get; private set; }
+    public int StageIndex { get; private set; }
+    public int Floor => StageIndex + 1;
+    public bool HasStageSequence => stages != null && stages.Length > 0;
+    public bool IsRunComplete => HasStageSequence && StageIndex >= stages.Length;
+    public StageData CurrentStage => HasStageSequence && !IsRunComplete ? stages[StageIndex] : null;
+    public EncounterData CurrentEncounter { get; private set; }
 
     public void StartNewRun()
     {
-        if (playerData == null)
+        if (playerData == null || playerData.StarterDeck == null)
         {
-            Debug.LogError("PlayerData°¡ ¼³Á¤µÇÁö ¾Ê¾Ò½À´Ï´Ù.");
+            Debug.LogError("PlayerData ë˜ëŠ” ì‹œì‘ ë±ì´ ì„¤ì •ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.");
             return;
         }
-
-        if (playerData.StarterDeck == null)
-        {
-            Debug.LogError("½ÃÀÛ µ¦ÀÌ ¼³Á¤µÇÁö ¾Ê¾Ò½À´Ï´Ù.");
-            return;
-        }
-
         MasterDeck = new MasterDeck(playerData.StarterDeck);
         PlayerStatus = new PlayerStatus(playerData.MaxHp);
+        StageIndex = 0;
+        SelectCurrentEncounter();
+    }
 
-        Debug.Log($"»õ °ÔÀÓ ½ÃÀÛ! º¸À¯ Ä«µå: {MasterDeck.Cards.Count}Àå");
-        Debug.Log($"½ÃÀÛ Ã¼·Â: {PlayerStatus.CurrentHp}/{PlayerStatus.MaxHp}");
+    // BattleManagerê°€ ìŠ¹ë¦¬í–ˆì„ ë•Œë§Œ í˜¸ì¶œí•©ë‹ˆë‹¤.
+    public void CompleteStage()
+    {
+        if (!HasStageSequence || IsRunComplete) return;
+        StageIndex++;
+        SelectCurrentEncounter();
+    }
+
+    private void SelectCurrentEncounter()
+    {
+        CurrentEncounter = CurrentStage != null ? CurrentStage.SelectEncounter() : null;
     }
 }
+

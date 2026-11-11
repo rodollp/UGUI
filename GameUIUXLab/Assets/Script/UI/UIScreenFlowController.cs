@@ -20,6 +20,7 @@ public class UIScreenFlowController : MonoBehaviour
     [SerializeField] private GameObject refreshScreen;
 
     [SerializeField] private RunTimer runTimer;
+    [SerializeField] private BattleManager battleManager;
    
     private UIScreenState currentState;
 
@@ -32,6 +33,7 @@ public class UIScreenFlowController : MonoBehaviour
     }
     public void ShowTitleScreen()
     {
+        if (battleManager != null) battleManager.AbortBattle();
         SetActiveScreen(UIScreenState.Title);
         Time.timeScale = 1f;
 
@@ -40,10 +42,12 @@ public class UIScreenFlowController : MonoBehaviour
 
     public void ShowPlayScreen()
     {
+        bool newRun = currentState == UIScreenState.Title;
         SetActiveScreen(UIScreenState.Play);
         Time.timeScale = 1f;
 
-        runTimer.StartTimer();
+        if (newRun) runTimer.StartTimer();
+        else runTimer.ResumeTimer();
     }
 
     public void ShowPauseScreen()
@@ -72,6 +76,7 @@ public class UIScreenFlowController : MonoBehaviour
 
     public void ShowRefreshScreen()
     {
+        if (battleManager != null) battleManager.AbortBattle();
         SetActiveScreen(UIScreenState.Refresh);
         Time.timeScale = 0f;
         runTimer.StopTimer();
@@ -86,3 +91,4 @@ public class UIScreenFlowController : MonoBehaviour
         refreshScreen.SetActive(currentState == UIScreenState.Refresh);
     }
 }
+

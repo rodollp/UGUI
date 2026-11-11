@@ -73,12 +73,22 @@ public abstract class CreatureStatus
         OnStatusChanged?.Invoke();
     }
 
+    // 체력은 유지하고 전투 중에만 유효한 능력치를 제거합니다.
+    public void ResetCombatState()
+    {
+        CurrentBlock = 0;
+        AttackPower = 0;
+        Dexterity = 0;
+        OnStatusChanged?.Invoke();
+    }
+
     public void Heal(int amount)
     {
         if (amount <= 0 || IsDead)
             return;
 
-        CurrentHp = Math.Min(MaxHp, CurrentHp + amount);
+        CurrentHp += Math.Min(amount, MaxHp - CurrentHp);
         OnStatusChanged?.Invoke();
     }
 }
+

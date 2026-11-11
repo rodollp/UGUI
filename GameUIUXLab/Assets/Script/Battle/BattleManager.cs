@@ -1,4 +1,9 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
+
+public enum BattleState { None, Preparing, PlayerTurn, EnemyTurn, Victory, Defeat }
 
 public class BattleManager : MonoBehaviour
 {
@@ -6,25 +11,177 @@ public class BattleManager : MonoBehaviour
     [SerializeField] private RunManager runManager;
     [SerializeField] private Player player;
     [SerializeField] private CardManager cardManager;
+    [SerializeField] private UIScreenFlowController screenFlowController;
+    [SerializeField] private Transform enemyRoot;
+    [Header("Encounter (used when no stage sequence is assigned)")]
+    [SerializeField] private EncounterData encounter;
+    [SerializeField, Min(0)] private float enemyActionDelay = 0.6f;
+
+    private readonly List<Enemy> enemies = new();
+    private PlayerStatus playerStatus;
+    public IReadOnlyList<Enemy> Enemies => enemies;
+    public BattleState State { get; private set; }
+    public int Turn { get; private set; }
+    public string EncounterName { get; private set; }
+    public int BattleFloor { get; private set; }
+    public bool CanPlayCards => State == BattleState.PlayerTurn
+        && (screenFlowController == null || screenFlowController.IsPlaying) && Time.timeScale > 0;
+    public event Action OnBattleChanged;
+    public event Action<bool> OnBattleEnded;
 
     public void StartBattle()
     {
-        if (runManager.PlayerStatus == null)
+        if (State == BattleState.Preparing || State == BattleState.PlayerTurn || State == BattleState.EnemyTurn)
+            return;
+        EncounterData selected = runManager != null && runManager.HasStageSequence
+            ? runManager.CurrentEncounter : encounter;
+        if (runManager == null || runManager.PlayerStatus == null || runManager.PlayerStatus.IsDead
+            || runManager.MasterDeck == null || player == null || cardManager == null
+            || (runManager.HasStageSequence && runManager.IsRunComplete)
+            || selected == null || !selected.IsValid())
         {
-            Debug.LogError("PlayerStatus°¡ »ý¼ºµÇÁö ¾Ê¾Ò½À´Ï´Ù.");
+            Debug.LogError("ì „íˆ¬ë¥¼ ì‹œìž‘í•  ìˆ˜ ì—†ìŠµë‹ˆë‹¤. í”Œë ˆì´ì–´, ë±, ì  ì¡°í•© ë° ì°¸ì¡°ë¥¼ í™•ì¸í•˜ì„¸ìš”.");
             return;
         }
 
-        if (runManager.MasterDeck == null)
+        AbortBattle();
+        State = BattleState.Preparing;
+        BattleFloor = runManager.Floor;
+        EncounterName = selected.EncounterName;
+        playerStatus = runManager.PlayerStatus;
+        playerStatus.ResetCombatState();
+        playerStatus.OnDead += HandlePlayerDead;
+        playerStatus.OnStatusChanged += NotifyChanged;
+        playerStatus.OnEnergyChanged += NotifyChanged;
+        player.Initialize(playerStatus);
+
+        foreach (EnemySpawnEntry entry in selected.Enemies)
         {
-            Debug.LogError("MasterDeckÀÌ »ý¼ºµÇÁö ¾Ê¾Ò½À´Ï´Ù.");
-            return;
+            Enemy enemy = Instantiate(entry.Prefab, enemyRoot != null ? enemyRoot : transform);
+            enemy.transform.localPosition = entry.LocalPosition;
+            enemy.Initialize(entry.Data);
+            enemy.name = entry.Data.EnemyName;
+            enemies.Add(enemy);
+            enemy.Status.OnDead += HandleEnemyDead;
+            enemy.Status.OnStatusChanged += NotifyChanged;
+            enemy.OnIntentChanged += NotifyChanged;
+            enemy.PlanNextAction();
         }
 
-        // ÇÃ·¹ÀÌ¾î »óÅÂ ¹× UI ÃÊ±âÈ­
-        player.Initialize(runManager.PlayerStatus);
-
-        // Ä«µå ½Ã½ºÅÛ ÃÊ±âÈ­
-        cardManager.StartBattle();
+        cardManager.InitializeBattle(this);
+        Turn = 0;
+        BeginPlayerTurn();
     }
+
+    public bool IsValidTarget(Enemy target)
+    {
+        return target != null && enemies.Contains(target)
+            && target.Status != null && !target.Status.IsDead;
+    }
+
+    public void EndPlayerTurn()
+    {
+        if (!CanPlayCards || cardManager.IsResolvingCard) return;
+        State = BattleState.EnemyTurn; // ë²„íŠ¼ ì—°íƒ€ë¥¼ ì½”ë£¨í‹´ ì‹œìž‘ ì „ì— ì°¨ë‹¨í•©ë‹ˆë‹¤.
+        cardManager.DiscardPlayerHand();
+        NotifyChanged();
+        StartCoroutine(EnemyTurn());
+    }
+
+    private IEnumerator EnemyTurn()
+    {
+        foreach (Enemy enemy in enemies)
+        {
+            if (!IsValidTarget(enemy)) continue;
+            yield return new WaitForSeconds(enemyActionDelay);
+            if (State != BattleState.EnemyTurn) yield break;
+            enemy.ExecuteIntent(playerStatus);
+            if (State != BattleState.EnemyTurn) yield break;
+        }
+        foreach (Enemy enemy in enemies)
+            if (IsValidTarget(enemy)) enemy.PlanNextAction();
+        BeginPlayerTurn();
+    }
+
+    private void BeginPlayerTurn()
+    {
+        if (CheckBattleEnd()) return;
+        Turn++;
+        playerStatus.ResetBlock();
+        playerStatus.StartTurn();
+        State = BattleState.PlayerTurn;
+        cardManager.BeginPlayerTurn();
+        NotifyChanged();
+    }
+
+    // ë‹¤ì¤‘ íš¨ê³¼ ì¹´ë“œëŠ” ëª¨ë“  íš¨ê³¼ë¥¼ ì²˜ë¦¬í•œ ë’¤ ìŠ¹ë¦¬ë¥¼ íŒì •í•©ë‹ˆë‹¤.
+    private void HandleEnemyDead()
+    {
+        foreach (Enemy enemy in enemies)
+            if (enemy.Status.IsDead) enemy.gameObject.SetActive(false);
+        if (!cardManager.IsResolvingCard) CheckBattleEnd();
+        NotifyChanged();
+    }
+
+    private void HandlePlayerDead() => FinishBattle(false);
+
+    public bool CheckBattleEnd()
+    {
+        if (State == BattleState.None || State == BattleState.Victory || State == BattleState.Defeat)
+            return true;
+        if (playerStatus.IsDead) { FinishBattle(false); return true; }
+        foreach (Enemy enemy in enemies)
+            if (enemy != null && !enemy.Status.IsDead) return false;
+        FinishBattle(true);
+        return true;
+    }
+
+    private void FinishBattle(bool won)
+    {
+        if (State == BattleState.None || State == BattleState.Victory || State == BattleState.Defeat)
+            return;
+        State = won ? BattleState.Victory : BattleState.Defeat;
+        cardManager.EndBattle();
+        if (won) runManager.CompleteStage();
+        NotifyChanged();
+        OnBattleEnded?.Invoke(won);
+        if (screenFlowController != null) screenFlowController.ShowResultScreen();
+    }
+
+    public void StartNextBattle()
+    {
+        if (State != BattleState.Victory || !runManager.HasStageSequence || runManager.IsRunComplete)
+            return;
+        if (screenFlowController != null) screenFlowController.ShowPlayScreen();
+        StartBattle();
+    }
+
+    public void AbortBattle()
+    {
+        StopAllCoroutines();
+        State = BattleState.None;
+        if (cardManager != null) cardManager.EndBattle();
+        if (playerStatus != null)
+        {
+            playerStatus.OnDead -= HandlePlayerDead;
+            playerStatus.OnStatusChanged -= NotifyChanged;
+            playerStatus.OnEnergyChanged -= NotifyChanged;
+            playerStatus = null;
+        }
+        foreach (Enemy enemy in enemies)
+        {
+            if (enemy == null) continue;
+            enemy.Status.OnDead -= HandleEnemyDead;
+            enemy.Status.OnStatusChanged -= NotifyChanged;
+            enemy.OnIntentChanged -= NotifyChanged;
+            enemy.gameObject.SetActive(false);
+            Destroy(enemy.gameObject);
+        }
+        enemies.Clear();
+        NotifyChanged();
+    }
+
+    private void NotifyChanged() => OnBattleChanged?.Invoke();
+    private void OnDestroy() => AbortBattle();
 }
+

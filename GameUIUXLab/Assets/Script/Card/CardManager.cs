@@ -1,4 +1,3 @@
-
 using UnityEngine;
 
 public class CardManager : MonoBehaviour
@@ -9,15 +8,14 @@ public class CardManager : MonoBehaviour
     [SerializeField] private UIManager uiManager;
     [SerializeField] private RunManager runManager;
     [SerializeField] private TargetSelector targetSelector;
-
     [Header("Deck Settings")]
     [SerializeField] private int drawCount = 5;
-
     [Header("Card Use Settings")]
-    [SerializeField, Range(0f, 1f)]
-    private float useHeightRatio = 0.35f;
+    [SerializeField, Range(0f, 1f)] private float useHeightRatio = 0.35f;
 
     private BattleDeck battleDeck;
+    private BattleManager battleManager;
+    public bool IsResolvingCard { get; private set; }
 
     private void Awake()
     {
@@ -26,150 +24,95 @@ public class CardManager : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (playerHand != null)
-        {
-            playerHand.OnCardDropped -= HandleCardDropped;
-        }
+        if (playerHand != null) playerHand.OnCardDropped -= HandleCardDropped;
     }
 
-    public void StartBattle()
+    public void InitializeBattle(BattleManager manager)
     {
-        if (runManager.MasterDeck == null)
-        {
-            Debug.LogError("MasterDeck이 생성되지 않았습니다.");
-            return;
-        }
-
+        battleManager = manager;
         battleDeck = new BattleDeck(runManager.MasterDeck);
         battleDeck.Shuffle();
-
-        playHUD.ResetHUD();
         playerHand.ClearHand();
-
-        DrawCards();
+        playHUD.ResetHUD();
     }
 
-    private void DrawCards()
+    public void BeginPlayerTurn()
     {
-        if (battleDeck == null)
-            return;
-
+        if (battleDeck == null) return;
         for (int i = 0; i < drawCount; i++)
         {
             CardInstance card = battleDeck.Draw();
-
-            if (card == null)
-                return;
-
+            if (card == null) break;
             playerHand.AddCard(card);
         }
     }
 
-    private void DiscardHand()
+    public void DiscardPlayerHand()
     {
-        if (battleDeck == null)
-            return;
+        if (battleDeck != null) battleDeck.DiscardHand();
+        if (playerHand != null) playerHand.ClearHand();
+    }
 
-        battleDeck.DiscardHand();
-        playerHand.ClearHand();
+    public void EndBattle()
+    {
+        DiscardPlayerHand();
+        battleDeck = null;
     }
 
     private void HandleCardDropped(CardUI cardUI, Vector2 screenPosition)
     {
-        if (battleDeck == null || cardUI == null)
-            return;
-
-        CardInstance card = cardUI.CardInstance;
-
-        if (card == null)
-            return;
-
-        CardData data = card.CardData;
-
-        switch (data.TargetType)
+        if (battleManager == null || !battleManager.CanPlayCards || cardUI == null
+            || cardUI.CardInstance == null) return;
+        CardData data = cardUI.CardInstance.CardData;
+        if (data.TargetType == CardTargetType.None)
         {
-            case CardTargetType.None:
-                {
-                    float useHeight = Screen.height * useHeightRatio;
-
-                    if (screenPosition.y < useHeight)
-                        return;
-
-                    UseCard(cardUI);
-                    break;
-                }
-
-            case CardTargetType.Enemy:
-                {
-                    if (targetSelector == null)
-                        return;
-
-                    Enemy target = targetSelector.GetTarget(screenPosition);
-
-                    if (target == null)
-                    {
-                        Debug.Log("선택된 적이 없습니다.");
-                        return;
-                    }
-
-                    Debug.Log($"선택된 적: {target.name}");
-
-                    UseCard(cardUI, target);
-                    break;
-                }
+            if (screenPosition.y >= Screen.height * useHeightRatio) UseCard(cardUI);
+        }
+        else if (data.TargetType == CardTargetType.Enemy && targetSelector != null)
+        {
+            UseCard(cardUI, targetSelector.GetTarget(screenPosition));
         }
     }
 
     public void UseCard(CardUI cardUI, Enemy target = null)
     {
-        if (battleDeck == null || cardUI == null)
-            return;
-
+        if (IsResolvingCard || battleManager == null || !battleManager.CanPlayCards
+            || battleDeck == null || cardUI == null || !playerHand.OwnsCard(cardUI)) return;
         CardInstance card = cardUI.CardInstance;
-
-        if (card == null)
+        if (card == null || card.CardData == null || !battleDeck.ContainsInHand(card)) return;
+        if (card.CardData.TargetType == CardTargetType.Enemy && !battleManager.IsValidTarget(target))
             return;
-
-        if (runManager.PlayerStatus == null)
+        PlayerStatus status = runManager.PlayerStatus;
+        if (!status.CanUseEnergy(card.CurrentCost))
         {
-            Debug.LogError("PlayerStatus가 생성되지 않았습니다.");
+            if (uiManager != null) uiManager.ShowToast("에너지가 부족합니다.");
             return;
         }
 
-        // 카드 효과에 필요한 정보 생성
-        CardEffectContext context = new CardEffectContext(
-            runManager.PlayerStatus,
-            target != null ? target.Status : null
-        );
-
-        // 카드에 등록된 효과 실행
-        foreach (CardEffect effect in card.CardData.Effects)
+        IsResolvingCard = true;
+        try
         {
-            if (effect == null)
-                continue;
-
-            effect.Execute(context);
+            if (!status.TryUseEnergy(card.CurrentCost)) return;
+            // 소유권을 먼저 제거하여 같은 카드를 중복 실행하지 못하게 합니다.
+            battleDeck.PlayCard(card);
+            playerHand.RemoveCard(cardUI);
+            CardEffectContext context = new CardEffectContext(status,
+                card.CardData.TargetType == CardTargetType.Enemy ? target.Status : null);
+            if (card.CardData.Effects != null)
+                foreach (CardEffect effect in card.CardData.Effects)
+                    if (effect != null) effect.Execute(context);
         }
-
-        // 사용한 카드를 버린 더미로 이동
-        if (!battleDeck.DiscardCard(card))
-            return;
-
-        // 손패 UI에서 제거
-        playerHand.RemoveCard(cardUI);
-
-        uiManager.ShowToast("카드를 사용했습니다.");
+        finally
+        {
+            IsResolvingCard = false;
+            battleManager.CheckBattleEnd();
+        }
     }
 
+    // 기존 턴 종료 버튼의 연결을 유지하고 BattleManager에 위임합니다.
     public void EndTurn()
     {
-        if (battleDeck == null)
-            return;
-
-        DiscardHand();
-
-        playHUD.NextTurn();
-
-        DrawCards();
+        if (battleManager != null) battleManager.EndPlayerTurn();
     }
 }
+

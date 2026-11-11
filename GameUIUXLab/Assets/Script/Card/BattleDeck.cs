@@ -3,9 +3,9 @@ using System.Collections.Generic;
 
 public class BattleDeck
 {
-    private List<CardInstance> drawPile = new(); // µå·Î¿ì ´õ¹Ì
-    private List<CardInstance> hand = new(); // ¼Õ ÆĞ
-    private List<CardInstance> discardPile = new(); // ¹ö¸° Ä«µå ´õ¹Ì
+    private List<CardInstance> drawPile = new(); // ë“œë¡œìš° ë”ë¯¸
+    private List<CardInstance> hand = new(); // ì† íŒ¨
+    private List<CardInstance> discardPile = new(); // ë²„ë¦° ì¹´ë“œ ë”ë¯¸
 
 
     private Random random = new Random();
@@ -74,6 +74,16 @@ public class BattleDeck
         Shuffle();
     }
 
+
+    public bool ContainsInHand(CardInstance card) => hand.Contains(card);
+
+    public bool PlayCard(CardInstance card)
+    {
+        if (!hand.Remove(card)) return false;
+        // íŒŒì›Œ ì¹´ë“œëŠ” ì´ë²ˆ ì „íˆ¬ì˜ ìˆœí™˜ ë”ë¯¸ì—ì„œ ë¹ ì§‘ë‹ˆë‹¤.
+        if (card.CardData.Type != CardType.Power) discardPile.Add(card);
+        return true;
+    }
 
     public bool DiscardCard(CardInstance card)
     {

@@ -65,6 +65,9 @@ public class PlayerHand : MonoBehaviour
     }
 
 
+    public bool OwnsCard(CardUI card) => card != null && cardPool.Contains(card)
+        && card.gameObject.activeSelf;
+
     public void RemoveCard(CardUI card)
     {
         if (card == null)
