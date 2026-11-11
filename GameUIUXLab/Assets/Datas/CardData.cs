@@ -24,6 +24,7 @@ public class CardData : ScriptableObject
     public CardType Type;
     public CardTargetType TargetType;
     public int EnergyCost;
+    public Sprite Artwork;
 
     public List<CardEffect> Effects;
 

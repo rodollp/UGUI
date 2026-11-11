@@ -3,6 +3,7 @@ using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 [RequireComponent(typeof(RectTransform))]
 public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBeginDragHandler,IDragHandler,IEndDragHandler
@@ -12,6 +13,7 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
     [SerializeField] private TMP_Text nameText;
     [SerializeField] private TMP_Text typeText;
     [SerializeField] private TMP_Text descriptionText;
+    [SerializeField] private Image artworkImage;
 
     [Header("Hover Settings")]
     [SerializeField] private float hoverMoveY = 100f;
@@ -81,6 +83,11 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
         costText.text = cardInstance.CurrentCost.ToString();
         typeText.text = data.Type.ToString();
         descriptionText.text = data.GetDescription();
+        if (artworkImage != null)
+        {
+            artworkImage.sprite = data.Artwork;
+            artworkImage.enabled = data.Artwork != null;
+        }
     }
 
     public void ClearCard()
@@ -93,6 +100,11 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
         costText.text = "";
         typeText.text = "";
         descriptionText.text = "";
+        if (artworkImage != null)
+        {
+            artworkImage.sprite = null;
+            artworkImage.enabled = false;
+        }
 
         targetPosition = basePosition;
         targetScale = baseScale;

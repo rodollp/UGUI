@@ -170,6 +170,7 @@ public static class BattleValidation
             double settleUntil = EditorApplication.timeSinceStartup + 1;
             while (EditorApplication.timeSinceStartup < settleUntil) yield return null;
             CapturePreview();
+            CapturePreview("cards-preview.png");
         }
         CardUI attack = Hand().FirstOrDefault(c => c.CardInstance.CardData.TargetType == CardTargetType.Enemy);
         if (attack == null)
@@ -274,6 +275,12 @@ public static class BattleValidation
     private static void CapturePreview(string fileName = "battle-preview.png")
     {
         Camera camera = Camera.main;
+        // 미리보기에서만 손패를 들어 올려 카드 설명까지 한눈에 확인합니다.
+        RectTransform[] cards = fileName == "cards-preview.png"
+            ? Hand().Select(c => c.GetComponent<RectTransform>()).ToArray()
+            : Array.Empty<RectTransform>();
+        Vector2[] positions = cards.Select(c => c.anchoredPosition).ToArray();
+        foreach (RectTransform card in cards) card.anchoredPosition += new Vector2(0, 180);
         Canvas[] overlays = UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)
             .Where(c => c.renderMode == RenderMode.ScreenSpaceOverlay).ToArray();
         RenderTexture render = new RenderTexture(1920, 1080, 24);
@@ -302,6 +309,7 @@ public static class BattleValidation
         }
         finally
         {
+            for (int i = 0; i < cards.Length; i++) cards[i].anchoredPosition = positions[i];
             foreach (Canvas canvas in overlays) canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             camera.targetTexture = previousTarget;
             RenderTexture.active = previous;
