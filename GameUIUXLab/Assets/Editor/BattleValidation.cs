@@ -213,6 +213,12 @@ public static class BattleValidation
         status.AddAttackPower(3); status.AddDexterity(2);
         target.Status.TakeDamage(int.MaxValue);
         Expect(battle.State == BattleState.Victory && run.StageIndex == 1, "Victory advances one floor");
+        VerifyResultText("전투 승리!", true);
+        if (SystemInfo.graphicsDeviceType != UnityEngine.Rendering.GraphicsDeviceType.Null)
+        {
+            yield return null;
+            CapturePreview("battle-result-preview.png");
+        }
         hp = status.CurrentHp;
         battle.StartNextBattle();
         Expect(battle.State == BattleState.PlayerTurn && battle.Enemies.Count == 2, "Next encounter spawns two enemies");
@@ -220,6 +226,7 @@ public static class BattleValidation
         Expect(status.AttackPower == 0 && status.Dexterity == 0 && status.CurrentEnergy == 3, "Combat buffs reset");
         status.TakeDamage(int.MaxValue);
         Expect(battle.State == BattleState.Defeat && run.StageIndex == 1 && Hand().Length == 0, "Defeat stops progression");
+        VerifyResultText("패배", false);
         battle.StartNextBattle();
         Expect(battle.State == BattleState.Defeat, "Cannot advance after defeat");
         flow.ShowTitleScreen();
@@ -242,11 +249,29 @@ public static class BattleValidation
             if (floor < 2) battle.StartNextBattle();
         }
         Expect(run.IsRunComplete, "Final floor completes run");
+        VerifyResultText("모든 층을 클리어했습니다!", false);
         battle.StartNextBattle();
         Expect(battle.State == BattleState.Victory && run.StageIndex == 3, "Final floor cannot be restarted");
     }
 
-    private static void CapturePreview()
+    private static void VerifyResultText(string expected, bool nextVisible)
+    {
+        var serialized = new SerializedObject(Find<PlayHUD>());
+        TMP_Text result = (TMP_Text)serialized.FindProperty("resultText").objectReferenceValue;
+        var next = (UnityEngine.UI.Button)serialized.FindProperty("nextBattleButton").objectReferenceValue;
+        Expect(result != null && result.gameObject.activeInHierarchy && result.text == expected,
+            "Result heading visible: " + expected);
+        Expect(next.gameObject.activeInHierarchy == nextVisible, "Next-floor visibility");
+        Transform screen = result.transform.parent;
+        foreach (var button in screen.GetComponentsInChildren<UnityEngine.UI.Button>(true))
+        {
+            TMP_Text label = button.GetComponentInChildren<TMP_Text>(true);
+            Expect(label != null && label.gameObject.activeSelf && label.enabled
+                && !string.IsNullOrWhiteSpace(label.text), "Result button has visible label: " + button.name);
+        }
+    }
+
+    private static void CapturePreview(string fileName = "battle-preview.png")
     {
         Camera camera = Camera.main;
         Canvas[] overlays = UnityEngine.Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)
@@ -271,7 +296,7 @@ public static class BattleValidation
             RenderTexture.active = render;
             image.ReadPixels(new Rect(0, 0, 1920, 1080), 0, 0);
             image.Apply();
-            string path = System.IO.Path.GetFullPath(Application.dataPath + "/../../../battle-preview.png");
+            string path = System.IO.Path.GetFullPath(Application.dataPath + "/../../../" + fileName);
             System.IO.File.WriteAllBytes(path, image.EncodeToPNG());
             Debug.Log("BATTLE_PREVIEW_SAVED: " + path);
         }

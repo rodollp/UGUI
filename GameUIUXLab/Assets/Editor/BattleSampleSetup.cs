@@ -97,8 +97,11 @@ public static class BattleSampleSetup
         Set(hud, "resultText", Label(template, result, "BattleResultText", new Vector2(0.5f, 0.5f),
             new Vector2(-350, 180), new Vector2(700, 80), 42));
         foreach (TMP_Text text in result.GetComponentsInChildren<TMP_Text>(true))
-            if (text.name != "BattleResultText" && text.GetComponentInParent<Button>() == null)
-                text.gameObject.SetActive(false);
+        {
+            // 결과 화면은 편집 시 비활성 상태이므로 비활성 부모도 검색해야 합니다.
+            bool isButtonLabel = text.GetComponentInParent<Button>(true) != null;
+            text.gameObject.SetActive(text.name == "BattleResultText" || isButtonLabel);
+        }
 
         Button endTurn = play.GetComponentsInChildren<Button>(true).First(b =>
             Enumerable.Range(0, b.onClick.GetPersistentEventCount())
