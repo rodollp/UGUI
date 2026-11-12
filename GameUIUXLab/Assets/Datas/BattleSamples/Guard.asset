@@ -19,6 +19,10 @@ MonoBehaviour:
   - Type: 1
     Amount: 7
     Hits: 1
+    Debuff: 0
+    DebuffTurns: 2
   - Type: 0
     Amount: 8
     Hits: 1
+    Debuff: 1
+    DebuffTurns: 2

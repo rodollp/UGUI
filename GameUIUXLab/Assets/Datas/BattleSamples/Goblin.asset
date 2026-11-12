@@ -16,6 +16,13 @@ MonoBehaviour:
   EnemyType: 0
   MaxHp: 18
   Actions:
+  - Type: 3
+    Amount: 6
+    Hits: 1
+    Debuff: 1
+    DebuffTurns: 2
   - Type: 0
     Amount: 6
     Hits: 1
+    Debuff: 0
+    DebuffTurns: 2
