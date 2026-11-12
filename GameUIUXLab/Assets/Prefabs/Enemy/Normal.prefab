@@ -130,6 +130,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
   enemyData: {fileID: 11400000, guid: c4fafbfc9fb169b4aab25759b35348c2, type: 2}
   healthBarUI: {fileID: 3271040311744904161}
+  currentPatternStep: 0
 --- !u!1001 &1383313380948533598
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -138,6 +139,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 281231871859979102}
     m_Modifications:
+    - target: {fileID: 351193828248881078, guid: e270f8d0d16701b4fb48f63045514d48, type: 3}
+      propertyPath: m_fontAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: 9e445eb1987ab4b4b8c544dbdba3ee2a, type: 2}
+    - target: {fileID: 351193828248881078, guid: e270f8d0d16701b4fb48f63045514d48, type: 3}
+      propertyPath: m_sharedMaterial
+      value: 
+      objectReference: {fileID: -6457117907365858009, guid: 9e445eb1987ab4b4b8c544dbdba3ee2a, type: 2}
     - target: {fileID: 351193828248881078, guid: e270f8d0d16701b4fb48f63045514d48, type: 3}
       propertyPath: m_TextStyleHashCode
       value: -1183493901
@@ -246,6 +255,14 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
+    - target: {fileID: 5960209263056637883, guid: e270f8d0d16701b4fb48f63045514d48, type: 3}
+      propertyPath: m_fontAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: 9e445eb1987ab4b4b8c544dbdba3ee2a, type: 2}
+    - target: {fileID: 5960209263056637883, guid: e270f8d0d16701b4fb48f63045514d48, type: 3}
+      propertyPath: m_sharedMaterial
+      value: 
+      objectReference: {fileID: -6457117907365858009, guid: 9e445eb1987ab4b4b8c544dbdba3ee2a, type: 2}
     - target: {fileID: 6933910277645766211, guid: e270f8d0d16701b4fb48f63045514d48, type: 3}
       propertyPath: m_Name
       value: HealthBar
