@@ -64,7 +64,6 @@ public static class MapSetup
             e.EncounterName = boss.EncounterName; e.Enemies = boss.Enemies; e.Rewards = bossRewards;
         });
         Asset<RunMapData>("DefaultMap", m => {
-            m.Rows = 7;
             m.Battles = new[] {
                 AssetDatabase.LoadAssetAtPath<EncounterData>("Assets/Datas/BattleSamples/GoblinEncounter.asset"),
                 AssetDatabase.LoadAssetAtPath<EncounterData>("Assets/Datas/BattleSamples/PairEncounter.asset")

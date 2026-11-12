@@ -107,12 +107,12 @@ public static class RunMapGenerator
                 MapNodeType type;
                 if (row == data.Rows - 1) type = MapNodeType.Boss;
                 else if (row == 0) type = MapNodeType.Battle;
+                else if (row == RunMapData.TreasureRow) type = MapNodeType.Treasure;
                 else if (row == data.Rows - 2) type = MapNodeType.Rest;
                 else if (row == 1)
-                    type = new[] { MapNodeType.Event, MapNodeType.Battle, MapNodeType.Treasure }[(col + rotation) % 3];
-                else if (row == 2 && col == 1) type = MapNodeType.Elite;
+                    type = new[] { MapNodeType.Event, MapNodeType.Battle, MapNodeType.Elite }[(col + rotation) % 3];
                 else type = new[] { MapNodeType.Battle, MapNodeType.Battle, MapNodeType.Event,
-                    MapNodeType.Treasure, MapNodeType.Elite }[random.Next(5)];
+                    MapNodeType.Elite }[random.Next(4)];
                 EncounterData encounter = null;
                 MapEventData mapEvent = null;
                 switch (type)

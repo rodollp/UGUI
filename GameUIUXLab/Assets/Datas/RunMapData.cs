@@ -3,7 +3,9 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "RunMap", menuName = "Map/Configuration")]
 public class RunMapData : ScriptableObject
 {
-    [Range(5, 10)] public int Rows = 7;
+    public const int RouteLength = 6;
+    public const int TreasureRow = 2; // 세 번째 방문 노드 (0부터 시작).
+    public int Rows => RouteLength;
     public bool UseFixedSeed;
     public int Seed = 42;
     public EncounterData[] Battles;
@@ -15,7 +17,7 @@ public class RunMapData : ScriptableObject
 
     public bool IsValid()
     {
-        if (Rows < 5 || Rows > 10 || !ValidEncounters(Battles) || !ValidEncounters(Elites)
+        if (!ValidEncounters(Battles) || !ValidEncounters(Elites)
             || !ValidEncounters(Bosses) || Events == null || Events.Length == 0
             || Rest == null || !Rest.IsValid() || Treasure == null || !Treasure.IsValid()) return false;
         foreach (MapEventData data in Events)

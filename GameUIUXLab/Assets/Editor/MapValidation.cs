@@ -71,6 +71,12 @@ public static class MapValidation
         for (int seed = 0; seed < 16; seed++)
         {
             RunMap map = RunMapGenerator.Generate(data, seed);
+            Expect(map.Rows == 6, "every route has six floors including the boss");
+            Expect(map.Nodes.Where(n => n.Row == 2).Count() == 3
+                && map.Nodes.All(n => (n.Row == 2) == (n.Type == MapNodeType.Treasure)),
+                "treasure appears on every third-floor node and nowhere else");
+            foreach (MapNode start in map.Nodes.Where(n => n.Row == 0))
+                VerifyRoutes(map, start, 1, 0);
             Expect(map.Nodes.Count == (data.Rows - 1) * 3 + 1, "node count");
             Expect(map.Nodes.Select(n => n.Type).Distinct().Count() == 6, "all six node types generated");
             Expect(map.Nodes.All(n => n.Outgoing.All(id => map.Find(id).Row == n.Row + 1)),
@@ -108,6 +114,19 @@ public static class MapValidation
     }
     private static string Signature(RunMap map) => string.Join("|", map.Nodes.Select(n =>
         $"{n.Id}:{n.Type}:{n.Encounter?.name}:{n.Event?.name}:{string.Join(",", n.Outgoing)}"));
+
+    private static void VerifyRoutes(RunMap map, MapNode node, int visits, int treasures)
+    {
+        if (node.Type == MapNodeType.Treasure)
+        {
+            treasures++;
+            Expect(visits == 3, "every possible route reaches treasure on its third visit");
+        }
+        if (node.Outgoing.Count == 0)
+            Expect(visits == 6 && treasures == 1 && node.Type == MapNodeType.Boss,
+                "every possible route ends at the sixth node after exactly one treasure");
+        foreach (int id in node.Outgoing) VerifyRoutes(map, map.Find(id), visits + 1, treasures);
+    }
 
     private static IEnumerator VerifyScene()
     {
@@ -183,16 +202,14 @@ public static class MapValidation
         Expect(!ReferenceEquals(originalMap, run.Map) && run.Map.Nodes.All(n => !n.Completed)
             && run.Gold == 0 && run.MasterDeck.Cards.Count == 10, "new run resets progress and resources");
         run.AddGold(100); run.PlayerStatus.TakeDamage(20);
-        MapNode chest = run.Map.Nodes.Single(n => n.Row == 1 && n.Type == MapNodeType.Treasure);
         int completed = 0;
+        int treasuresOpened = 0;
         bool rested = false;
         bool paidForCard = false;
         while (!run.IsRunComplete)
         {
             MapNode node;
-            if (completed == 0) node = run.Map.Nodes.First(n => n.Row == 0 && n.Column == chest.Column);
-            else if (completed == 1) node = chest;
-            else node = run.Map.Nodes.Where(n => run.Map.CanEnter(n.Id))
+            node = run.Map.Nodes.Where(n => run.Map.CanEnter(n.Id))
                 .OrderBy(n => n.Type == MapNodeType.Event ? 0 : n.Type == MapNodeType.Rest ? 1 : 2).First();
             yield return null;
             NodeButton(node.Id).onClick.Invoke();
@@ -218,13 +235,20 @@ public static class MapValidation
                     Expect(run.PlayerStatus.CurrentHp > beforeHp, "campfire heals persistent HP");
                 }
                 if (choice.Card != null) paidForCard = true;
+                if (node.Type == MapNodeType.Treasure)
+                {
+                    treasuresOpened++;
+                    Expect(completed == 2 && run.Gold == beforeGold + 25,
+                        "third clicked node grants treasure gold");
+                }
                 adventure.ReturnFromEvent();
             }
             completed++;
             Expect(flow.IsMap && run.Map.LastCompletedNode == node && run.Map.ActiveNode == null,
                 "node resolves back to map");
         }
-        Expect(completed == config.Rows && rested, "route visits every floor including rest");
+        Expect(completed == 6 && rested && treasuresOpened == 1,
+            "six-node route includes rest and exactly one treasure");
         Expect(run.Map.Nodes.Count(n => n.Completed) == config.Rows && !run.Map.Nodes.Any(n => run.Map.CanEnter(n.Id)),
             "boss ends route without replayable nodes");
         // 상인 노드가 선택된 경로에 없을 수도 있으므로 별도로 구매 경로를 확인합니다.
