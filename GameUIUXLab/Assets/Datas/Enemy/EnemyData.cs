@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 
 public enum EnemyType { Normal, Elite, Boss }
-public enum EnemyActionType { Attack, Block, Strength }
+public enum EnemyActionType { Attack, Block, Strength, Debuff }
 
 [Serializable]
 public class EnemyAction
@@ -11,13 +11,17 @@ public class EnemyAction
     [Min(0)] public int Amount = 6;
     [Min(1)] public int Hits = 1;
 
-    public string Describe(int strength)
+    public DebuffType Debuff;
+    [Min(1)] public int DebuffTurns = 2;
+
+    public string Describe(CreatureStatus source, CreatureStatus target = null)
     {
         switch (Type)
         {
             case EnemyActionType.Block: return $"방어 {Amount}";
             case EnemyActionType.Strength: return $"힘 +{Amount}";
-            default: return $"공격 {Math.Max(0, Amount + strength)} × {Math.Max(1, Hits)}";
+            case EnemyActionType.Debuff: return $"{DebuffNames.Get(Debuff)} {DebuffTurns}";
+            default: return $"공격 {source.CalculateAttackDamage(Amount, target)} × {Math.Max(1, Hits)}";
         }
     }
 }
@@ -31,3 +35,4 @@ public class EnemyData : ScriptableObject
     // 앞에서부터 순서대로 반복합니다. 비어 있으면 기본 공격을 사용합니다.
     public EnemyAction[] Actions = { new EnemyAction() };
 }
+

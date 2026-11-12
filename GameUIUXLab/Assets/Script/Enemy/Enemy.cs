@@ -13,7 +13,12 @@ public class Enemy : MonoBehaviour
     public EnemyAction Intent { get; private set; }
     public event Action OnIntentChanged;
     public string IntentDescription => Intent == null || Status == null || Status.IsDead
-        ? "" : Intent.Describe(Status.AttackPower);
+        ? "" : Intent.Describe(Status);
+
+    public string GetIntentDescription(PlayerStatus player)
+    {
+        return Intent == null || Status == null || Status.IsDead ? "" : Intent.Describe(Status, player);
+    }
 
     private void Awake()
     {
@@ -53,12 +58,14 @@ public class Enemy : MonoBehaviour
             case EnemyActionType.Strength:
                 Status.AddAttackPower(Math.Max(0, Intent.Amount));
                 break;
+            case EnemyActionType.Debuff:
+                player.ApplyDebuff(Intent.Debuff, Intent.DebuffTurns, duringEnemyTurn: true);
+                break;
             default:
-                int damage = (int)Math.Min(int.MaxValue,
-                    Math.Max(0L, (long)Intent.Amount + Status.AttackPower));
                 for (int hit = 0; hit < Math.Max(1, Intent.Hits) && !player.IsDead; hit++)
-                    player.TakeDamage(damage);
+                    Status.DealAttackDamage(player, Intent.Amount);
                 break;
         }
     }
 }
+

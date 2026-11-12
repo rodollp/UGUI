@@ -98,6 +98,10 @@ public class BattleManager : MonoBehaviour
             enemy.ExecuteIntent(playerStatus);
             if (State != BattleState.EnemyTurn) yield break;
         }
+        // 플레이어와 모든 적의 행동을 하나의 라운드로 처리합니다.
+        playerStatus.EndRoundDebuffs();
+        foreach (Enemy enemy in enemies)
+            if (IsValidTarget(enemy)) enemy.Status.EndRoundDebuffs();
         foreach (Enemy enemy in enemies)
             if (IsValidTarget(enemy)) enemy.PlanNextAction();
         BeginPlayerTurn();
@@ -184,4 +188,5 @@ public class BattleManager : MonoBehaviour
     private void NotifyChanged() => OnBattleChanged?.Invoke();
     private void OnDestroy() => AbortBattle();
 }
+
 

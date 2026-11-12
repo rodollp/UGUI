@@ -79,6 +79,7 @@ public static class BattleValidation
 
     private static void VerifyModels()
     {
+        DebuffValidation.VerifyModels();
         PlayerStatus player = new PlayerStatus(80);
         int notifications = 0;
         player.OnEnergyChanged += () => notifications++;
@@ -211,6 +212,38 @@ public static class BattleValidation
         Expect(battle.Turn == previousTurn + 1 && status.CurrentHp == hp - 1, "Enemy attacks through block once");
         Expect(status.CurrentBlock == 0 && status.CurrentEnergy == 3 && Hand().Length == 5, "New turn resets resources");
 
+        foreach (DebuffType type in Enum.GetValues(typeof(DebuffType)))
+        {
+            status.ApplyDebuff(type, 1);
+            target.Status.ApplyDebuff(type, 2);
+        }
+        Expect(target.GetIntentDescription(status) == "공격 6 × 1", "Intent incorporates weak and vulnerable");
+        TMP_Text playerDebuffs = Find<Player>().GetComponentsInChildren<TMP_Text>(true)
+            .Single(t => t.name == "DebuffText");
+        Expect(playerDebuffs.gameObject.activeInHierarchy && playerDebuffs.text.Contains("취약 1")
+            && playerDebuffs.text.Contains("약화 1") && playerDebuffs.text.Contains("손상 1"), "Player debuffs visible");
+        TMP_Text enemyDebuffs = target.GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "DebuffText");
+        Expect(enemyDebuffs.gameObject.activeInHierarchy && enemyDebuffs.text.Contains("약화 2"), "Enemy debuffs visible");
+        if (SystemInfo.graphicsDeviceType != UnityEngine.Rendering.GraphicsDeviceType.Null)
+        {
+            yield return null;
+            CapturePreview("debuff-preview.png");
+        }
+        status.AddBlock(100);
+        cards.EndTurn();
+        while (battle.State == BattleState.EnemyTurn) yield return null;
+        Expect(status.WeakTurns == 0 && status.FrailTurns == 0 && status.VulnerableTurns == 0,
+            "Player durations decay once per round");
+        Expect(target.Status.WeakTurns == 1 && target.Status.FrailTurns == 1 && target.Status.VulnerableTurns == 1,
+            "Enemy durations decay once per round");
+        Expect(!playerDebuffs.gameObject.activeSelf && enemyDebuffs.text.Contains("약화 1"),
+            "Debuff labels refresh after round");
+        status.AddBlock(100);
+        cards.EndTurn();
+        while (battle.State == BattleState.EnemyTurn) yield return null;
+        Expect(target.Status.GetDebuffDescription() == "" && !enemyDebuffs.gameObject.activeSelf,
+            "Expired enemy debuffs hidden");
+        status.ApplyDebuff(DebuffType.Weak, 3);
         status.AddAttackPower(3); status.AddDexterity(2);
         target.Status.TakeDamage(int.MaxValue);
         Expect(battle.State == BattleState.Victory && run.StageIndex == 1, "Victory advances one floor");
@@ -225,6 +258,7 @@ public static class BattleValidation
         Expect(battle.State == BattleState.PlayerTurn && battle.Enemies.Count == 2, "Next encounter spawns two enemies");
         Expect(ReferenceEquals(status, run.PlayerStatus) && status.CurrentHp == hp, "HP persists across floors");
         Expect(status.AttackPower == 0 && status.Dexterity == 0 && status.CurrentEnergy == 3, "Combat buffs reset");
+        Expect(status.GetDebuffDescription() == "", "Next battle clears all debuffs");
         status.TakeDamage(int.MaxValue);
         Expect(battle.State == BattleState.Defeat && run.StageIndex == 1 && Hand().Length == 0, "Defeat stops progression");
         VerifyResultText("패배", false);
@@ -318,3 +352,4 @@ public static class BattleValidation
         }
     }
 }
+

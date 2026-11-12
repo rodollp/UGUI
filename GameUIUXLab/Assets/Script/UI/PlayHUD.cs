@@ -57,7 +57,8 @@ public class PlayHUD : MonoBehaviour
             foreach (Enemy enemy in battleManager.Enemies)
                 if (enemy != null && enemy.Status != null && !enemy.Status.IsDead)
                     text.AppendLine($"{enemy.Data.EnemyName}  HP {enemy.Status.CurrentHp}/{enemy.Status.MaxHp}  " +
-                        $"방어 {enemy.Status.CurrentBlock}  → {enemy.IntentDescription}");
+                        $"방어 {enemy.Status.CurrentBlock}  → {enemy.GetIntentDescription(runManager.PlayerStatus)}" +
+                        (enemy.Status.GetDebuffDescription().Length > 0 ? $" [{enemy.Status.GetDebuffDescription()}]" : ""));
             intentText.text = text.ToString();
         }
         bool won = battleManager.State == BattleState.Victory;
@@ -67,4 +68,5 @@ public class PlayHUD : MonoBehaviour
             nextBattleButton.gameObject.SetActive(won && runManager.HasStageSequence && !runManager.IsRunComplete);
     }
 }
+
 
