@@ -13,6 +13,7 @@ public class BattleManager : MonoBehaviour
     [SerializeField] private CardManager cardManager;
     [SerializeField] private UIScreenFlowController screenFlowController;
     [SerializeField] private Transform enemyRoot;
+    [SerializeField] private AdventureController adventure;
     [Header("Encounter (used when no stage sequence is assigned)")]
     [SerializeField] private EncounterData encounter;
     [SerializeField] private BattleRewardData defaultRewards;
@@ -40,7 +41,9 @@ public class BattleManager : MonoBehaviour
         if (State == BattleState.Preparing || State == BattleState.PlayerTurn || State == BattleState.EnemyTurn)
             return;
         if (State == BattleState.Victory && HasPendingCardReward) return;
-        EncounterData selected = runManager != null && runManager.HasStageSequence
+        if (runManager != null && runManager.HasMap
+            && (runManager.Map.ActiveNode == null || !runManager.Map.ActiveNode.IsCombat)) return;
+        EncounterData selected = runManager != null && (runManager.HasMap || runManager.HasStageSequence)
             ? runManager.CurrentEncounter : encounter;
         if (runManager == null || runManager.PlayerStatus == null || runManager.PlayerStatus.IsDead
             || runManager.MasterDeck == null || player == null || cardManager == null
@@ -174,6 +177,11 @@ public class BattleManager : MonoBehaviour
 
     public void StartNextBattle()
     {
+        if (runManager.HasMap)
+        {
+            if (adventure != null) adventure.ReturnToMap();
+            return;
+        }
         if (State != BattleState.Victory || HasPendingCardReward
             || !runManager.HasStageSequence || runManager.IsRunComplete)
             return;

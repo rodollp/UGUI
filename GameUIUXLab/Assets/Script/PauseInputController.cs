@@ -34,7 +34,7 @@ public class PauseInputController : MonoBehaviour
     {
 
 
-        if (screenFlow.IsPlaying)
+        if (screenFlow.IsAdventureActive)
         {
             screenFlow.ShowPauseScreen();
         }

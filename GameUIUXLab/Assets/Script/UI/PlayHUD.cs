@@ -69,8 +69,12 @@ public class PlayHUD : MonoBehaviour
         if (resultText != null)
             resultText.text = won ? (runManager.IsRunComplete ? "모든 층을 클리어했습니다!" : "전투 승리!") : "패배";
         if (nextBattleButton != null)
+        {
             nextBattleButton.gameObject.SetActive(won && !battleManager.HasPendingCardReward
-                && runManager.HasStageSequence && !runManager.IsRunComplete);
+                && (runManager.HasMap || (runManager.HasStageSequence && !runManager.IsRunComplete)));
+            TMP_Text label = nextBattleButton.GetComponentInChildren<TMP_Text>(true);
+            if (label != null) label.text = runManager.HasMap ? "맵으로" : "다음 층";
+        }
     }
 }
 

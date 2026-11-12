@@ -154,6 +154,10 @@ public static class BattleValidation
     {
         yield return null; // MonoBehaviour.Start 및 카드 풀 초기화 이후 진행합니다.
         RunManager run = Find<RunManager>();
+        // 기존 순차 전투 검증은 별도 테스트 설정으로 유지합니다. 실제 씬은 맵 모드를 사용합니다.
+        var runSetup = new SerializedObject(run);
+        runSetup.FindProperty("mapData").objectReferenceValue = null;
+        runSetup.ApplyModifiedPropertiesWithoutUndo();
         BattleManager battle = Find<BattleManager>();
         CardManager cards = Find<CardManager>();
         UIScreenFlowController flow = Find<UIScreenFlowController>();
