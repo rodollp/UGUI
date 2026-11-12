@@ -167,6 +167,9 @@ public static class BattleSampleSetup
         new EnemyAction { Type = type, Amount = amount, Hits = hits };
     private static EnemyData EnemyAsset(string name, string title, int hp, EnemyType type, params EnemyAction[] actions)
     {
+        // 샘플 재연결은 사용자가 수정한 체력과 패턴을 덮어쓰지 않습니다.
+        EnemyData existing = AssetDatabase.LoadAssetAtPath<EnemyData>(Folder + "/" + name + ".asset");
+        if (existing != null) return existing;
         EnemyData data = Asset<EnemyData>(name);
         data.EnemyName = title; data.MaxHp = hp; data.EnemyType = type; data.Actions = actions;
         return data;

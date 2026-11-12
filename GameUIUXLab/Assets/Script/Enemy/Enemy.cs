@@ -8,9 +8,11 @@ public class Enemy : MonoBehaviour
 
     private EnemyStatus enemyStatus;
     private int actionIndex;
+    [SerializeField] private int currentPatternStep;
     public EnemyStatus Status => enemyStatus;
     public EnemyData Data => enemyData;
     public EnemyAction Intent { get; private set; }
+    public int CurrentPatternStep => currentPatternStep;
     public event Action OnIntentChanged;
     public string IntentDescription => Intent == null || Status == null || Status.IsDead
         ? "" : Intent.Describe(Status);
@@ -30,6 +32,7 @@ public class Enemy : MonoBehaviour
         enemyData = data;
         enemyStatus = new EnemyStatus(data.MaxHp);
         actionIndex = 0;
+        currentPatternStep = 0;
         Intent = null;
         if (healthBarUI != null) healthBarUI.Initialize(enemyStatus);
     }
@@ -38,8 +41,19 @@ public class Enemy : MonoBehaviour
     {
         if (Status == null || Status.IsDead) return;
         EnemyAction[] actions = enemyData.Actions;
-        Intent = actions == null || actions.Length == 0
-            ? new EnemyAction() : actions[actionIndex++ % actions.Length] ?? new EnemyAction();
+        if (actions == null || actions.Length == 0)
+        {
+            currentPatternStep = 1;
+            Intent = new EnemyAction();
+        }
+        else
+        {
+            int index = actionIndex % actions.Length;
+            currentPatternStep = index + 1;
+            Intent = actions[index] ?? new EnemyAction();
+            actionIndex = (index + 1) % actions.Length;
+        }
+        LogPattern("예고");
         OnIntentChanged?.Invoke();
     }
 
@@ -47,6 +61,8 @@ public class Enemy : MonoBehaviour
     {
         if (Status == null || Status.IsDead || player == null || player.IsDead || Intent == null)
             return;
+
+        LogPattern("실행", player);
 
         // 방어도는 소유자의 다음 턴 시작에 사라집니다.
         Status.ResetBlock();
@@ -66,6 +82,28 @@ public class Enemy : MonoBehaviour
                     Status.DealAttackDamage(player, Intent.Amount);
                 break;
         }
+    }
+
+    // 최종 EncounterData가 적용된 뒤 호출하여 프리팹 기본 데이터와 혼동하지 않게 합니다.
+    [System.Diagnostics.Conditional("UNITY_EDITOR")]
+    public void LogPatternSource()
+    {
+#if UNITY_EDITOR
+        string path = UnityEditor.AssetDatabase.GetAssetPath(enemyData);
+        int count = enemyData.Actions == null ? 0 : enemyData.Actions.Length;
+        Debug.Log($"[EnemyPattern] {name} / 데이터: {path} / 패턴 수: {count}", this);
+        if (count == 0)
+            Debug.LogWarning("[EnemyPattern] Actions가 비어 있어 기본 공격 6을 사용합니다.", this);
+#endif
+    }
+
+    [System.Diagnostics.Conditional("UNITY_EDITOR")]
+    private void LogPattern(string phase, PlayerStatus player = null)
+    {
+#if UNITY_EDITOR
+        Debug.Log($"[EnemyPattern] {name} / {phase} / 단계 {currentPatternStep} / " +
+            GetIntentDescription(player), this);
+#endif
     }
 }
 

@@ -61,6 +61,7 @@ public class BattleManager : MonoBehaviour
             enemy.transform.localPosition = entry.LocalPosition;
             enemy.Initialize(entry.Data);
             enemy.name = entry.Data.EnemyName;
+            enemy.LogPatternSource();
             enemies.Add(enemy);
             enemy.Status.OnDead += HandleEnemyDead;
             enemy.Status.OnStatusChanged += NotifyChanged;
