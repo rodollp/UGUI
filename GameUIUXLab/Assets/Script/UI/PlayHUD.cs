@@ -8,6 +8,7 @@ public class PlayHUD : MonoBehaviour
     [SerializeField] private TextMeshProUGUI turnText;
     [SerializeField] private TextMeshProUGUI timeText;
     [SerializeField] private TextMeshProUGUI energyText;
+    [SerializeField] private TextMeshProUGUI goldText;
     [SerializeField] private TextMeshProUGUI stageText;
     [SerializeField] private TextMeshProUGUI intentText;
     [SerializeField] private TextMeshProUGUI resultText;
@@ -21,12 +22,14 @@ public class PlayHUD : MonoBehaviour
     private void OnEnable()
     {
         if (battleManager != null) battleManager.OnBattleChanged += RefreshUI;
+        if (runManager != null) runManager.OnGoldChanged += RefreshUI;
         RefreshUI();
     }
 
     private void OnDisable()
     {
         if (battleManager != null) battleManager.OnBattleChanged -= RefreshUI;
+        if (runManager != null) runManager.OnGoldChanged -= RefreshUI;
     }
 
     private void Update()
@@ -43,6 +46,7 @@ public class PlayHUD : MonoBehaviour
     private void RefreshUI()
     {
         if (battleManager == null || runManager == null) return;
+        if (goldText != null) goldText.text = $"골드 {runManager.Gold}";
         if (turnText != null)
             turnText.text = $"Turn : {battleManager.Turn} / " +
                 (battleManager.State == BattleState.EnemyTurn ? "적 턴" : "플레이어 턴");
@@ -65,7 +69,8 @@ public class PlayHUD : MonoBehaviour
         if (resultText != null)
             resultText.text = won ? (runManager.IsRunComplete ? "모든 층을 클리어했습니다!" : "전투 승리!") : "패배";
         if (nextBattleButton != null)
-            nextBattleButton.gameObject.SetActive(won && runManager.HasStageSequence && !runManager.IsRunComplete);
+            nextBattleButton.gameObject.SetActive(won && !battleManager.HasPendingCardReward
+                && runManager.HasStageSequence && !runManager.IsRunComplete);
     }
 }
 

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class RunManager : MonoBehaviour
@@ -9,6 +10,8 @@ public class RunManager : MonoBehaviour
 
     public MasterDeck MasterDeck { get; private set; }
     public PlayerStatus PlayerStatus { get; private set; }
+    public int Gold { get; private set; }
+    public event Action OnGoldChanged;
     public int StageIndex { get; private set; }
     public int Floor => StageIndex + 1;
     public bool HasStageSequence => stages != null && stages.Length > 0;
@@ -25,6 +28,8 @@ public class RunManager : MonoBehaviour
         }
         MasterDeck = new MasterDeck(playerData.StarterDeck);
         PlayerStatus = new PlayerStatus(playerData.MaxHp);
+        Gold = 0;
+        OnGoldChanged?.Invoke();
         StageIndex = 0;
         SelectCurrentEncounter();
     }
@@ -40,6 +45,15 @@ public class RunManager : MonoBehaviour
     private void SelectCurrentEncounter()
     {
         CurrentEncounter = CurrentStage != null ? CurrentStage.SelectEncounter() : null;
+    }
+
+    public int AddGold(int amount)
+    {
+        if (amount <= 0 || PlayerStatus == null) return 0;
+        int added = Math.Min(amount, int.MaxValue - Gold);
+        Gold += added;
+        if (added > 0) OnGoldChanged?.Invoke();
+        return added;
     }
 }
 

@@ -30,6 +30,7 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
     private Vector3 targetScale;
 
     private bool isDragging;
+    private bool isRewardCard;
     private Vector2 dragOffset;
 
     public event Action<CardUI> OnCardClicked;
@@ -140,7 +141,7 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        if (CardInstance == null)
+        if (CardInstance == null || isRewardCard)
             return;
 
         isDragging = true;
@@ -193,5 +194,12 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
         {
             targetPosition = basePosition;
         }
+    }
+
+    public void SetRewardMode()
+    {
+        isRewardCard = true;
+        hoverMoveY = 0;
+        hoverScale = 1.06f;
     }
 }

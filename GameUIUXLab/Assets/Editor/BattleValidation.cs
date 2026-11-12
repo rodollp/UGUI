@@ -247,20 +247,27 @@ public static class BattleValidation
         status.AddAttackPower(3); status.AddDexterity(2);
         target.Status.TakeDamage(int.MaxValue);
         Expect(battle.State == BattleState.Victory && run.StageIndex == 1, "Victory advances one floor");
-        VerifyResultText("전투 승리!", true);
+        VerifyResultText("전투 승리!", false);
         if (SystemInfo.graphicsDeviceType != UnityEngine.Rendering.GraphicsDeviceType.Null)
         {
             yield return null;
             CapturePreview("battle-result-preview.png");
         }
+        RewardValidation.VerifyAndClaim(battle, run, 0);
         hp = status.CurrentHp;
         battle.StartNextBattle();
         Expect(battle.State == BattleState.PlayerTurn && battle.Enemies.Count == 2, "Next encounter spawns two enemies");
         Expect(ReferenceEquals(status, run.PlayerStatus) && status.CurrentHp == hp, "HP persists across floors");
         Expect(status.AttackPower == 0 && status.Dexterity == 0 && status.CurrentEnergy == 3, "Combat buffs reset");
         Expect(status.GetDebuffDescription() == "", "Next battle clears all debuffs");
+        int goldBeforeDefeat = run.Gold;
+        int deckBeforeDefeat = run.MasterDeck.Cards.Count;
+        foreach (Enemy enemy in battle.Enemies.Take(1).ToArray()) enemy.Status.TakeDamage(int.MaxValue);
+        Expect(run.Gold == goldBeforeDefeat && battle.RewardOffer == null, "Single kill does not grant victory rewards");
         status.TakeDamage(int.MaxValue);
         Expect(battle.State == BattleState.Defeat && run.StageIndex == 1 && Hand().Length == 0, "Defeat stops progression");
+        Expect(run.Gold == goldBeforeDefeat && run.MasterDeck.Cards.Count == deckBeforeDefeat
+            && battle.RewardOffer == null && !battle.TrySelectRewardCard(0), "Defeat has no gold or card reward");
         VerifyResultText("패배", false);
         battle.StartNextBattle();
         Expect(battle.State == BattleState.Defeat, "Cannot advance after defeat");
@@ -279,9 +286,15 @@ public static class BattleValidation
 
         for (int floor = 0; floor < 3; floor++)
         {
+            int goldBeforeVictory = run.Gold;
             foreach (Enemy enemy in battle.Enemies.ToArray()) enemy.Status.TakeDamage(int.MaxValue);
             Expect(battle.State == BattleState.Victory && run.StageIndex == floor + 1, "Floor victory recorded once");
-            if (floor < 2) battle.StartNextBattle();
+            RewardValidation.VerifyAndClaim(battle, run, goldBeforeVictory);
+            if (floor < 2)
+            {
+                battle.StartNextBattle();
+                Expect(run.MasterDeck.Cards.Count == 11 + floor, "Reward cards persist into next battle");
+            }
         }
         Expect(run.IsRunComplete, "Final floor completes run");
         VerifyResultText("모든 층을 클리어했습니다!", false);
@@ -352,4 +365,3 @@ public static class BattleValidation
         }
     }
 }
-

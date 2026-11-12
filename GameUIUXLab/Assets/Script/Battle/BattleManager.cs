@@ -15,10 +15,16 @@ public class BattleManager : MonoBehaviour
     [SerializeField] private Transform enemyRoot;
     [Header("Encounter (used when no stage sequence is assigned)")]
     [SerializeField] private EncounterData encounter;
+    [SerializeField] private BattleRewardData defaultRewards;
     [SerializeField, Min(0)] private float enemyActionDelay = 0.6f;
 
     private readonly List<Enemy> enemies = new();
     private PlayerStatus playerStatus;
+    private BattleRewardData battleRewards;
+    private readonly System.Random rewardRandom = new System.Random();
+    public BattleRewardOffer RewardOffer { get; private set; }
+    public int GoldAwarded { get; private set; }
+    public bool HasPendingCardReward => RewardOffer != null && !RewardOffer.IsClaimed;
     public IReadOnlyList<Enemy> Enemies => enemies;
     public BattleState State { get; private set; }
     public int Turn { get; private set; }
@@ -33,6 +39,7 @@ public class BattleManager : MonoBehaviour
     {
         if (State == BattleState.Preparing || State == BattleState.PlayerTurn || State == BattleState.EnemyTurn)
             return;
+        if (State == BattleState.Victory && HasPendingCardReward) return;
         EncounterData selected = runManager != null && runManager.HasStageSequence
             ? runManager.CurrentEncounter : encounter;
         if (runManager == null || runManager.PlayerStatus == null || runManager.PlayerStatus.IsDead
@@ -44,7 +51,14 @@ public class BattleManager : MonoBehaviour
             return;
         }
 
+        BattleRewardData rewards = selected.Rewards != null ? selected.Rewards : defaultRewards;
+        if (rewards == null || !rewards.IsValid())
+        {
+            Debug.LogError("골드 범위와 서로 다른 카드 3장 이상의 보상 풀을 설정하세요.");
+            return;
+        }
         AbortBattle();
+        battleRewards = rewards;
         State = BattleState.Preparing;
         BattleFloor = runManager.Floor;
         EncounterName = selected.EncounterName;
@@ -147,7 +161,12 @@ public class BattleManager : MonoBehaviour
             return;
         State = won ? BattleState.Victory : BattleState.Defeat;
         cardManager.EndBattle();
-        if (won) runManager.CompleteStage();
+        if (won)
+        {
+            RewardOffer = battleRewards.CreateOffer(rewardRandom);
+            GoldAwarded = runManager.AddGold(RewardOffer.Gold);
+            runManager.CompleteStage();
+        }
         NotifyChanged();
         OnBattleEnded?.Invoke(won);
         if (screenFlowController != null) screenFlowController.ShowResultScreen();
@@ -155,7 +174,8 @@ public class BattleManager : MonoBehaviour
 
     public void StartNextBattle()
     {
-        if (State != BattleState.Victory || !runManager.HasStageSequence || runManager.IsRunComplete)
+        if (State != BattleState.Victory || HasPendingCardReward
+            || !runManager.HasStageSequence || runManager.IsRunComplete)
             return;
         if (screenFlowController != null) screenFlowController.ShowPlayScreen();
         StartBattle();
@@ -165,6 +185,9 @@ public class BattleManager : MonoBehaviour
     {
         StopAllCoroutines();
         State = BattleState.None;
+        RewardOffer = null;
+        GoldAwarded = 0;
+        battleRewards = null;
         if (cardManager != null) cardManager.EndBattle();
         if (playerStatus != null)
         {
@@ -187,6 +210,16 @@ public class BattleManager : MonoBehaviour
     }
 
     private void NotifyChanged() => OnBattleChanged?.Invoke();
+
+    public bool TrySelectRewardCard(int index)
+    {
+        if (State != BattleState.Victory || !HasPendingCardReward || runManager.MasterDeck == null
+            || !ReferenceEquals(playerStatus, runManager.PlayerStatus)
+            || !RewardOffer.TryClaim(index, out CardData card)) return false;
+        runManager.MasterDeck.AddCard(new CardInstance(card));
+        NotifyChanged();
+        return true;
+    }
     private void OnDestroy() => AbortBattle();
 }
 

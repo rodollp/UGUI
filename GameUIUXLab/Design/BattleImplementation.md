@@ -78,5 +78,6 @@ Unity.exe -batchmode -nographics -projectPath "<GameUIUXLab 경로>" -executeMet
 ## 이후 확장
 
 현재는 순차적인 3층 전투의 기반이다. 분기 지도, 노드 선택, 상점·휴식·이벤트,
-전투 보상, 유물, 상태이상, 보존·소멸 키워드, 애니메이션은 후속 작업으로 분리한다.
+유물, 추가 상태이상, 보존·소멸 키워드, 애니메이션은 후속 작업으로 분리한다.
+승리 골드와 카드 3장 중 1장 선택 보상은 VictoryRewards.md를 참고한다.
 StageType과 EnemyType의 Elite 값은 분류용이며 별도의 보상 규칙은 아직 없다.

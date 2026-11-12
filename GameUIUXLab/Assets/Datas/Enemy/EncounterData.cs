@@ -13,6 +13,7 @@ public class EnemySpawnEntry
 public class EncounterData : ScriptableObject
 {
     public string EncounterName;
+    public BattleRewardData Rewards;
     public EnemySpawnEntry[] Enemies;
 
     public bool IsValid()
