@@ -16,7 +16,7 @@ public class BattleDeck
 
         foreach (CardInstance card in masterDeck.Cards)
         {
-            drawPile.Add(new CardInstance(card.CardData));
+            drawPile.Add(card.CopyForBattle());
         }
 
     }

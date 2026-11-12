@@ -25,5 +25,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 5d5f3de3ffce3be48abee7dd6711a75c, type: 2}
   - {fileID: 11400000, guid: 5094786647e820342ab82789cfbcabc9, type: 2}
   - {fileID: 11400000, guid: 204f798bd4906b4439beb0717d19af48, type: 2}
+  - {fileID: 11400000, guid: 3e289e0b9b7802348ac1bfca9a344269, type: 2}
   Rest: {fileID: 11400000, guid: 92e1acc22d92b5e44bc8d498d0aaf30d, type: 2}
   Treasure: {fileID: 11400000, guid: fd691def664eb2344b9f9cdd9dccc527, type: 2}

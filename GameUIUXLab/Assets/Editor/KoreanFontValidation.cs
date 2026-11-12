@@ -15,6 +15,7 @@ public static class KoreanFontValidation
     }
     public static void Run()
     {
+        UnityEditor.SceneManagement.EditorSceneManager.OpenScene("Assets/Scenes/CardGame.unity");
         try { Verify(); }
         catch (Exception error) { Debug.LogException(error); EditorApplication.Exit(1); return; }
         MapValidation.Run();

@@ -35,7 +35,7 @@ public static class MapValidation
 
     public static void Run()
     {
-        try { VerifyModels(); RewardValidation.VerifyModels(); }
+        try { VerifyModels(); RewardValidation.VerifyModels(); UpgradeValidation.VerifyModels(); }
         catch (Exception error) { Debug.LogException(error); EditorApplication.Exit(1); return; }
         EditorSceneManager.OpenScene("Assets/Scenes/CardGame.unity");
         SessionState.SetBool(Active, true); EditorApplication.isPlaying = true;
@@ -266,6 +266,8 @@ public static class MapValidation
             adventure.ReturnFromEvent();
         }
 
+        var upgradeChecks = UpgradeValidation.VerifyScene(config);
+        while (upgradeChecks.MoveNext()) yield return upgradeChecks.Current;
         config.Events = new[] { AssetDatabase.LoadAssetAtPath<MapEventData>("Assets/Datas/Adventure/Shrine.asset") };
         adventure.BeginRun();
         MapNode shrine = run.Map.Nodes.Single(n => n.Row == 1 && n.Type == MapNodeType.Event);

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using UnityEngine;
 
 public class AdventureController : MonoBehaviour
@@ -10,6 +11,9 @@ public class AdventureController : MonoBehaviour
     public MapEventData CurrentEvent { get; private set; }
     public bool EventResolved { get; private set; }
     public string EventResult { get; private set; }
+    private int upgradeChoice = -1;
+    public bool IsChoosingUpgrade => upgradeChoice >= 0;
+    public CardInstance[] UpgradeCandidates => runManager.MasterDeck.Cards.Where(c => c.CanUpgrade).ToArray();
     public event Action OnEventChanged;
 
     public void BeginRun()
@@ -40,6 +44,7 @@ public class AdventureController : MonoBehaviour
         }
         else
         {
+            ResetEvent();
             CurrentEvent = node.Event;
             EventResolved = false;
             EventResult = "";
@@ -51,21 +56,53 @@ public class AdventureController : MonoBehaviour
 
     public bool CanChooseEvent(int index)
     {
-        if (!screenFlow.IsEvent || EventResolved || CurrentEvent == null || !runManager.HasMap
+        if (!screenFlow.IsEvent || EventResolved || IsChoosingUpgrade || CurrentEvent == null || !runManager.HasMap
             || runManager.Map.ActiveNode == null || runManager.PlayerStatus == null || runManager.PlayerStatus.IsDead
             || index < 0 || index >= CurrentEvent.Choices.Length) return false;
         MapEventChoice choice = CurrentEvent.Choices[index];
-        return choice.GoldCost <= runManager.Gold && choice.HealthCost < runManager.PlayerStatus.CurrentHp;
+        return choice.GoldCost <= runManager.Gold && choice.HealthCost < runManager.PlayerStatus.CurrentHp
+            && (!choice.UpgradeCard || UpgradeCandidates.Length > 0);
     }
 
     public bool ChooseEvent(int index)
     {
         if (!CanChooseEvent(index)) return false;
         MapEventChoice choice = CurrentEvent.Choices[index];
+        if (choice.UpgradeCard)
+        {
+            upgradeChoice = index;
+            OnEventChanged?.Invoke();
+            return true;
+        }
+        return ResolveChoice(choice, null);
+    }
+
+    public void CancelUpgrade()
+    {
+        if (!screenFlow.IsEvent || !IsChoosingUpgrade || EventResolved) return;
+        upgradeChoice = -1;
+        OnEventChanged?.Invoke();
+    }
+
+    public bool ConfirmUpgrade(CardInstance card)
+    {
+        if (!screenFlow.IsEvent || !IsChoosingUpgrade || EventResolved || card == null
+            || !runManager.MasterDeck.Cards.Contains(card) || !card.CanUpgrade
+            || runManager.Map.ActiveNode == null || runManager.PlayerStatus.IsDead) return false;
+        MapEventChoice choice = CurrentEvent.Choices[upgradeChoice];
+        if (choice.GoldCost > runManager.Gold || choice.HealthCost >= runManager.PlayerStatus.CurrentHp) return false;
+        return ResolveChoice(choice, card);
+    }
+
+    private bool ResolveChoice(MapEventChoice choice, CardInstance card)
+    {
         EventResolved = true;
         int hp = runManager.PlayerStatus.CurrentHp;
         int gold = runManager.Gold;
         if (!runManager.TrySpendGold(choice.GoldCost)) { EventResolved = false; return false; }
+        string originalName = card?.CardData.CardName;
+        if (card != null) card.TryUpgrade();
+        upgradeChoice = -1;
         runManager.PlayerStatus.TakeDamage(choice.HealthCost);
         runManager.AddGold(choice.GoldGain);
         int heal = (int)Math.Min(int.MaxValue, (long)choice.HealAmount
@@ -75,6 +112,7 @@ public class AdventureController : MonoBehaviour
         runManager.CompleteStage();
         EventResult = choice.Result + $"\n\n체력 {runManager.PlayerStatus.CurrentHp - hp:+0;-0;0} · 골드 {runManager.Gold - gold:+0;-0;0}"
             + (choice.Card != null ? $"\n{choice.Card.CardName} 카드를 획득했습니다." : "");
+        if (card != null) EventResult += $"\n{originalName} → {card.CardData.CardName} 강화 완료";
         OnEventChanged?.Invoke();
         return true;
     }
@@ -96,7 +134,7 @@ public class AdventureController : MonoBehaviour
 
     private void ResetEvent()
     {
-        CurrentEvent = null; EventResolved = false; EventResult = "";
+        CurrentEvent = null; EventResolved = false; EventResult = ""; upgradeChoice = -1;
     }
 }
 
