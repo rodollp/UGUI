@@ -15,14 +15,20 @@ MonoBehaviour:
   EnemyName: "\uC218\uD638\uBCD1"
   EnemyType: 0
   MaxHp: 22
+  PatternMode: 1
+  OpeningAction: 1
   Actions:
-  - Type: 1
+  - Weight: 35
+    MaxConsecutiveUses: 1
+    MinHpPercent: 0
+    MaxHpPercent: 100
+    Type: 1
     Amount: 7
     Hits: 1
-    Debuff: 0
-    DebuffTurns: 2
-  - Type: 0
+  - Weight: 65
+    MaxConsecutiveUses: 2
+    MinHpPercent: 0
+    MaxHpPercent: 100
+    Type: 0
     Amount: 8
     Hits: 1
-    Debuff: 1
-    DebuffTurns: 2

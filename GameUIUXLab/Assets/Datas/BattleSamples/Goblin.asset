@@ -15,14 +15,27 @@ MonoBehaviour:
   EnemyName: "\uACE0\uBE14\uB9B0"
   EnemyType: 0
   MaxHp: 18
+  PatternMode: 1
+  OpeningAction: 1
   Actions:
-  - Type: 3
+  - Weight: 60
+    MaxConsecutiveUses: 2
+    MinHpPercent: 0
+    MaxHpPercent: 100
+    Type: 0
     Amount: 6
     Hits: 1
+  - Weight: 25
+    MaxConsecutiveUses: 1
+    MinHpPercent: 0
+    MaxHpPercent: 100
+    Type: 0
+    Amount: 3
+    Hits: 2
+  - Weight: 15
+    MaxConsecutiveUses: 1
+    MinHpPercent: 0
+    MaxHpPercent: 100
+    Type: 3
     Debuff: 1
-    DebuffTurns: 2
-  - Type: 0
-    Amount: 6
-    Hits: 1
-    Debuff: 0
-    DebuffTurns: 2
+    DebuffTurns: 1

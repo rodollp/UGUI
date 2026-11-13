@@ -168,6 +168,15 @@ public static class BattleValidation
         Expect(battle.State == BattleState.PlayerTurn && battle.Turn == 1, "Initial player turn");
         Expect(battle.Enemies.Count == 1 && Hand().Length == 5, "Enemy spawned and five cards drawn");
         Enemy target = battle.Enemies[0];
+        // 전투 규칙 검증은 샘플의 확률 밸런스와 독립적인 고정 행동을 사용합니다.
+        // 상태를 재생성하지 않아 BattleManager의 사망/상태 이벤트 연결을 보존합니다.
+        EnemyData deterministicData = UnityEngine.Object.Instantiate(target.Data);
+        deterministicData.PatternMode = EnemyPatternMode.Sequential;
+        deterministicData.Actions = new[] { new EnemyAction { Type = EnemyActionType.Attack, Amount = 6 } };
+        var targetSetup = new SerializedObject(target);
+        targetSetup.FindProperty("enemyData").objectReferenceValue = deterministicData;
+        targetSetup.ApplyModifiedPropertiesWithoutUndo();
+        target.PlanNextAction();
         Expect(target.Intent != null && target.Intent.Type == EnemyActionType.Attack, "Intent planned");
         // 그래픽 장치가 있는 배치 실행에서는 실제 게임 화면도 저장합니다.
         if (SystemInfo.graphicsDeviceType != UnityEngine.Rendering.GraphicsDeviceType.Null)
@@ -251,6 +260,7 @@ public static class BattleValidation
         status.AddAttackPower(3); status.AddDexterity(2);
         target.Status.TakeDamage(int.MaxValue);
         Expect(battle.State == BattleState.Victory && run.StageIndex == 1, "Victory advances one floor");
+        UnityEngine.Object.Destroy(deterministicData);
         VerifyResultText("전투 승리!", false);
         if (SystemInfo.graphicsDeviceType != UnityEngine.Rendering.GraphicsDeviceType.Null)
         {

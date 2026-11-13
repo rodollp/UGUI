@@ -3,10 +3,17 @@ using UnityEngine;
 
 public enum EnemyType { Normal, Elite, Boss }
 public enum EnemyActionType { Attack, Block, Strength, Debuff }
+public enum EnemyPatternMode { Sequential, WeightedRandom }
 
 [Serializable]
 public class EnemyAction
 {
+    [Header("Random selection")]
+    [Min(0)] public int Weight = 1;
+    [Tooltip("0: unlimited. Limit repeats of this action entry.")]
+    [Min(0)] public int MaxConsecutiveUses = 2;
+    [Range(0, 100)] public int MinHpPercent = 0;
+    [Range(0, 100)] public int MaxHpPercent = 100;
     public EnemyActionType Type;
     [Min(0)] public int Amount = 6;
     [Min(1)] public int Hits = 1;
@@ -32,7 +39,10 @@ public class EnemyData : ScriptableObject
     public string EnemyName;
     public EnemyType EnemyType;
     [Min(1)] public int MaxHp = 20;
-    // 앞에서부터 순서대로 반복합니다. 비어 있으면 기본 공격을 사용합니다.
+    public EnemyPatternMode PatternMode;
+    [Tooltip("0: choose normally. Otherwise use this 1-based action on the first turn.")]
+    [Min(0)] public int OpeningAction = 0;
+    // Sequential: 순서대로 반복. WeightedRandom: 조건을 만족하는 항목을 가중 추첨.
     public EnemyAction[] Actions = { new EnemyAction() };
 }
 
