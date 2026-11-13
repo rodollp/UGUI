@@ -13,7 +13,9 @@ public enum CardType
 public enum CardTargetType
 {
     None,
-    Enemy
+    Enemy,
+    RandomEnemy,
+    AllEnemies
 }
 
 [CreateAssetMenu(fileName = "CardData", menuName = "Scriptable Objects/CardData")]
@@ -31,7 +33,9 @@ public class CardData : ScriptableObject
 
     public string GetDescription()
     {
-        return string.Join("\n",
+        string prefix = TargetType == CardTargetType.RandomEnemy ? "무작위 적 1명에게\n"
+            : TargetType == CardTargetType.AllEnemies ? "모든 적에게\n" : "";
+        return prefix + string.Join("\n",
             Effects.Select(effect => effect.GetDescription()));
     }
 }

@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Linq;
 
 public class CardManager : MonoBehaviour
 {
@@ -64,7 +65,7 @@ public class CardManager : MonoBehaviour
         if (battleManager == null || !battleManager.CanPlayCards || cardUI == null
             || cardUI.CardInstance == null) return;
         CardData data = cardUI.CardInstance.CardData;
-        if (data.TargetType == CardTargetType.None)
+        if (data.TargetType != CardTargetType.Enemy)
         {
             if (screenPosition.y >= Screen.height * useHeightRatio) UseCard(cardUI);
         }
@@ -82,6 +83,16 @@ public class CardManager : MonoBehaviour
         if (card == null || card.CardData == null || !battleDeck.ContainsInHand(card)) return;
         if (card.CardData.TargetType == CardTargetType.Enemy && !battleManager.IsValidTarget(target))
             return;
+        EnemyStatus[] targets;
+        if (card.CardData.TargetType == CardTargetType.RandomEnemy || card.CardData.TargetType == CardTargetType.AllEnemies)
+        {
+            targets = battleManager.Enemies.Where(battleManager.IsValidTarget).Select(e => e.Status).ToArray();
+            if (targets.Length == 0) return;
+            if (card.CardData.TargetType == CardTargetType.RandomEnemy)
+                targets = new[] { targets[Random.Range(0, targets.Length)] };
+        }
+        else targets = card.CardData.TargetType == CardTargetType.Enemy
+            ? new[] { target.Status } : System.Array.Empty<EnemyStatus>();
         PlayerStatus status = runManager.PlayerStatus;
         if (!status.CanUseEnergy(card.CurrentCost))
         {
@@ -97,7 +108,7 @@ public class CardManager : MonoBehaviour
             battleDeck.PlayCard(card);
             playerHand.RemoveCard(cardUI);
             CardEffectContext context = new CardEffectContext(status,
-                card.CardData.TargetType == CardTargetType.Enemy ? target.Status : null);
+                targets.Length == 1 ? targets[0] : null, targets);
             if (card.CardData.Effects != null)
                 foreach (CardEffect effect in card.CardData.Effects)
                     if (effect != null) effect.Execute(context);
