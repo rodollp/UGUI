@@ -120,7 +120,7 @@ public static class MapValidation
         Debug.Log($"MAP_MODEL_VALIDATION_OK: {checks} assertions passed.");
     }
     private static string Signature(RunMap map) => string.Join("|", map.Nodes.Select(n =>
-        $"{n.Id}:{n.Type}:{n.Encounter?.name}:{n.Event?.name}:{string.Join(",", n.Outgoing)}"));
+        $"{n.Id}:{n.Type}:{n.IsUnknown}:{n.Encounter?.name}:{n.Event?.name}:{string.Join(",", n.Outgoing)}"));
 
     private static void VerifyRoutes(RunMap map, MapNode node, int visits, int treasures, int treasureFloor)
     {
@@ -145,6 +145,7 @@ public static class MapValidation
         var configObject = new SerializedObject(run);
         var config = UnityEngine.Object.Instantiate((RunMapData)configObject.FindProperty("mapData").objectReferenceValue);
         config.UseFixedSeed = true; config.Seed = 42;
+        config.UnknownBattlePercent = 0; // Event-choice checks use deterministic event outcomes.
         config.Events = new[] { AssetDatabase.LoadAssetAtPath<MapEventData>("Assets/Datas/Adventure/Merchant.asset") };
         configObject.FindProperty("mapData").objectReferenceValue = config;
         configObject.ApplyModifiedPropertiesWithoutUndo();
@@ -167,6 +168,13 @@ public static class MapValidation
         Expect(battle.State == BattleState.None, "battle cannot start without a selected combat node");
         yield return null;
         Capture("map-preview.png");
+        var previewScroll = Find<RunMapUI>().GetComponentInChildren<ScrollRect>(true);
+        previewScroll.verticalNormalizedPosition = 1;
+        yield return null;
+        Expect(previewScroll.verticalNormalizedPosition > .99f, "map can scroll to the boss and rest floor");
+        Capture("map-upper-preview.png");
+        previewScroll.verticalNormalizedPosition = 0;
+        yield return null;
 
         MapNode story = run.Map.Nodes.Single(n => n.Row == 1 && n.Type == MapNodeType.Event);
         MapNode entry = run.Map.Nodes.First(n => n.Row == 0 && n.Column == story.Column);
@@ -310,6 +318,24 @@ public static class MapValidation
         adventure.BeginRun();
         Expect(flow.IsMap && run.PlayerStatus.CurrentHp == run.PlayerStatus.MaxHp && run.Gold == 0,
             "new game after defeat works");
+        config.UnknownBattlePercent = 100;
+        adventure.BeginRun();
+        MapNode mystery = run.Map.Nodes.Single(n => n.Row == 1 && n.IsUnknown);
+        MapNode approach = run.Map.Nodes.Single(n => n.Row == 0 && n.Column == mystery.Column);
+        var mysteryIcon = NodeButton(mystery.Id).GetComponentInChildren<MapNodeIcon>();
+        Expect(mysteryIcon.Unknown && mystery.Label == "미지의 장소", "mystery battle hidden before entry");
+        adventure.SelectNode(approach.Id);
+        foreach (var enemy in battle.Enemies.ToArray()) enemy.Status.TakeDamage(int.MaxValue);
+        ClaimCard(); battle.StartNextBattle();
+        Expect(adventure.SelectNode(mystery.Id) && flow.IsPlaying && battle.State == BattleState.PlayerTurn,
+            "question-mark battle enters normal combat");
+        foreach (var enemy in battle.Enemies.ToArray()) enemy.Status.TakeDamage(int.MaxValue);
+        ClaimCard(); battle.StartNextBattle();
+        Expect(mystery.Completed && !NodeButton(mystery.Id).GetComponentInChildren<MapNodeIcon>().Unknown,
+            "resolved mystery reveals visited battle icon");
+        var scroll = Find<RunMapUI>().GetComponentInChildren<ScrollRect>(true);
+        Expect(scroll != null && scroll.vertical && !scroll.horizontal && scroll.content.rect.height > scroll.viewport.rect.height,
+            "map uses a vertical scroll viewport with spacious rows");
         UnityEngine.Object.Destroy(config);
     }
     private static Button NodeButton(int id) => UnityEngine.Object.FindObjectsByType<Button>(FindObjectsSortMode.None)

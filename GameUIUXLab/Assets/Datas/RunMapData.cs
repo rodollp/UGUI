@@ -12,6 +12,7 @@ public class RunMapData : ScriptableObject
     public int RestStartFloor => restStartFloor;
     public int TreasureFloor => treasureFloor;
     public int TreasureRow => treasureFloor - 1;
+    [Range(0, 100)] public int UnknownBattlePercent = 30;
     public bool UseFixedSeed;
     public int Seed = 42;
     public EncounterData[] Battles;
@@ -23,6 +24,7 @@ public class RunMapData : ScriptableObject
 
     public bool IsValid()
     {
+        if (UnknownBattlePercent < 0 || UnknownBattlePercent > 100) return false;
         if (rows < 3 || eliteStartFloor < 2 || eliteStartFloor >= rows - 1
             || restStartFloor < 2 || restStartFloor >= rows - 1
             || treasureFloor < 2 || treasureFloor >= rows - 1) return false;

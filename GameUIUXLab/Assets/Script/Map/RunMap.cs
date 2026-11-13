@@ -10,15 +10,18 @@ public sealed class MapNode
     public int Row { get; }
     public int Column { get; }
     public MapNodeType Type { get; }
+    public bool IsUnknown { get; }
     public EncounterData Encounter { get; }
     public MapEventData Event { get; }
     public bool Completed { get; internal set; }
     public IReadOnlyList<int> Outgoing { get; }
     public bool IsCombat => Type == MapNodeType.Battle || Type == MapNodeType.Elite || Type == MapNodeType.Boss;
 
-    internal MapNode(int id, int row, int column, MapNodeType type, EncounterData encounter, MapEventData data)
+    internal MapNode(int id, int row, int column, MapNodeType type, EncounterData encounter, MapEventData data,
+        bool isUnknown = false)
     {
         Id = id; Row = row; Column = column; Type = type; Encounter = encounter; Event = data;
+        IsUnknown = isUnknown;
         Outgoing = outgoing.AsReadOnly();
     }
 
@@ -28,6 +31,7 @@ public sealed class MapNode
     {
         get
         {
+            if (IsUnknown && !Completed) return "미지의 장소";
             switch (Type)
             {
                 case MapNodeType.Elite: return "정예";
@@ -112,6 +116,9 @@ public static class RunMapGenerator
                 else if (row == 1)
                     type = new[] { MapNodeType.Event, MapNodeType.Battle, MapNodeType.Battle }[(col + rotation) % 3];
                 else type = PickRegularType(data, row + 1, random);
+                bool unknown = type == MapNodeType.Event;
+                // Store the result once; UI never reveals it before this node is entered.
+                if (unknown && random.Next(100) < data.UnknownBattlePercent) type = MapNodeType.Battle;
                 EncounterData encounter = null;
                 MapEventData mapEvent = null;
                 switch (type)
@@ -123,7 +130,7 @@ public static class RunMapGenerator
                     case MapNodeType.Treasure: mapEvent = data.Treasure; break;
                     default: mapEvent = Pick(data.Events, random); break;
                 }
-                nodes.Add(new MapNode(row * 3 + col, row, columns == 1 ? 1 : col, type, encounter, mapEvent));
+                nodes.Add(new MapNode(row * 3 + col, row, columns == 1 ? 1 : col, type, encounter, mapEvent, unknown));
             }
         }
         var map = new RunMap(nodes, data.Rows, seed);

@@ -16,6 +16,7 @@ MonoBehaviour:
   eliteStartFloor: 5
   restStartFloor: 4
   treasureFloor: 6
+  UnknownBattlePercent: 30
   UseFixedSeed: 0
   Seed: 42
   Battles:
