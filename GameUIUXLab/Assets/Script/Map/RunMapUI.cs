@@ -9,6 +9,8 @@ public class RunMapUI : MonoBehaviour
     [SerializeField] private Button nodeTemplate;
     [SerializeField] private TMP_Text titleText;
     [SerializeField] private TMP_Text statusText;
+    private const float NodeWidth = 160f;
+    private static float NodeHeight(int rows) => Mathf.Min(52f, 600f / Mathf.Max(1, rows - 1) - 14f);
 
     private void OnEnable()
     {
@@ -23,7 +25,7 @@ public class RunMapUI : MonoBehaviour
     }
 
     private Vector2 Position(MapNode node, int rows) =>
-        new Vector2((node.Column - 1) * 310, -300 + node.Row * 600f / (rows - 1));
+        new Vector2((node.Column - 1) * 310, -300 + node.Row * 600f / Mathf.Max(1, rows - 1));
 
     public void Refresh()
     {
@@ -44,8 +46,8 @@ public class RunMapUI : MonoBehaviour
                 Vector2 from = Position(node, run.Map.Rows);
                 Vector2 to = Position(target, run.Map.Rows);
                 Vector2 direction = (to - from).normalized;
-                float inset = Mathf.Min(62 / Mathf.Max(0.001f, Mathf.Abs(direction.x)),
-                    28 / Mathf.Max(0.001f, Mathf.Abs(direction.y)));
+                float inset = Mathf.Min((NodeWidth / 2 + 2) / Mathf.Max(0.001f, Mathf.Abs(direction.x)),
+                    (NodeHeight(run.Map.Rows) / 2 + 2) / Mathf.Max(0.001f, Mathf.Abs(direction.y)));
                 from += direction * inset;
                 to -= direction * inset;
                 var line = new GameObject("Path", typeof(RectTransform), typeof(Image));
@@ -68,13 +70,13 @@ public class RunMapUI : MonoBehaviour
             RectTransform rect = button.GetComponent<RectTransform>();
             rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
             rect.anchoredPosition = Position(node, run.Map.Rows);
-            rect.sizeDelta = new Vector2(120, 52);
+            rect.sizeDelta = new Vector2(NodeWidth, NodeHeight(run.Map.Rows));
             bool available = run.Map.CanEnter(node.Id);
             button.interactable = available && !run.PlayerStatus.IsDead;
             button.GetComponent<Image>().color = node.Completed ? new Color(0.36f, 0.29f, 0.17f)
                 : available ? new Color(0.8f, 0.55f, 0.2f) : new Color(0.17f, 0.21f, 0.26f);
             TMP_Text label = button.GetComponentInChildren<TMP_Text>(true);
-            label.text = node.Label + (node.Completed ? " · 완료" : "");
+            label.text = $"{node.Row + 1}층 · {node.Label}" + (node.Completed ? " · 완료" : "");
             label.fontSize = 22;
             label.enableAutoSizing = true;
             label.fontSizeMin = 13;

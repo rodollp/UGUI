@@ -68,17 +68,23 @@ public static class MapValidation
         checks = 0;
         RunMapData data = AssetDatabase.LoadAssetAtPath<RunMapData>("Assets/Datas/Adventure/DefaultMap.asset");
         Expect(data != null && data.IsValid(), "default map configuration valid");
+        bool sawElite = false;
+        bool sawFourthFloorRest = false;
         for (int seed = 0; seed < 16; seed++)
         {
             RunMap map = RunMapGenerator.Generate(data, seed);
-            Expect(map.Rows == 6, "every route has six floors including the boss");
-            Expect(map.Nodes.Where(n => n.Row == 2).Count() == 3
-                && map.Nodes.All(n => (n.Row == 2) == (n.Type == MapNodeType.Treasure)),
-                "treasure appears on every third-floor node and nowhere else");
+            Expect(map.Rows == 12, "every route has twelve floors including the boss");
+            Expect(map.Nodes.Where(n => n.Row == 5).Count() == 3
+                && map.Nodes.All(n => (n.Row == 5) == (n.Type == MapNodeType.Treasure)),
+                "treasure appears on every sixth-floor node and nowhere else");
             foreach (MapNode start in map.Nodes.Where(n => n.Row == 0))
-                VerifyRoutes(map, start, 1, 0);
+                VerifyRoutes(map, start, 1, 0, data.TreasureFloor);
             Expect(map.Nodes.Count == (data.Rows - 1) * 3 + 1, "node count");
-            Expect(map.Nodes.Select(n => n.Type).Distinct().Count() == 6, "all six node types generated");
+            Expect(map.Nodes.All(n => n.Type != MapNodeType.Elite || n.Row + 1 >= 5), "no elites before floor five");
+            Expect(map.Nodes.All(n => n.Type != MapNodeType.Rest || n.Row + 1 >= 4), "no rest before floor four");
+            Expect(map.Nodes.Where(n => n.Row == map.Rows - 2).All(n => n.Type == MapNodeType.Rest), "rest before boss");
+            sawElite |= map.Nodes.Any(n => n.Type == MapNodeType.Elite);
+            sawFourthFloorRest |= map.Nodes.Any(n => n.Row == 3 && n.Type == MapNodeType.Rest);
             Expect(map.Nodes.All(n => n.Outgoing.All(id => map.Find(id).Row == n.Row + 1)),
                 "edges advance one floor without cycles");
             var reachable = map.Nodes.Where(n => n.Row == 0).Select(n => n.Id).ToList();
@@ -97,6 +103,7 @@ public static class MapValidation
             Expect(map.Nodes.Count(n => n.Completed) == data.Rows && !map.Nodes.Any(n => map.CanEnter(n.Id)),
                 "one node per row and boss ends route");
         }
+        Expect(sawElite && sawFourthFloorRest, "elite and fourth-floor rest both reachable across seeds");
         RunMap first = RunMapGenerator.Generate(data, 42);
         RunMap same = RunMapGenerator.Generate(data, 42);
         Expect(Signature(first) == Signature(same), "seed reproduces graph and encounters");
@@ -115,17 +122,17 @@ public static class MapValidation
     private static string Signature(RunMap map) => string.Join("|", map.Nodes.Select(n =>
         $"{n.Id}:{n.Type}:{n.Encounter?.name}:{n.Event?.name}:{string.Join(",", n.Outgoing)}"));
 
-    private static void VerifyRoutes(RunMap map, MapNode node, int visits, int treasures)
+    private static void VerifyRoutes(RunMap map, MapNode node, int visits, int treasures, int treasureFloor)
     {
         if (node.Type == MapNodeType.Treasure)
         {
             treasures++;
-            Expect(visits == 3, "every possible route reaches treasure on its third visit");
+            Expect(visits == treasureFloor, "every possible route reaches treasure on its configured visit");
         }
         if (node.Outgoing.Count == 0)
-            Expect(visits == 6 && treasures == 1 && node.Type == MapNodeType.Boss,
-                "every possible route ends at the sixth node after exactly one treasure");
-        foreach (int id in node.Outgoing) VerifyRoutes(map, map.Find(id), visits + 1, treasures);
+            Expect(visits == map.Rows && treasures == 1 && node.Type == MapNodeType.Boss,
+                "every possible route ends at the twelfth node after exactly one treasure");
+        foreach (int id in node.Outgoing) VerifyRoutes(map, map.Find(id), visits + 1, treasures, treasureFloor);
     }
 
     private static IEnumerator VerifyScene()
@@ -146,6 +153,13 @@ public static class MapValidation
                 .Any(i => b.onClick.GetPersistentMethodName(i) == "BeginRun"));
         start.onClick.Invoke();
         Expect(flow.IsMap && run.HasMap && battle.State == BattleState.None, "START opens map before battle");
+        foreach (MapNode node in run.Map.Nodes.Where(n => n.Row < run.Map.Rows - 1))
+        {
+            var rect = NodeButton(node.Id).GetComponent<RectTransform>();
+            var above = NodeButton(node.Outgoing[0]).GetComponent<RectTransform>();
+            Expect(above.anchoredPosition.y - rect.anchoredPosition.y > rect.sizeDelta.y,
+                "twelve-floor node buttons do not overlap");
+        }
         Expect(run.CurrentEncounter == null && run.Gold == 0 && run.MasterDeck.Cards.Count == 10, "fresh run resources");
         Expect(!Find<Player>().gameObject.activeInHierarchy && battle.Enemies.Count == 0, "map hides combat world");
         RunMap originalMap = run.Map;
@@ -232,14 +246,14 @@ public static class MapValidation
                 if (node.Type == MapNodeType.Rest)
                 {
                     rested = true;
-                    Expect(run.PlayerStatus.CurrentHp > beforeHp, "campfire heals persistent HP");
+                    Expect(run.PlayerStatus.CurrentHp == Math.Min(run.PlayerStatus.MaxHp, beforeHp + run.PlayerStatus.MaxHp * 30 / 100), "campfire heals persistent HP");
                 }
                 if (choice.Card != null) paidForCard = true;
                 if (node.Type == MapNodeType.Treasure)
                 {
                     treasuresOpened++;
-                    Expect(completed == 2 && run.Gold == beforeGold + 25,
-                        "third clicked node grants treasure gold");
+                    Expect(completed == config.TreasureRow && run.Gold == beforeGold + 25,
+                        "sixth clicked node grants treasure gold");
                 }
                 adventure.ReturnFromEvent();
             }
@@ -247,8 +261,8 @@ public static class MapValidation
             Expect(flow.IsMap && run.Map.LastCompletedNode == node && run.Map.ActiveNode == null,
                 "node resolves back to map");
         }
-        Expect(completed == 6 && rested && treasuresOpened == 1,
-            "six-node route includes rest and exactly one treasure");
+        Expect(completed == config.Rows && rested && treasuresOpened == 1,
+            "twelve-node route includes rest and exactly one treasure");
         Expect(run.Map.Nodes.Count(n => n.Completed) == config.Rows && !run.Map.Nodes.Any(n => run.Map.CanEnter(n.Id)),
             "boss ends route without replayable nodes");
         // 상인 노드가 선택된 경로에 없을 수도 있으므로 별도로 구매 경로를 확인합니다.

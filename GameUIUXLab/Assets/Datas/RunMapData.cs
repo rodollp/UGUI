@@ -3,9 +3,15 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "RunMap", menuName = "Map/Configuration")]
 public class RunMapData : ScriptableObject
 {
-    public const int RouteLength = 6;
-    public const int TreasureRow = 2; // 세 번째 방문 노드 (0부터 시작).
-    public int Rows => RouteLength;
+    [SerializeField, Min(3)] private int rows = 12;
+    [SerializeField, Min(2)] private int eliteStartFloor = 5;
+    [SerializeField, Min(2)] private int restStartFloor = 4;
+    [SerializeField, Min(2)] private int treasureFloor = 6;
+    public int Rows => rows;
+    public int EliteStartFloor => eliteStartFloor;
+    public int RestStartFloor => restStartFloor;
+    public int TreasureFloor => treasureFloor;
+    public int TreasureRow => treasureFloor - 1;
     public bool UseFixedSeed;
     public int Seed = 42;
     public EncounterData[] Battles;
@@ -17,6 +23,9 @@ public class RunMapData : ScriptableObject
 
     public bool IsValid()
     {
+        if (rows < 3 || eliteStartFloor < 2 || eliteStartFloor >= rows - 1
+            || restStartFloor < 2 || restStartFloor >= rows - 1
+            || treasureFloor < 2 || treasureFloor >= rows - 1) return false;
         if (!ValidEncounters(Battles) || !ValidEncounters(Elites)
             || !ValidEncounters(Bosses) || Events == null || Events.Length == 0
             || Rest == null || !Rest.IsValid() || Treasure == null || !Treasure.IsValid()) return false;

@@ -107,12 +107,11 @@ public static class RunMapGenerator
                 MapNodeType type;
                 if (row == data.Rows - 1) type = MapNodeType.Boss;
                 else if (row == 0) type = MapNodeType.Battle;
-                else if (row == RunMapData.TreasureRow) type = MapNodeType.Treasure;
+                else if (row == data.TreasureRow) type = MapNodeType.Treasure;
                 else if (row == data.Rows - 2) type = MapNodeType.Rest;
                 else if (row == 1)
-                    type = new[] { MapNodeType.Event, MapNodeType.Battle, MapNodeType.Elite }[(col + rotation) % 3];
-                else type = new[] { MapNodeType.Battle, MapNodeType.Battle, MapNodeType.Event,
-                    MapNodeType.Elite }[random.Next(4)];
+                    type = new[] { MapNodeType.Event, MapNodeType.Battle, MapNodeType.Battle }[(col + rotation) % 3];
+                else type = PickRegularType(data, row + 1, random);
                 EncounterData encounter = null;
                 MapEventData mapEvent = null;
                 switch (type)
@@ -138,6 +137,14 @@ public static class RunMapGenerator
             else map.Find(row * 3 + boundary + 1).Connect((row + 1) * 3 + boundary);
         }
         return map;
+    }
+
+    private static MapNodeType PickRegularType(RunMapData data, int floor, System.Random random)
+    {
+        var pool = new List<MapNodeType> { MapNodeType.Battle, MapNodeType.Battle, MapNodeType.Event };
+        if (floor >= data.EliteStartFloor) pool.Add(MapNodeType.Elite);
+        if (floor >= data.RestStartFloor) pool.Add(MapNodeType.Rest);
+        return pool[random.Next(pool.Count)];
     }
 
     private static T Pick<T>(T[] values, System.Random random) => values[random.Next(values.Length)];

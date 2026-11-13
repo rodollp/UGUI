@@ -12,6 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d9942db64e2d4c3478204b8d4bc9ad69, type: 3}
   m_Name: DefaultMap
   m_EditorClassIdentifier: Assembly-CSharp::RunMapData
+  rows: 12
+  eliteStartFloor: 5
+  restStartFloor: 4
+  treasureFloor: 6
   UseFixedSeed: 0
   Seed: 42
   Battles:

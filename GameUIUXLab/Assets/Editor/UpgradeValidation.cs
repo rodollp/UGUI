@@ -89,8 +89,8 @@ public static class UpgradeValidation
             deck.PlayCard(drawn);
         }
         Expect(found, "next battle receives upgraded master-deck card");
-        // A real rest node offers upgrade instead of healing.
-        while (run.Map.LastCompletedNode.Row < 3)
+        // The pre-boss rest is guaranteed regardless of optional earlier camps.
+        while (run.Map.LastCompletedNode.Row < config.Rows - 3)
         {
             var next = run.Map.Nodes.First(n => run.Map.CanEnter(n.Id)); adventure.SelectNode(next.Id);
             if (next.IsCombat) Win();
