@@ -54,20 +54,22 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
     private void Update()
     {
         if (isDragging && IsCancelPressed()) CancelDrag();
-        if (!isDragging)
+        if (!isDragging && rectTransform.anchoredPosition != targetPosition)
         {
-            rectTransform.anchoredPosition = Vector2.Lerp(
+            Vector2 nextPosition = Vector2.Lerp(
                 rectTransform.anchoredPosition,
                 targetPosition,
                 moveSpeed * Time.deltaTime
             );
+            rectTransform.anchoredPosition = (nextPosition - targetPosition).sqrMagnitude < .01f
+                ? targetPosition : nextPosition;
         }
 
-        rectTransform.localScale = Vector3.Lerp(
-            rectTransform.localScale,
-            targetScale,
-            moveSpeed * Time.deltaTime
-        );
+        if (rectTransform.localScale != targetScale)
+        {
+            Vector3 nextScale = Vector3.Lerp(rectTransform.localScale, targetScale, moveSpeed * Time.deltaTime);
+            rectTransform.localScale = (nextScale - targetScale).sqrMagnitude < .0001f ? targetScale : nextScale;
+        }
     }
 
     public void SetCard(CardInstance cardInstance)

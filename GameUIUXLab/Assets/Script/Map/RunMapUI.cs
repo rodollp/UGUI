@@ -1,4 +1,4 @@
-using System.Linq;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -15,19 +15,38 @@ public class RunMapUI : MonoBehaviour
     private ScrollRect scroll;
     private int shownVersion = -1;
     private int focusedNode = -2;
+    private RunMap builtMap;
+    private (MapNode, MapNode, bool) displayedMapState;
+    private readonly List<NodeView> nodeViews = new List<NodeView>();
+    private readonly List<PathView> pathViews = new List<PathView>();
+    private (int Hp, int MaxHp, int Gold, int Cards) displayedStatus = (-1,-1,-1,-1);
+    private bool? displayedComplete;
+    private sealed class NodeView
+    {
+        public MapNode Node;
+        public Button Button;
+        public MapNodeIcon Icon;
+        public bool Initialized, Available, Completed, Interactable;
+    }
+    private sealed class PathView
+    {
+        public MapNode From, To;
+        public readonly List<Image> Marks = new List<Image>();
+        public bool Completed;
+    }
     private static readonly Color Ink = new Color(.20f,.17f,.14f);
     private static readonly Color Gold = new Color(.54f,.29f,.08f);
 
     private void OnEnable()
     {
         adventure.Run.OnMapChanged += Refresh;
-        adventure.Run.OnGoldChanged += Refresh;
+        adventure.Run.OnGoldChanged += RefreshStatus;
         Refresh();
     }
     private void OnDisable()
     {
         adventure.Run.OnMapChanged -= Refresh;
-        adventure.Run.OnGoldChanged -= Refresh;
+        adventure.Run.OnGoldChanged -= RefreshStatus;
     }
 
     private Vector2 Position(MapNode node, int rows)
@@ -75,30 +94,81 @@ public class RunMapUI : MonoBehaviour
     {
         RunManager run = adventure.Run;
         if (!run.HasMap || run.PlayerStatus == null) return;
-        PrepareViewport(run.Map.Rows);
-        titleText.text = run.IsRunComplete ? "탐험 완료" : "갈림길의 탑";
-        statusText.text = $"체력 {run.PlayerStatus.CurrentHp}/{run.PlayerStatus.MaxHp}   ·   골드 {run.Gold}   ·   덱 {run.MasterDeck.Cards.Count}장";
-        foreach (Transform child in graphRoot)
+        RefreshStatus();
+        bool rebuilt = !ReferenceEquals(builtMap, run.Map);
+        if (rebuilt) BuildMap(run);
+        var mapState = (run.Map.LastCompletedNode, run.Map.ActiveNode, run.PlayerStatus.IsDead);
+        if (!rebuilt && displayedMapState.Equals(mapState)) return;
+        displayedMapState = mapState;
+        foreach (NodeView view in nodeViews) UpdateNode(view, run);
+        foreach (PathView view in pathViews)
         {
-            child.gameObject.SetActive(false);
-            Destroy(child.gameObject);
+            bool completedPath = view.From.Completed && view.To.Completed;
+            if (view.Completed == completedPath) continue;
+            view.Completed = completedPath;
+            foreach (Image mark in view.Marks)
+                mark.color = completedPath ? Gold : new Color(.35f,.30f,.24f,.45f);
         }
-
-        foreach (MapNode node in run.Map.Nodes)
-            foreach (int id in node.Outgoing) DrawPath(node, run.Map.Find(id), run.Map.Rows);
-        foreach (MapNode node in run.Map.Nodes) DrawNode(node, run);
 
         int completed = run.Map.LastCompletedNode?.Id ?? -1;
         if (shownVersion != run.RunVersion || focusedNode != completed)
         {
             shownVersion = run.RunVersion; focusedNode = completed;
             int row = run.Map.IsComplete ? run.Map.Rows - 1 : (run.Map.LastCompletedNode?.Row + 1 ?? 0);
-            Canvas.ForceUpdateCanvases();
+            if (rebuilt) Canvas.ForceUpdateCanvases();
             float height = scroll.viewport.rect.height;
             scroll.StopMovement();
             scroll.verticalNormalizedPosition = Mathf.Clamp01((80 + row * RowSpacing - height / 2)
                 / Mathf.Max(1, graphRoot.rect.height - height));
         }
+    }
+
+    private void RefreshStatus()
+    {
+        RunManager run = adventure.Run;
+        if (!run.HasMap || run.PlayerStatus == null) return;
+        var status = (run.PlayerStatus.CurrentHp, run.PlayerStatus.MaxHp, run.Gold, run.MasterDeck.Cards.Count);
+        if (!displayedStatus.Equals(status))
+        {
+            displayedStatus = status;
+            statusText.text = $"체력 {status.Item1}/{status.Item2}   ·   골드 {status.Item3}   ·   덱 {status.Item4}장";
+        }
+        if (displayedComplete != run.IsRunComplete)
+        {
+            displayedComplete = run.IsRunComplete;
+            titleText.text = run.IsRunComplete ? "탐험 완료" : "갈림길의 탑";
+        }
+    }
+
+    private void BuildMap(RunManager run)
+    {
+        PrepareViewport(run.Map.Rows);
+        foreach (Transform child in graphRoot)
+        {
+            child.gameObject.SetActive(false);
+            Destroy(child.gameObject);
+        }
+        nodeViews.Clear(); pathViews.Clear();
+        builtMap = run.Map;
+        foreach (MapNode node in run.Map.Nodes)
+            foreach (int id in node.Outgoing) DrawPath(node, run.Map.Find(id), run.Map.Rows);
+        foreach (MapNode node in run.Map.Nodes) DrawNode(node, run);
+    }
+
+    private static void UpdateNode(NodeView view, RunManager run)
+    {
+        bool available = run.Map.CanEnter(view.Node.Id);
+        bool completed = view.Node.Completed;
+        bool interactable = available && !run.PlayerStatus.IsDead;
+        if (view.Initialized && view.Available == available && view.Completed == completed
+            && view.Interactable == interactable) return;
+        view.Initialized = true; view.Available = available; view.Completed = completed;
+        view.Interactable = interactable;
+        view.Button.interactable = interactable;
+        view.Icon.Kind = view.Node.Type; view.Icon.Unknown = view.Node.IsUnknown && !completed;
+        view.Icon.Completed = completed; view.Icon.Available = available;
+        view.Icon.color = available || completed ? Gold : Ink;
+        view.Icon.SetVerticesDirty();
     }
 
     private void DrawPath(MapNode node, MapNode target, int rows)
@@ -107,6 +177,8 @@ public class RunMapUI : MonoBehaviour
         Vector2 direction = (to-from).normalized;
         from += direction * 43; to -= direction * 43;
         int count = Mathf.Max(2, Mathf.CeilToInt((to-from).magnitude / 18));
+        var view = new PathView { From = node, To = target };
+        pathViews.Add(view);
         for (int i=0; i<count; i++)
         {
             var dash = new GameObject("Path", typeof(RectTransform), typeof(Image));
@@ -116,7 +188,8 @@ public class RunMapUI : MonoBehaviour
             rect.sizeDelta = new Vector2(8,2.5f);
             rect.localRotation = Quaternion.Euler(0,0,Mathf.Atan2(direction.y,direction.x)*Mathf.Rad2Deg);
             var mark = dash.GetComponent<Image>(); mark.raycastTarget = false;
-            mark.color = node.Completed && target.Completed ? Gold : new Color(.35f,.30f,.24f,.45f);
+            mark.color = new Color(.35f,.30f,.24f,.45f);
+            view.Marks.Add(mark);
         }
     }
 
@@ -129,8 +202,6 @@ public class RunMapUI : MonoBehaviour
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(.5f,.5f);
         rect.anchoredPosition = Position(node,run.Map.Rows);
         rect.sizeDelta = new Vector2(IconSize+16,IconSize+16);
-        bool available = run.Map.CanEnter(node.Id);
-        button.interactable = available && !run.PlayerStatus.IsDead;
         button.transition = Selectable.Transition.None;
         button.GetComponent<Image>().color = Color.clear;
         TMP_Text label = button.GetComponentInChildren<TMP_Text>(true);
@@ -140,9 +211,9 @@ public class RunMapUI : MonoBehaviour
         iconRect.sizeDelta = new Vector2(IconSize,IconSize);
         var icon = iconObject.GetComponent<MapNodeIcon>();
         icon.raycastTarget = false;
-        icon.Kind = node.Type; icon.Unknown = node.IsUnknown && !node.Completed;
-        icon.Completed = node.Completed; icon.Available = available;
-        icon.color = available || node.Completed ? Gold : Ink;
+        var view = new NodeView { Node = node, Button = button, Icon = icon };
+        nodeViews.Add(view);
+        UpdateNode(view, run);
         var floorObject = new GameObject("Floor",typeof(RectTransform),typeof(TextMeshProUGUI));
         var floor = floorObject.GetComponent<TextMeshProUGUI>();
         floor.rectTransform.SetParent(rect,false); floor.rectTransform.anchoredPosition = new Vector2(-65,0);

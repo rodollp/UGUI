@@ -167,6 +167,7 @@ public static class MapValidation
         battle.StartBattle();
         Expect(battle.State == BattleState.None, "battle cannot start without a selected combat node");
         yield return null;
+        UIUpdateValidation.VerifyMap(Find<RunMapUI>(), run);
         Capture("map-preview.png");
         var previewScroll = Find<RunMapUI>().GetComponentInChildren<ScrollRect>(true);
         previewScroll.verticalNormalizedPosition = 1;
@@ -185,6 +186,7 @@ public static class MapValidation
         NodeButton(entry.Id).onClick.Invoke();
         Expect(flow.IsPlaying && battle.State == BattleState.PlayerTurn && run.Map.ActiveNode == entry,
             "node click starts selected encounter");
+        UIUpdateValidation.VerifyHUD(Find<PlayHUD>(), run);
         Expect(run.CurrentEncounter == entry.Encounter && Find<Player>().gameObject.activeInHierarchy,
             "node encounter and world enabled");
         foreach (Enemy enemy in battle.Enemies.ToArray()) enemy.Status.TakeDamage(int.MaxValue);
@@ -198,6 +200,8 @@ public static class MapValidation
         NextButton().onClick.Invoke();
         Expect(flow.IsMap && battle.State == BattleState.None && ReferenceEquals(originalMap, run.Map),
             "reward return keeps same map and does not auto-start battle");
+        Expect(NodeButton(entry.Id).GetComponentInChildren<MapNodeIcon>().Completed,
+            "cached node icon updates its visited state after battle");
         Expect(run.Gold == gold && run.PlayerStatus.CurrentHp == hp && run.MasterDeck.Cards.Count == deck,
             "resources persist on map");
         Expect(!adventure.SelectNode(entry.Id), "completed node cannot replay");
