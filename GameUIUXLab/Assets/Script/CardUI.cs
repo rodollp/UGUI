@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(RectTransform))]
 public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBeginDragHandler,IDragHandler,IEndDragHandler
@@ -52,6 +53,7 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
 
     private void Update()
     {
+        if (isDragging && IsCancelPressed()) CancelDrag();
         if (!isDragging)
         {
             rectTransform.anchoredPosition = Vector2.Lerp(
@@ -141,7 +143,8 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        if (CardInstance == null || isRewardCard)
+        if (eventData == null || eventData.button != PointerEventData.InputButton.Left
+            || CardInstance == null || isRewardCard)
             return;
 
         isDragging = true;
@@ -160,8 +163,10 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
 
     public void OnDrag(PointerEventData eventData)
     {
-        if (!isDragging)
+        if (eventData == null || eventData.button != PointerEventData.InputButton.Left || !isDragging)
             return;
+
+        if (IsCancelPressed()) { CancelDrag(); return; }
 
         if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
             parentRect,
@@ -175,8 +180,11 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        if (!isDragging)
+        if (eventData == null || eventData.button != PointerEventData.InputButton.Left || !isDragging)
             return;
+
+        // EventSystem may deliver the release before this component's Update.
+        if (IsCancelPressed()) { CancelDrag(); return; }
 
         isDragging = false;
 
@@ -185,6 +193,21 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
         targetPosition = basePosition;
         targetScale = baseScale;
     }
+
+    private static bool IsCancelPressed() => Mouse.current != null
+        && (Mouse.current.rightButton.wasPressedThisFrame || Mouse.current.rightButton.isPressed);
+
+    public void CancelDrag()
+    {
+        isDragging = false;
+        targetPosition = basePosition;
+        targetScale = baseScale;
+        if (rectTransform == null) return;
+        rectTransform.anchoredPosition = basePosition;
+        rectTransform.localScale = baseScale;
+    }
+
+    private void OnDisable() => CancelDrag();
 
     public void SetBasePosition(Vector2 position)
     {
