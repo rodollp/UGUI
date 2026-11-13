@@ -1,4 +1,9 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
+
+public enum BattleState { None, Preparing, PlayerTurn, EnemyTurn, Victory, Defeat }
 
 public class BattleManager : MonoBehaviour
 {
@@ -6,25 +11,244 @@ public class BattleManager : MonoBehaviour
     [SerializeField] private RunManager runManager;
     [SerializeField] private Player player;
     [SerializeField] private CardManager cardManager;
+    [SerializeField] private UIScreenFlowController screenFlowController;
+    [SerializeField] private Transform enemyRoot;
+    [SerializeField] private AdventureController adventure;
+    [Header("Encounter (used when no stage sequence is assigned)")]
+    [SerializeField] private EncounterData encounter;
+    [SerializeField] private BattleRewardData defaultRewards;
+    [SerializeField, Min(0)] private float enemyActionDelay = 0.6f;
+
+    private readonly List<Enemy> enemies = new();
+    private PlayerStatus playerStatus;
+    private BattleRewardData battleRewards;
+    private readonly System.Random rewardRandom = new System.Random();
+    public BattleRewardOffer RewardOffer { get; private set; }
+    public int GoldAwarded { get; private set; }
+    public bool HasPendingCardReward => RewardOffer != null && !RewardOffer.IsClaimed;
+    public IReadOnlyList<Enemy> Enemies => enemies;
+    public BattleState State { get; private set; }
+    public int Turn { get; private set; }
+    public string EncounterName { get; private set; }
+    public int BattleFloor { get; private set; }
+    public bool CanPlayCards => State == BattleState.PlayerTurn
+        && (screenFlowController == null || screenFlowController.IsPlaying) && Time.timeScale > 0;
+    public event Action OnBattleChanged;
+    public event Action<bool> OnBattleEnded;
 
     public void StartBattle()
     {
-        if (runManager.PlayerStatus == null)
+        if (State == BattleState.Preparing || State == BattleState.PlayerTurn || State == BattleState.EnemyTurn)
+            return;
+        if (State == BattleState.Victory && HasPendingCardReward) return;
+        if (runManager != null && runManager.HasMap
+            && (runManager.Map.ActiveNode == null || !runManager.Map.ActiveNode.IsCombat)) return;
+        EncounterData selected = runManager != null && (runManager.HasMap || runManager.HasStageSequence)
+            ? runManager.CurrentEncounter : encounter;
+        if (runManager == null || runManager.PlayerStatus == null || runManager.PlayerStatus.IsDead
+            || runManager.MasterDeck == null || player == null || cardManager == null
+            || (runManager.HasStageSequence && runManager.IsRunComplete)
+            || selected == null || !selected.IsValid())
         {
-            Debug.LogError("PlayerStatus�� �������� �ʾҽ��ϴ�.");
+            Debug.LogError("전투를 시작할 수 없습니다. 플레이어, 덱, 적 조합 및 참조를 확인하세요.");
             return;
         }
 
-        if (runManager.MasterDeck == null)
+        BattleRewardData rewards = selected.Rewards != null ? selected.Rewards : defaultRewards;
+        if (rewards == null || !rewards.IsValid())
         {
-            Debug.LogError("MasterDeck�� �������� �ʾҽ��ϴ�.");
+            Debug.LogError("골드 범위와 서로 다른 카드 3장 이상의 보상 풀을 설정하세요.");
             return;
         }
-
-        // �÷��̾� ���� �� UI �ʱ�ȭ
-        player.Initialize(runManager.PlayerStatus);
-
-        // ī�� �ý��� �ʱ�ȭ
-        cardManager.StartBattle();
+        AbortBattle();
+        battleRewards = rewards;
+        State = BattleState.Preparing;
+        BattleFloor = runManager.Floor;
+        EncounterName = selected.EncounterName;
+        PreparePlayer();
+        SpawnEnemies(selected);
+        cardManager.InitializeBattle(this);
+        Turn = 0;
+        BeginPlayerTurn();
     }
+
+    private void PreparePlayer()
+    {
+        playerStatus = runManager.PlayerStatus;
+        playerStatus.ResetCombatState();
+        playerStatus.OnDead += HandlePlayerDead;
+        playerStatus.OnStatusChanged += NotifyChanged;
+        playerStatus.OnEnergyChanged += NotifyChanged;
+        player.Initialize(playerStatus);
+    }
+
+    private void SpawnEnemies(EncounterData selected)
+    {
+        foreach (EnemySpawnEntry entry in selected.Enemies)
+        {
+            Enemy enemy = Instantiate(entry.Prefab, enemyRoot != null ? enemyRoot : transform);
+            enemy.transform.localPosition = entry.LocalPosition;
+            enemy.Initialize(entry.Data);
+            enemy.name = entry.Data.EnemyName;
+            enemy.LogPatternSource();
+            enemies.Add(enemy);
+            enemy.Status.OnDead += HandleEnemyDead;
+            enemy.Status.OnStatusChanged += NotifyChanged;
+            enemy.OnIntentChanged += NotifyChanged;
+            enemy.PlanNextAction();
+        }
+    }
+
+    public bool IsValidTarget(Enemy target)
+    {
+        return target != null && enemies.Contains(target)
+            && target.Status != null && !target.Status.IsDead;
+    }
+
+    public void EndPlayerTurn()
+    {
+        if (!CanPlayCards || cardManager.IsResolvingCard) return;
+        State = BattleState.EnemyTurn; // 버튼 연타를 코루틴 시작 전에 차단합니다.
+        cardManager.DiscardPlayerHand();
+        NotifyChanged();
+        StartCoroutine(EnemyTurn());
+    }
+
+    private IEnumerator EnemyTurn()
+    {
+        foreach (Enemy enemy in enemies)
+        {
+            if (!IsValidTarget(enemy)) continue;
+            yield return new WaitForSeconds(enemyActionDelay);
+            if (State != BattleState.EnemyTurn) yield break;
+            enemy.ExecuteIntent(playerStatus);
+            if (State != BattleState.EnemyTurn) yield break;
+        }
+        // 플레이어와 모든 적의 행동을 하나의 라운드로 처리합니다.
+        playerStatus.EndRoundDebuffs();
+        foreach (Enemy enemy in enemies)
+            if (IsValidTarget(enemy)) enemy.Status.EndRoundDebuffs();
+        foreach (Enemy enemy in enemies)
+            if (IsValidTarget(enemy)) enemy.PlanNextAction();
+        BeginPlayerTurn();
+    }
+
+    private void BeginPlayerTurn()
+    {
+        if (CheckBattleEnd()) return;
+        Turn++;
+        playerStatus.ResetBlock();
+        playerStatus.StartTurn();
+        State = BattleState.PlayerTurn;
+        cardManager.BeginPlayerTurn();
+        NotifyChanged();
+    }
+
+    // 다중 효과 카드는 모든 효과를 처리한 뒤 승리를 판정합니다.
+    private void HandleEnemyDead()
+    {
+        foreach (Enemy enemy in enemies)
+            if (enemy.Status.IsDead) enemy.gameObject.SetActive(false);
+        if (!cardManager.IsResolvingCard) CheckBattleEnd();
+        NotifyChanged();
+    }
+
+    private void HandlePlayerDead() => FinishBattle(false);
+
+    public bool CheckBattleEnd()
+    {
+        if (State == BattleState.None || State == BattleState.Victory || State == BattleState.Defeat)
+            return true;
+        if (playerStatus.IsDead) { FinishBattle(false); return true; }
+        foreach (Enemy enemy in enemies)
+            if (enemy != null && !enemy.Status.IsDead) return false;
+        FinishBattle(true);
+        return true;
+    }
+
+    private void FinishBattle(bool won)
+    {
+        if (State == BattleState.None || State == BattleState.Victory || State == BattleState.Defeat)
+            return;
+        State = won ? BattleState.Victory : BattleState.Defeat;
+        cardManager.EndBattle();
+        if (won) GrantVictoryRewards();
+        NotifyChanged();
+        OnBattleEnded?.Invoke(won);
+        if (screenFlowController != null) screenFlowController.ShowResultScreen();
+    }
+
+    private void GrantVictoryRewards()
+    {
+        RewardOffer = battleRewards.CreateOffer(rewardRandom);
+        GoldAwarded = runManager.AddGold(RewardOffer.Gold);
+        runManager.CompleteStage();
+    }
+
+    public void StartNextBattle()
+    {
+        if (runManager.HasMap)
+        {
+            if (adventure != null) adventure.ReturnToMap();
+            return;
+        }
+        if (State != BattleState.Victory || HasPendingCardReward
+            || !runManager.HasStageSequence || runManager.IsRunComplete)
+            return;
+        if (screenFlowController != null) screenFlowController.ShowPlayScreen();
+        StartBattle();
+    }
+
+    public void AbortBattle()
+    {
+        StopAllCoroutines();
+        State = BattleState.None;
+        RewardOffer = null;
+        GoldAwarded = 0;
+        battleRewards = null;
+        if (cardManager != null) cardManager.EndBattle();
+        ReleasePlayer();
+        ReleaseEnemies();
+        NotifyChanged();
+    }
+
+    private void ReleasePlayer()
+    {
+        if (playerStatus != null)
+        {
+            playerStatus.OnDead -= HandlePlayerDead;
+            playerStatus.OnStatusChanged -= NotifyChanged;
+            playerStatus.OnEnergyChanged -= NotifyChanged;
+            playerStatus = null;
+        }
+    }
+
+    private void ReleaseEnemies()
+    {
+        foreach (Enemy enemy in enemies)
+        {
+            if (enemy == null) continue;
+            enemy.Status.OnDead -= HandleEnemyDead;
+            enemy.Status.OnStatusChanged -= NotifyChanged;
+            enemy.OnIntentChanged -= NotifyChanged;
+            enemy.gameObject.SetActive(false);
+            Destroy(enemy.gameObject);
+        }
+        enemies.Clear();
+    }
+
+    private void NotifyChanged() => OnBattleChanged?.Invoke();
+
+    public bool TrySelectRewardCard(int index)
+    {
+        if (State != BattleState.Victory || !HasPendingCardReward || runManager.MasterDeck == null
+            || !ReferenceEquals(playerStatus, runManager.PlayerStatus)
+            || !RewardOffer.TryClaim(index, out CardData card)) return false;
+        runManager.MasterDeck.AddCard(new CardInstance(card));
+        NotifyChanged();
+        return true;
+    }
+    private void OnDestroy() => AbortBattle();
 }
+
+

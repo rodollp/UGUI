@@ -4,19 +4,12 @@ using UnityEngine;
 public class DamageEffect : CardEffect
 {
     [SerializeField] private int damage;
-
     public override void Execute(CardEffectContext context)
     {
-        if (context == null || context.Target == null)
-            return;
-
-        int finalDamage = context.Player.AttackPower + damage;
-
-        context.Target.TakeDamage(finalDamage);
+        if (context == null || context.Player == null) return;
+        foreach (EnemyStatus target in context.Targets)
+            if (target != null && !target.IsDead) context.Player.DealAttackDamage(target, damage);
     }
-
-    public override string GetDescription()
-    {
-        return $"ÇÇÇØ¸¦ {damage} ÀÔÈü´Ï´Ù";
-    }
+    public override string GetDescription() => $"í”¼í•´ë¥¼ {damage} ì¤ë‹ˆë‹¤.";
 }
+
