@@ -65,13 +65,25 @@ public class BattleManager : MonoBehaviour
         State = BattleState.Preparing;
         BattleFloor = runManager.Floor;
         EncounterName = selected.EncounterName;
+        PreparePlayer();
+        SpawnEnemies(selected);
+        cardManager.InitializeBattle(this);
+        Turn = 0;
+        BeginPlayerTurn();
+    }
+
+    private void PreparePlayer()
+    {
         playerStatus = runManager.PlayerStatus;
         playerStatus.ResetCombatState();
         playerStatus.OnDead += HandlePlayerDead;
         playerStatus.OnStatusChanged += NotifyChanged;
         playerStatus.OnEnergyChanged += NotifyChanged;
         player.Initialize(playerStatus);
+    }
 
+    private void SpawnEnemies(EncounterData selected)
+    {
         foreach (EnemySpawnEntry entry in selected.Enemies)
         {
             Enemy enemy = Instantiate(entry.Prefab, enemyRoot != null ? enemyRoot : transform);
@@ -85,10 +97,6 @@ public class BattleManager : MonoBehaviour
             enemy.OnIntentChanged += NotifyChanged;
             enemy.PlanNextAction();
         }
-
-        cardManager.InitializeBattle(this);
-        Turn = 0;
-        BeginPlayerTurn();
     }
 
     public bool IsValidTarget(Enemy target)
@@ -164,15 +172,17 @@ public class BattleManager : MonoBehaviour
             return;
         State = won ? BattleState.Victory : BattleState.Defeat;
         cardManager.EndBattle();
-        if (won)
-        {
-            RewardOffer = battleRewards.CreateOffer(rewardRandom);
-            GoldAwarded = runManager.AddGold(RewardOffer.Gold);
-            runManager.CompleteStage();
-        }
+        if (won) GrantVictoryRewards();
         NotifyChanged();
         OnBattleEnded?.Invoke(won);
         if (screenFlowController != null) screenFlowController.ShowResultScreen();
+    }
+
+    private void GrantVictoryRewards()
+    {
+        RewardOffer = battleRewards.CreateOffer(rewardRandom);
+        GoldAwarded = runManager.AddGold(RewardOffer.Gold);
+        runManager.CompleteStage();
     }
 
     public void StartNextBattle()
@@ -197,6 +207,13 @@ public class BattleManager : MonoBehaviour
         GoldAwarded = 0;
         battleRewards = null;
         if (cardManager != null) cardManager.EndBattle();
+        ReleasePlayer();
+        ReleaseEnemies();
+        NotifyChanged();
+    }
+
+    private void ReleasePlayer()
+    {
         if (playerStatus != null)
         {
             playerStatus.OnDead -= HandlePlayerDead;
@@ -204,6 +221,10 @@ public class BattleManager : MonoBehaviour
             playerStatus.OnEnergyChanged -= NotifyChanged;
             playerStatus = null;
         }
+    }
+
+    private void ReleaseEnemies()
+    {
         foreach (Enemy enemy in enemies)
         {
             if (enemy == null) continue;
@@ -214,7 +235,6 @@ public class BattleManager : MonoBehaviour
             Destroy(enemy.gameObject);
         }
         enemies.Clear();
-        NotifyChanged();
     }
 
     private void NotifyChanged() => OnBattleChanged?.Invoke();

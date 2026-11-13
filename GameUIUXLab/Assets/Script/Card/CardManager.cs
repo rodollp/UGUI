@@ -1,5 +1,4 @@
 using UnityEngine;
-using System.Linq;
 
 public class CardManager : MonoBehaviour
 {
@@ -69,7 +68,7 @@ public class CardManager : MonoBehaviour
         {
             if (screenPosition.y >= Screen.height * useHeightRatio) UseCard(cardUI);
         }
-        else if (data.TargetType == CardTargetType.Enemy && targetSelector != null)
+        else if (targetSelector != null)
         {
             UseCard(cardUI, targetSelector.GetTarget(screenPosition));
         }
@@ -81,18 +80,8 @@ public class CardManager : MonoBehaviour
             || battleDeck == null || cardUI == null || !playerHand.OwnsCard(cardUI)) return;
         CardInstance card = cardUI.CardInstance;
         if (card == null || card.CardData == null || !battleDeck.ContainsInHand(card)) return;
-        if (card.CardData.TargetType == CardTargetType.Enemy && !battleManager.IsValidTarget(target))
-            return;
-        EnemyStatus[] targets;
-        if (card.CardData.TargetType == CardTargetType.RandomEnemy || card.CardData.TargetType == CardTargetType.AllEnemies)
-        {
-            targets = battleManager.Enemies.Where(battleManager.IsValidTarget).Select(e => e.Status).ToArray();
-            if (targets.Length == 0) return;
-            if (card.CardData.TargetType == CardTargetType.RandomEnemy)
-                targets = new[] { targets[Random.Range(0, targets.Length)] };
-        }
-        else targets = card.CardData.TargetType == CardTargetType.Enemy
-            ? new[] { target.Status } : System.Array.Empty<EnemyStatus>();
+        if (!CardTargetResolver.TryResolve(card.CardData.TargetType, battleManager.Enemies,
+            target, out EnemyStatus[] targets)) return;
         PlayerStatus status = runManager.PlayerStatus;
         if (!status.CanUseEnergy(card.CurrentCost))
         {
@@ -109,15 +98,20 @@ public class CardManager : MonoBehaviour
             playerHand.RemoveCard(cardUI);
             CardEffectContext context = new CardEffectContext(status,
                 targets.Length == 1 ? targets[0] : null, targets);
-            if (card.CardData.Effects != null)
-                foreach (CardEffect effect in card.CardData.Effects)
-                    if (effect != null) effect.Execute(context);
+            ExecuteEffects(card.CardData, context);
         }
         finally
         {
             IsResolvingCard = false;
             battleManager.CheckBattleEnd();
         }
+    }
+
+    private static void ExecuteEffects(CardData data, CardEffectContext context)
+    {
+        if (data.Effects == null) return;
+        foreach (CardEffect effect in data.Effects)
+            if (effect != null) effect.Execute(context);
     }
 
     // 기존 턴 종료 버튼의 연결을 유지하고 BattleManager에 위임합니다.

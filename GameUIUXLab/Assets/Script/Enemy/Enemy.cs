@@ -7,11 +7,7 @@ public class Enemy : MonoBehaviour
     [SerializeField] private HealthBarUI healthBarUI;
 
     private EnemyStatus enemyStatus;
-    private int actionIndex;
-    private int lastActionIndex = -1;
-    private int consecutiveUses;
-    private int plannedActions;
-    private readonly System.Random patternRandom = new System.Random();
+    private readonly EnemyPatternState patternState = new EnemyPatternState();
     [SerializeField] private int currentPatternStep;
     public EnemyStatus Status => enemyStatus;
     public EnemyData Data => enemyData;
@@ -35,10 +31,7 @@ public class Enemy : MonoBehaviour
     {
         enemyData = data;
         enemyStatus = new EnemyStatus(data.MaxHp);
-        actionIndex = 0;
-        lastActionIndex = -1;
-        consecutiveUses = 0;
-        plannedActions = 0;
+        patternState.Reset();
         currentPatternStep = 0;
         Intent = null;
         if (healthBarUI != null) healthBarUI.Initialize(enemyStatus);
@@ -48,6 +41,7 @@ public class Enemy : MonoBehaviour
     {
         if (Status == null || Status.IsDead) return;
         EnemyAction[] actions = enemyData.Actions;
+        int index = patternState.Next(enemyData, Status.CurrentHp, Status.MaxHp);
         if (actions == null || actions.Length == 0)
         {
             currentPatternStep = 1;
@@ -55,26 +49,9 @@ public class Enemy : MonoBehaviour
         }
         else
         {
-            int index;
-            if (enemyData.PatternMode == EnemyPatternMode.WeightedRandom)
-            {
-                index = plannedActions == 0 && enemyData.OpeningAction > 0
-                    && enemyData.OpeningAction <= actions.Length && actions[enemyData.OpeningAction - 1] != null
-                    ? enemyData.OpeningAction - 1
-                    : EnemyPatternSelector.Select(actions, Status.CurrentHp, Status.MaxHp,
-                        lastActionIndex, consecutiveUses, patternRandom);
-            }
-            else
-            {
-                index = actionIndex % actions.Length;
-                actionIndex = (index + 1) % actions.Length;
-            }
             currentPatternStep = index + 1;
             Intent = index < 0 ? new EnemyAction() : actions[index] ?? new EnemyAction();
-            consecutiveUses = index >= 0 && index == lastActionIndex ? consecutiveUses + 1 : 1;
-            lastActionIndex = index;
         }
-        plannedActions++;
         LogPattern("예고");
         OnIntentChanged?.Invoke();
     }

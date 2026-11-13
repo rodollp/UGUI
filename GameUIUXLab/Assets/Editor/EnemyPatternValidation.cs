@@ -19,7 +19,7 @@ public static class EnemyPatternValidation
         BattleValidation.Run();
     }
 
-    private static void Verify()
+    public static void Verify()
     {
         var data = ScriptableObject.CreateInstance<EnemyData>();
         var go = new GameObject("PatternValidationEnemy");
