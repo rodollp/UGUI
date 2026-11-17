@@ -8,6 +8,14 @@ public sealed class BattleRewardOffer
     public IReadOnlyList<CardData> Choices { get; }
     public bool IsClaimed { get; private set; }
     public CardData SelectedCard { get; private set; }
+    public bool IsSkipped => IsClaimed && SelectedCard == null;
+
+    public bool TrySkip()
+    {
+        if (IsClaimed) return false;
+        IsClaimed = true;
+        return true;
+    }
 
     public BattleRewardOffer(int gold, IList<CardData> choices)
     {

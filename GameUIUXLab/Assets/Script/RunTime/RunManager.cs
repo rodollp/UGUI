@@ -16,6 +16,9 @@ public class RunManager : MonoBehaviour
     public MasterDeck MasterDeck { get; private set; }
     public PlayerStatus PlayerStatus { get; private set; }
     public int Gold { get; private set; }
+    public int CardsRemoved { get; private set; }
+    public int CardRemovalPrice => (int)Math.Min(int.MaxValue, 50L + 50L * CardsRemoved);
+    private bool removingCard;
     public event Action OnGoldChanged;
     public int StageIndex { get; private set; }
     public int Floor => StageIndex + 1;
@@ -39,6 +42,7 @@ public class RunManager : MonoBehaviour
         MasterDeck = new MasterDeck(playerData.StarterDeck);
         PlayerStatus = new PlayerStatus(playerData.MaxHp);
         Gold = 0;
+        CardsRemoved = 0;
         OnGoldChanged?.Invoke();
         StageIndex = 0;
         Map = mapData == null ? null : RunMapGenerator.Generate(mapData,
@@ -90,6 +94,22 @@ public class RunManager : MonoBehaviour
         CurrentEncounter = Map.ActiveNode.Encounter;
         OnMapChanged?.Invoke();
         return true;
+    }
+
+    public bool TryRemoveCard(CardInstance card)
+    {
+        if (removingCard || PlayerStatus == null || PlayerStatus.IsDead || MasterDeck == null
+            || card == null || !System.Linq.Enumerable.Contains(MasterDeck.Cards, card)
+            || Gold < CardRemovalPrice) return false;
+        removingCard = true;
+        try
+        {
+            if (!TrySpendGold(CardRemovalPrice)) return false;
+            MasterDeck.RemoveCard(card);
+            if (CardsRemoved < int.MaxValue) CardsRemoved++;
+            return true;
+        }
+        finally { removingCard = false; }
     }
 }
 

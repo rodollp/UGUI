@@ -258,8 +258,13 @@ public static class BattleValidation
             "Expired enemy debuffs hidden");
         status.ApplyDebuff(DebuffType.Weak, 3);
         status.AddAttackPower(3); status.AddDexterity(2);
+        status.AddBlock(10);
+        hp = status.CurrentHp;
         target.Status.TakeDamage(int.MaxValue);
         Expect(battle.State == BattleState.Victory && run.StageIndex == 1, "Victory advances one floor");
+        Expect(status.CurrentHp == hp && status.CurrentBlock == 0
+            && status.AttackPower == 0 && status.Dexterity == 0 && status.GetDebuffDescription() == "",
+            "Victory clears combat stats immediately while preserving HP");
         UnityEngine.Object.Destroy(deterministicData);
         VerifyResultText("전투 승리!", false);
         if (SystemInfo.graphicsDeviceType != UnityEngine.Rendering.GraphicsDeviceType.Null)

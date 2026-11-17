@@ -11,6 +11,10 @@ public class AdventureController : MonoBehaviour
     public MapEventData CurrentEvent { get; private set; }
     public bool EventResolved { get; private set; }
     public string EventResult { get; private set; }
+    public ShopInventory CurrentShop { get; private set; }
+    public bool IsShopping => CurrentShop != null && !EventResolved;
+    public string ShopMessage { get; private set; }
+    private bool shopTransaction;
     private int upgradeChoice = -1;
     public bool IsChoosingUpgrade => upgradeChoice >= 0;
     public CardInstance[] UpgradeCandidates => runManager.MasterDeck.Cards.Where(c => c.CanUpgrade).ToArray();
@@ -56,7 +60,7 @@ public class AdventureController : MonoBehaviour
 
     public bool CanChooseEvent(int index)
     {
-        if (!screenFlow.IsEvent || EventResolved || IsChoosingUpgrade || CurrentEvent == null || !runManager.HasMap
+        if (!screenFlow.IsEvent || screenFlow.IsDeckOpen || EventResolved || IsChoosingUpgrade || IsShopping || CurrentEvent == null || !runManager.HasMap
             || runManager.Map.ActiveNode == null || runManager.PlayerStatus == null || runManager.PlayerStatus.IsDead
             || index < 0 || index >= CurrentEvent.Choices.Length) return false;
         MapEventChoice choice = CurrentEvent.Choices[index];
@@ -68,6 +72,14 @@ public class AdventureController : MonoBehaviour
     {
         if (!CanChooseEvent(index)) return false;
         MapEventChoice choice = CurrentEvent.Choices[index];
+        if (choice.Shop != null)
+        {
+            if (!choice.Shop.IsValid()) return false;
+            CurrentShop = new ShopInventory(choice.Shop, new System.Random());
+            ShopMessage = "カードを選んで購入できます。".Replace("カードを選んで購入できます。", "카드를 선택해 구매할 수 있습니다.");
+            OnEventChanged?.Invoke();
+            return true;
+        }
         if (choice.UpgradeCard)
         {
             upgradeChoice = index;
@@ -135,6 +147,53 @@ public class AdventureController : MonoBehaviour
     private void ResetEvent()
     {
         CurrentEvent = null; EventResolved = false; EventResult = ""; upgradeChoice = -1;
+        CurrentShop = null; ShopMessage = "";
+    }
+
+    private bool CanUseShop => screenFlow.IsEvent && !screenFlow.IsDeckOpen && IsShopping
+        && runManager.Map?.ActiveNode != null && !runManager.PlayerStatus.IsDead;
+
+    public bool BuyShopCard(int index)
+    {
+        if (!CanUseShop || shopTransaction || CurrentShop.IsSold(index)
+            || runManager.Gold < CurrentShop.Price(index)) return false;
+        shopTransaction = true;
+        try
+        {
+            if (!runManager.TrySpendGold(CurrentShop.Price(index))) return false;
+            CurrentShop.TryMarkPurchased(index);
+            CardData card = CurrentShop.Cards[index];
+            runManager.MasterDeck.AddCard(new CardInstance(card));
+            ShopMessage = $"{card.CardName} 카드를 구매했습니다.";
+            OnEventChanged?.Invoke();
+            return true;
+        }
+        finally { shopTransaction = false; }
+    }
+
+    public bool RemoveShopCard(CardInstance card)
+    {
+        if (!CanUseShop || shopTransaction) return false;
+        shopTransaction = true;
+        try
+        {
+            int price = runManager.CardRemovalPrice;
+            if (!runManager.TryRemoveCard(card)) return false;
+            ShopMessage = $"{card.CardData.CardName} 카드 제거 · {price}골드 사용";
+            OnEventChanged?.Invoke();
+            return true;
+        }
+        finally { shopTransaction = false; }
+    }
+
+    public void LeaveShop()
+    {
+        if (!CanUseShop || shopTransaction) return;
+        EventResolved = true;
+        EventResult = "상인에게 인사하고 길을 떠납니다.";
+        runManager.CompleteStage();
+        ResetEvent();
+        screenFlow.ShowMapScreen();
     }
 }
 

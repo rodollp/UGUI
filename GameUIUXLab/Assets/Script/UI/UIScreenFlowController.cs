@@ -22,6 +22,30 @@ public class UIScreenFlowController : MonoBehaviour
     public bool IsMap => currentState == UIScreenState.Map;
     public bool IsEvent => currentState == UIScreenState.Event;
     public bool IsAdventureActive => IsPlaying || IsMap || IsEvent;
+    public bool IsResult => currentState == UIScreenState.Result;
+    public bool IsDeckOpen { get; private set; }
+
+    public void SetDeckOpen(bool open)
+    {
+        IsDeckOpen = open;
+        Time.timeScale = open || IsPaused ? 0 : 1;
+        if (open) runTimer.PauseTimer();
+        else if (IsAdventureActive) runTimer.ResumeTimer();
+    }
+
+    public bool TryCloseDeck()
+    {
+        if (!IsDeckOpen) return false;
+        GetComponent<DeckViewUI>().HandleBack();
+        return true;
+    }
+
+    public bool TryBackFromUpgrade()
+    {
+        if (!IsEvent || IsDeckOpen || eventScreen == null) return false;
+        var upgrade = eventScreen.GetComponentInChildren<CardUpgradeUI>();
+        return upgrade != null && upgrade.HandleBack();
+    }
 
     private void Start() => ShowTitleScreen();
 
@@ -96,6 +120,7 @@ public class UIScreenFlowController : MonoBehaviour
 
     private void SetActiveScreen(UIScreenState next)
     {
+        if (IsDeckOpen) GetComponent<DeckViewUI>().Close();
         currentState = next;
         titleScreen.SetActive(next == UIScreenState.Title);
         playScreen.SetActive(next == UIScreenState.Play);

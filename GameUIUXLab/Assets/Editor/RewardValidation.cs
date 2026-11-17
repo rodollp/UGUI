@@ -40,6 +40,11 @@ public static class RewardValidation
                 "invalid indices do not consume choice");
             Expect(selected.TryClaim(1, out CardData card) && card == selected.Choices[1], "one card selected");
             Expect(!selected.TryClaim(0, out _) && selected.SelectedCard == card, "claim cannot repeat");
+            Expect(!selected.TrySkip(), "selected card cannot subsequently be skipped");
+            var skipped = data.CreateOffer(new System.Random(6));
+            Expect(skipped.TrySkip() && skipped.IsSkipped && skipped.IsClaimed
+                && skipped.SelectedCard == null, "skip resolves reward without selecting a card");
+            Expect(!skipped.TrySkip() && !skipped.TryClaim(0, out _), "skipped reward cannot be claimed again");
             data.CardPool.Clear(); data.CardPool.AddRange(new[] { cards[0], cards[0], cards[1] });
             Expect(!data.IsValid(), "at least three unique definitions required");
             data.CardPool.Add(cards[2]);
@@ -118,7 +123,7 @@ public static class RewardValidation
         var next = (Button)new SerializedObject(UnityEngine.Object.FindObjectsByType<PlayHUD>(
             FindObjectsInactive.Include, FindObjectsSortMode.None).Single())
             .FindProperty("nextBattleButton").objectReferenceValue;
-        Expect(!next.gameObject.activeSelf, "next-floor button hidden while selecting");
+        Expect(next.gameObject.activeSelf, "continue button allows skipping while selecting");
         CardData expected = offer.Choices[1];
         CardUI clicked = (CardUI)rewardCards.GetArrayElementAtIndex(1).objectReferenceValue;
         clicked.GetComponent<Button>().onClick.Invoke();

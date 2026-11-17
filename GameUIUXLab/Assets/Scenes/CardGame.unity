@@ -1044,6 +1044,7 @@ GameObject:
   m_Component:
   - component: {fileID: 336202232}
   - component: {fileID: 336202233}
+  - component: {fileID: 2086111701}
   m_Layer: 0
   m_Name: UIController
   m_TagString: Untagged
@@ -2414,6 +2415,7 @@ MonoBehaviour:
   - {fileID: 1644609195}
   goldText: {fileID: 936035563}
   promptText: {fileID: 791416060}
+  continueButton: {fileID: 1105858918}
 --- !u!1 &627312568
 GameObject:
   m_ObjectHideFlags: 0
@@ -4818,19 +4820,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1105858919}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 455213935}
-        m_TargetAssemblyTypeName: BattleManager, Assembly-CSharp
-        m_MethodName: StartNextBattle
-        m_Mode: 0
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: 
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
 --- !u!114 &1105858919
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10374,6 +10364,23 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5556185374177292602}
   m_CullTransparentMesh: 1
+--- !u!114 &2086111701
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 336202231}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e4fe58659ce6462180bc4161045102b7, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::DeckViewUI
+  run: {fileID: 878746020}
+  flow: {fileID: 336202233}
+  textTemplate: {fileID: 1031738311}
+  cardPrefab: {fileID: 3711463597437164204, guid: 2410e12d57081454eb6f40a00808b7d9, type: 3}
+  canvasRoot: {fileID: 275114418}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

@@ -7,7 +7,7 @@ using UnityEngine.UI;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(RectTransform))]
-public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBeginDragHandler,IDragHandler,IEndDragHandler
+public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBeginDragHandler,IDragHandler,IEndDragHandler,IInitializePotentialDragHandler
 {
     [Header("Card Information")]
     [SerializeField] private TMP_Text costText;
@@ -32,6 +32,8 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
 
     private bool isDragging;
     private bool isRewardCard;
+    private ScrollRect browseScroll;
+    private bool scrollingList;
     private Vector2 dragOffset;
 
     public event Action<CardUI> OnCardClicked;
@@ -145,6 +147,13 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
 
     public void OnBeginDrag(PointerEventData eventData)
     {
+        if (browseScroll != null && eventData != null && eventData.button == PointerEventData.InputButton.Left)
+        {
+            scrollingList = true;
+            eventData.eligibleForClick = false;
+            browseScroll.OnBeginDrag(eventData);
+            return;
+        }
         if (eventData == null || eventData.button != PointerEventData.InputButton.Left
             || CardInstance == null || isRewardCard)
             return;
@@ -165,6 +174,7 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
 
     public void OnDrag(PointerEventData eventData)
     {
+        if (scrollingList) { browseScroll.OnDrag(eventData); return; }
         if (eventData == null || eventData.button != PointerEventData.InputButton.Left || !isDragging)
             return;
 
@@ -182,6 +192,12 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
 
     public void OnEndDrag(PointerEventData eventData)
     {
+        if (scrollingList)
+        {
+            scrollingList = false;
+            browseScroll.OnEndDrag(eventData);
+            return;
+        }
         if (eventData == null || eventData.button != PointerEventData.InputButton.Left || !isDragging)
             return;
 
@@ -201,6 +217,7 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
 
     public void CancelDrag()
     {
+        scrollingList = false;
         isDragging = false;
         targetPosition = basePosition;
         targetScale = baseScale;
@@ -226,5 +243,16 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
         isRewardCard = true;
         hoverMoveY = 0;
         hoverScale = 1.06f;
+    }
+
+    public void SetBrowseMode()
+    {
+        SetRewardMode();
+        browseScroll = GetComponentInParent<ScrollRect>();
+    }
+
+    public void OnInitializePotentialDrag(PointerEventData eventData)
+    {
+        if (browseScroll != null) browseScroll.OnInitializePotentialDrag(eventData);
     }
 }

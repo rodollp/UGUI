@@ -68,10 +68,29 @@ public static class UpgradeValidation
             "cancel returns to choices without costs or upgrades");
         adventure.ChooseEvent(0);
         Expect(!adventure.ConfirmUpgrade(new CardInstance(original)), "foreign card rejected");
-        Button(ui, "next").onClick.Invoke(); Button(ui, "previous").onClick.Invoke();
-        var cardView = (CardUI)new SerializedObject(ui).FindProperty("cards").GetArrayElementAtIndex(0).objectReferenceValue;
+        Expect(ui.CandidateViews.Count == adventure.UpgradeCandidates.Length && ui.CandidateViews.Count > 3,
+            "picker displays every eligible card without pagination");
+        Expect(ui.CandidateViews.All(v => v.CardInstance.CanUpgrade && !v.CardInstance.IsUpgraded),
+            "list shows current unupgraded cards");
+        var cardView = ui.CandidateViews[0];
         cardView.GetComponent<Button>().onClick.Invoke();
-        Expect(Button(ui, "confirm").interactable && !target.IsUpgraded, "card click selects preview before confirmation");
+        Expect(ui.IsInspectingCard && Button(ui, "confirm").interactable && !target.IsUpgraded,
+            "card click opens enlarged preview without upgrading");
+        var detail = ui.GetComponentsInChildren<CardUI>(true)
+            .Single(v => v.transform.parent.name == "EnlargedCard");
+        var toggle = ui.GetComponentInChildren<Toggle>(true);
+        Expect(toggle.isOn && detail.CardInstance.CardData == original.UpgradedCard,
+            "detail initially shows upgraded card");
+        toggle.isOn = false;
+        Expect(detail.CardInstance.CardData == original && target.CardData == original && run.Gold == gold,
+            "unchecking shows current card without mutation or payment");
+        toggle.isOn = true;
+        Expect(detail.CardInstance.CardData == original.UpgradedCard && !target.IsUpgraded,
+            "rechecking restores upgrade preview only");
+        ui.HandleBack();
+        Expect(!ui.IsInspectingCard && adventure.IsChoosingUpgrade && !target.IsUpgraded && run.Gold == gold,
+            "back closes detail without cancelling the picker or paying costs");
+        cardView.GetComponent<Button>().onClick.Invoke();
         yield return null;
         if (SystemInfo.graphicsDeviceType != UnityEngine.Rendering.GraphicsDeviceType.Null)
             typeof(BattleValidation).GetMethod("CapturePreview", BindingFlags.Static | BindingFlags.NonPublic)

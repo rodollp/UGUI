@@ -13,6 +13,7 @@ public class MapEventChoice
     [Range(0, 100)] public int HealPercent;
     public CardData Card;
     public bool UpgradeCard;
+    public ShopData Shop;
 }
 
 [CreateAssetMenu(fileName = "MapEvent", menuName = "Map/Event")]
@@ -31,7 +32,10 @@ public class MapEventData : ScriptableObject
             if (choice == null || string.IsNullOrWhiteSpace(choice.Label) || choice.GoldCost < 0
                 || choice.HealthCost < 0 || choice.GoldGain < 0 || choice.HealAmount < 0
                 || choice.HealPercent < 0 || choice.HealPercent > 100) return false;
-            if (choice.GoldCost == 0 && choice.HealthCost == 0 && !choice.UpgradeCard) freeChoice = true;
+            if (choice.Shop != null && (!choice.Shop.IsValid() || choice.UpgradeCard
+                || choice.GoldCost != 0 || choice.HealthCost != 0 || choice.GoldGain != 0
+                || choice.HealAmount != 0 || choice.HealPercent != 0 || choice.Card != null)) return false;
+            if (choice.GoldCost == 0 && choice.HealthCost == 0 && !choice.UpgradeCard && choice.Shop == null) freeChoice = true;
         }
         return freeChoice;
     }

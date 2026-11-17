@@ -32,7 +32,7 @@ public class BattleManager : MonoBehaviour
     public string EncounterName { get; private set; }
     public int BattleFloor { get; private set; }
     public bool CanPlayCards => State == BattleState.PlayerTurn
-        && (screenFlowController == null || screenFlowController.IsPlaying) && Time.timeScale > 0;
+        && (screenFlowController == null || (screenFlowController.IsPlaying && !screenFlowController.IsDeckOpen)) && Time.timeScale > 0;
     public event Action OnBattleChanged;
     public event Action<bool> OnBattleEnded;
 
@@ -172,6 +172,8 @@ public class BattleManager : MonoBehaviour
             return;
         State = won ? BattleState.Victory : BattleState.Defeat;
         cardManager.EndBattle();
+        // Preserve HP, but do not carry combat-only stats into rewards or map events.
+        playerStatus.ResetCombatState();
         if (won) GrantVictoryRewards();
         NotifyChanged();
         OnBattleEnded?.Invoke(won);
@@ -238,6 +240,15 @@ public class BattleManager : MonoBehaviour
     }
 
     private void NotifyChanged() => OnBattleChanged?.Invoke();
+
+    public bool TrySkipCardReward()
+    {
+        if (State != BattleState.Victory || !HasPendingCardReward
+            || !ReferenceEquals(playerStatus, runManager.PlayerStatus)
+            || !RewardOffer.TrySkip()) return false;
+        NotifyChanged();
+        return true;
+    }
 
     public bool TrySelectRewardCard(int index)
     {

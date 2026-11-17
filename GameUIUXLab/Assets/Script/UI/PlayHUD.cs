@@ -157,12 +157,12 @@ public class PlayHUD : MonoBehaviour
         }
         if (nextBattleButton != null)
         {
-            bool visible = won && !battleManager.HasPendingCardReward
-                && (runManager.HasMap || (runManager.HasStageSequence && !runManager.IsRunComplete));
+            bool visible = won && (battleManager.HasPendingCardReward || runManager.HasMap
+                || (runManager.HasStageSequence && !runManager.IsRunComplete));
             if (nextBattleButton.gameObject.activeSelf != visible) nextBattleButton.gameObject.SetActive(visible);
             if (nextBattleLabel != null)
             {
-                string text = runManager.HasMap ? "맵으로" : "다음 층";
+                string text = "다음으로";
                 if (nextBattleLabel.text != text) nextBattleLabel.text = text;
             }
         }
