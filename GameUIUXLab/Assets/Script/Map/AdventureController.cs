@@ -76,7 +76,7 @@ public class AdventureController : MonoBehaviour
         {
             if (!choice.Shop.IsValid()) return false;
             CurrentShop = new ShopInventory(choice.Shop, new System.Random());
-            ShopMessage = "カードを選んで購入できます。".Replace("カードを選んで購入できます。", "카드를 선택해 구매할 수 있습니다.");
+            ShopMessage = "카드를 선택해 구매할 수 있습니다.";
             OnEventChanged?.Invoke();
             return true;
         }

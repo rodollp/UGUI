@@ -13,21 +13,25 @@ MonoBehaviour:
   m_Name: Merchant
   m_EditorClassIdentifier: Assembly-CSharp::MapEventData
   Title: "\uB5A0\uB3CC\uC774 \uC0C1\uC778"
-  Description: "\uC5B4\uB460 \uC18D\uC5D0\uC11C \uC0C1\uC778\uC774 \uB098\uD0C0\uB0A9\uB2C8\uB2E4. \uAC15\uB825\uD55C \uCE74\uB4DC \uD55C \uC7A5\uC744 \uAE08\uD654\uC640 \uAD50\uD658\uD558\uACA0\uB2E4\uACE0 \uD569\uB2C8\uB2E4."
+  Description: "상인이 카드 다섯 장을 펼쳐 보입니다. 카드 구매와 제거 서비스를 이용할 수 있습니다."
   Choices:
-  - Label: "\uAC15\uD0C0 \uCE74\uB4DC\uB97C \uAD6C\uB9E4\uD55C\uB2E4"
-    Result: "\uC0C1\uC778\uC740 \uCE74\uB4DC\uB97C \uAC74\uB124\uACE0 \uC548\uAC1C \uC18D\uC73C\uB85C \uC0AC\uB77C\uC9D1\uB2C8\uB2E4."
-    GoldCost: 25
-    HealthCost: 0
-    GoldGain: 0
-    HealAmount: 0
-    HealPercent: 0
-    Card: {fileID: 11400000, guid: acd52997e2c75a34d92ead398522cbbf, type: 2}
-  - Label: "\uC9C0\uB098\uAC04\uB2E4"
-    Result: "\uC544\uBB34 \uC77C \uC5C6\uC774 \uAE38\uC744 \uB5A0\uB0A9\uB2C8\uB2E4."
+  - Label: "상점에 들어간다"
+    Result: ""
     GoldCost: 0
     HealthCost: 0
     GoldGain: 0
     HealAmount: 0
     HealPercent: 0
     Card: {fileID: 0}
+    UpgradeCard: 0
+    Shop: {fileID: 11400000, guid: 490e004dcd2441a5b158ae5ceb9111d0, type: 2}
+  - Label: "지나간다"
+    Result: "상인을 지나쳐 길을 떠납니다."
+    GoldCost: 0
+    HealthCost: 0
+    GoldGain: 0
+    HealAmount: 0
+    HealPercent: 0
+    Card: {fileID: 0}
+    UpgradeCard: 0
+    Shop: {fileID: 0}

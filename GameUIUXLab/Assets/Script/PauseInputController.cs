@@ -34,6 +34,7 @@ public class PauseInputController : MonoBehaviour
     {
         if (screenFlow.TryCloseDeck()) return;
         if (screenFlow.TryBackFromUpgrade()) return;
+        if (screenFlow.TryBackFromShop()) return;
 
 
         if (screenFlow.IsAdventureActive)

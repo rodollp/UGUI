@@ -47,6 +47,13 @@ public class UIScreenFlowController : MonoBehaviour
         return upgrade != null && upgrade.HandleBack();
     }
 
+    public bool TryBackFromShop()
+    {
+        if (!IsEvent || IsDeckOpen || eventScreen == null) return false;
+        var shop = eventScreen.GetComponentInChildren<ShopUI>();
+        return shop != null && shop.HandleBack();
+    }
+
     private void Start() => ShowTitleScreen();
 
     public void ShowTitleScreen()

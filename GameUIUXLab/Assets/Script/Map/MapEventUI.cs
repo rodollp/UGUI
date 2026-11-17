@@ -11,9 +11,15 @@ public class MapEventUI : MonoBehaviour
     [SerializeField] private Button[] choiceButtons;
     [SerializeField] private Button continueButton;
     [SerializeField] private GameObject upgradePanel;
+    private ShopUI shopUI;
 
     private void Awake()
     {
+        var shopRoot = new GameObject("ShopPanel", typeof(RectTransform));
+        shopRoot.transform.SetParent(transform, false);
+        shopRoot.SetActive(false);
+        shopUI = shopRoot.AddComponent<ShopUI>();
+        shopUI.Initialize(adventure, upgradePanel.GetComponentsInChildren<CardUI>(true)[0], titleText);
         for (int i = 0; i < choiceButtons.Length; i++)
         {
             int index = i;
@@ -30,12 +36,14 @@ public class MapEventUI : MonoBehaviour
         if (data == null) return;
         RunManager run = adventure.Run;
         if (upgradePanel != null) upgradePanel.SetActive(adventure.IsChoosingUpgrade);
+        shopUI.gameObject.SetActive(adventure.IsShopping);
+        if (adventure.IsShopping) shopUI.transform.SetAsLastSibling();
         titleText.text = data.Title;
         descriptionText.text = adventure.EventResolved ? adventure.EventResult : data.Description;
         statusText.text = $"체력 {run.PlayerStatus.CurrentHp}/{run.PlayerStatus.MaxHp}  ·  골드 {run.Gold}  ·  덱 {run.MasterDeck.Cards.Count}장";
         for (int i = 0; i < choiceButtons.Length; i++)
         {
-            bool visible = !adventure.EventResolved && !adventure.IsChoosingUpgrade && i < data.Choices.Length;
+            bool visible = !adventure.EventResolved && !adventure.IsChoosingUpgrade && !adventure.IsShopping && i < data.Choices.Length;
             choiceButtons[i].gameObject.SetActive(visible);
             if (!visible) continue;
             MapEventChoice choice = data.Choices[i];
