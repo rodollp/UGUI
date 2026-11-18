@@ -6628,11 +6628,11 @@ RectTransform:
   - {fileID: 1075522103}
   m_Father: {fileID: 2070111819}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 750, y: -123.137085}
-  m_SizeDelta: {x: 228.09, y: 106.92}
-  m_Pivot: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 1, y: 0}
+  m_AnchorMax: {x: 1, y: 0}
+  m_AnchoredPosition: {x: -28, y: 24}
+  m_SizeDelta: {x: 184, y: 64}
+  m_Pivot: {x: 1, y: 0}
 --- !u!114 &1512731473
 MonoBehaviour:
   m_ObjectHideFlags: 0

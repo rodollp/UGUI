@@ -58,8 +58,8 @@ public class CardManager : MonoBehaviour
 
     public void EndBattle()
     {
-        DiscardPlayerHand();
         battleDeck = null;
+        if (playerHand != null) playerHand.ClearHand();
         RefreshPileCounts();
     }
 
