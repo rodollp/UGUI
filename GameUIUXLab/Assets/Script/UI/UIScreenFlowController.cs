@@ -16,6 +16,9 @@ public class UIScreenFlowController : MonoBehaviour
     [SerializeField] private BattleManager battleManager;
     private UIScreenState currentState;
     private UIScreenState pausedFrom = UIScreenState.Play;
+    private RunMapUI previewMap;
+    private Transform mapParent;
+    private int mapSiblingIndex;
 
     public bool IsPlaying => currentState == UIScreenState.Play;
     public bool IsPaused => currentState == UIScreenState.Pause;
@@ -24,12 +27,20 @@ public class UIScreenFlowController : MonoBehaviour
     public bool IsAdventureActive => IsPlaying || IsMap || IsEvent;
     public bool IsResult => currentState == UIScreenState.Result;
     public bool IsDeckOpen { get; private set; }
+    public bool IsMapPreviewOpen => previewMap != null;
+    public bool IsOverlayOpen => IsDeckOpen || IsMapPreviewOpen;
 
     public void SetDeckOpen(bool open)
     {
         IsDeckOpen = open;
-        Time.timeScale = open || IsPaused ? 0 : 1;
-        if (open) runTimer.PauseTimer();
+        UpdateOverlayPause();
+    }
+
+    private void UpdateOverlayPause()
+    {
+        bool paused = IsOverlayOpen || IsPaused;
+        Time.timeScale = paused ? 0 : 1;
+        if (paused) runTimer.PauseTimer();
         else if (IsAdventureActive) runTimer.ResumeTimer();
     }
 
@@ -38,6 +49,42 @@ public class UIScreenFlowController : MonoBehaviour
         if (!IsDeckOpen) return false;
         GetComponent<DeckViewUI>().HandleBack();
         return true;
+    }
+
+    public void OpenMapPreview(Transform overlayRoot)
+    {
+        if (!IsPlaying || IsOverlayOpen || overlayRoot == null || mapScreen == null
+            || !mapScreen.TryGetComponent(out RunMapUI map) || !map.HasMap
+            || !map.TryShowPreview(CloseMapPreview)) return;
+
+        Transform mapTransform = mapScreen.transform;
+        mapParent = mapTransform.parent;
+        mapSiblingIndex = mapTransform.GetSiblingIndex();
+        previewMap = map;
+        UpdateOverlayPause();
+        mapTransform.SetParent(overlayRoot, false);
+        mapTransform.SetAsLastSibling();
+        mapScreen.SetActive(true);
+        if (UnityEngine.EventSystems.EventSystem.current != null)
+            UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);
+    }
+
+    public bool TryCloseMapPreview()
+    {
+        if (!IsMapPreviewOpen) return false;
+        CloseMapPreview();
+        return true;
+    }
+
+    private void CloseMapPreview()
+    {
+        if (!IsMapPreviewOpen) return;
+        mapScreen.SetActive(false);
+        previewMap.HidePreview();
+        mapScreen.transform.SetParent(mapParent, false);
+        mapScreen.transform.SetSiblingIndex(mapSiblingIndex);
+        previewMap = null;
+        UpdateOverlayPause();
     }
 
     public bool TryBackFromUpgrade()
@@ -127,6 +174,7 @@ public class UIScreenFlowController : MonoBehaviour
 
     private void SetActiveScreen(UIScreenState next)
     {
+        CloseMapPreview();
         if (IsDeckOpen) GetComponent<DeckViewUI>().Close();
         currentState = next;
         titleScreen.SetActive(next == UIScreenState.Title);

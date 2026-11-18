@@ -32,7 +32,7 @@ public class BattleManager : MonoBehaviour
     public string EncounterName { get; private set; }
     public int BattleFloor { get; private set; }
     public bool CanPlayCards => State == BattleState.PlayerTurn
-        && (screenFlowController == null || (screenFlowController.IsPlaying && !screenFlowController.IsDeckOpen)) && Time.timeScale > 0;
+        && (screenFlowController == null || (screenFlowController.IsPlaying && !screenFlowController.IsOverlayOpen)) && Time.timeScale > 0;
     public event Action OnBattleChanged;
     public event Action<bool> OnBattleEnded;
 

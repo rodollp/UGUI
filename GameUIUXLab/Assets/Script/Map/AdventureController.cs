@@ -158,6 +158,8 @@ public class AdventureController : MonoBehaviour
     }
 
     private bool CanUseShop => CanInteractWithVisit && IsShopping;
+    public bool CanRemoveShopCard => CanUseShop && !CurrentShop.CardRemovalUsed
+        && runManager.Gold >= runManager.CardRemovalPrice && runManager.MasterDeck.Cards.Count > 0;
 
     public bool BuyShopCard(int index)
     {
@@ -179,12 +181,14 @@ public class AdventureController : MonoBehaviour
 
     public bool RemoveShopCard(CardInstance card)
     {
-        if (!CanUseShop || shopTransaction) return false;
+        if (shopTransaction || !CanRemoveShopCard) return false;
+        ShopInventory shop = CurrentShop;
         shopTransaction = true;
         try
         {
             int price = runManager.CardRemovalPrice;
             if (!runManager.TryRemoveCard(card)) return false;
+            shop.MarkCardRemovalUsed();
             ShopMessage = $"{card.CardData.CardName} 카드 제거 · {price}골드 사용";
             OnEventChanged?.Invoke();
             return true;

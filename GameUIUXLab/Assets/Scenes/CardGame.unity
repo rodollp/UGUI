@@ -2605,7 +2605,7 @@ MonoBehaviour:
   maxHandSize: 10
   cardSpacing: 220
   maxHandWidth: 1200
-  cardHigh: -100
+  cardHigh: 0
 --- !u!1 &695914870
 GameObject:
   m_ObjectHideFlags: 0

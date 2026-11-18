@@ -73,7 +73,8 @@ public class ShopUI : MonoBehaviour
         CloseDetail();
         ShopInventory shop = adventure.CurrentShop;
         for (int i = 0; i < offers.Count; i++) offers[i].SetCard(new CardInstance(shop.Cards[i]));
-        if (removalPanel.activeSelf) RefreshRemoval();
+        if (shop.CardRemovalUsed) CloseRemoval();
+        else if (removalPanel.activeSelf) RefreshRemoval();
         RefreshBalances();
     }
     private void RefreshBalances()
@@ -93,8 +94,9 @@ public class ShopUI : MonoBehaviour
                 ? new Color(1, .8f, .35f) : new Color(.95f, .9f, .78f);
             offers[i].GetComponent<Button>().interactable = !sold;
         }
-        removeButton.GetComponentInChildren<TMP_Text>().text = $"카드 제거 · {run.CardRemovalPrice}골드";
-        removeButton.interactable = run.Gold >= run.CardRemovalPrice && run.MasterDeck.Cards.Count > 0;
+        removeButton.GetComponentInChildren<TMP_Text>().text = shop.CardRemovalUsed
+            ? "카드 제거 · 이용 완료" : $"카드 제거 · {run.CardRemovalPrice}골드";
+        removeButton.interactable = adventure.CanRemoveShopCard;
         removalHeading.text = $"카드 제거 · {run.CardRemovalPrice}골드 · 보유 {run.Gold}골드\n제거할 카드를 선택하세요";
         if (detailPanel.activeSelf) RefreshDetailAction();
     }
@@ -125,7 +127,7 @@ public class ShopUI : MonoBehaviour
     }
     private void OpenRemoval()
     {
-        if (!adventure.IsShopping || adventure.Run.Gold < adventure.Run.CardRemovalPrice) return;
+        if (!adventure.CanRemoveShopCard) return;
         removalPanel.SetActive(true); removalPanel.transform.SetAsLastSibling();
         RefreshRemoval(); RefreshBalances();
     }

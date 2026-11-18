@@ -33,6 +33,7 @@ public class CardManager : MonoBehaviour
         battleDeck = new BattleDeck(runManager.MasterDeck);
         battleDeck.Shuffle();
         playerHand.ClearHand();
+        RefreshPileCounts();
         playHUD.ResetHUD();
     }
 
@@ -45,18 +46,21 @@ public class CardManager : MonoBehaviour
             if (card == null) break;
             playerHand.AddCard(card);
         }
+        RefreshPileCounts();
     }
 
     public void DiscardPlayerHand()
     {
         if (battleDeck != null) battleDeck.DiscardHand();
         if (playerHand != null) playerHand.ClearHand();
+        RefreshPileCounts();
     }
 
     public void EndBattle()
     {
         DiscardPlayerHand();
         battleDeck = null;
+        RefreshPileCounts();
     }
 
     private void HandleCardDropped(CardUI cardUI, Vector2 screenPosition)
@@ -95,6 +99,7 @@ public class CardManager : MonoBehaviour
             if (!status.TryUseEnergy(card.CurrentCost)) return;
             // 소유권을 먼저 제거하여 같은 카드를 중복 실행하지 못하게 합니다.
             battleDeck.PlayCard(card);
+            RefreshPileCounts();
             playerHand.RemoveCard(cardUI);
             CardEffectContext context = new CardEffectContext(status,
                 targets.Length == 1 ? targets[0] : null, targets);
@@ -112,6 +117,12 @@ public class CardManager : MonoBehaviour
         if (data.Effects == null) return;
         foreach (CardEffect effect in data.Effects)
             if (effect != null) effect.Execute(context);
+    }
+
+    private void RefreshPileCounts()
+    {
+        if (playHUD != null)
+            playHUD.SetPileCounts(battleDeck?.DrawCount ?? 0, battleDeck?.DiscardCount ?? 0);
     }
 
     // 기존 턴 종료 버튼의 연결을 유지하고 BattleManager에 위임합니다.

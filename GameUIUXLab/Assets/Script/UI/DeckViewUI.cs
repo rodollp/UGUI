@@ -12,6 +12,7 @@ public class DeckViewUI : MonoBehaviour
     [SerializeField] private CardUI cardPrefab;
     [SerializeField] private Transform canvasRoot;
     private Button openButton;
+    private Button mapButton;
     private GameObject panel;
     private RectTransform content;
     private TMP_Text heading;
@@ -28,11 +29,8 @@ public class DeckViewUI : MonoBehaviour
 
     private void Start()
     {
-        openButton = MakeButton(canvasRoot, "OpenDeck", "보유 덱", Open);
-        RectTransform buttonRect = (RectTransform)openButton.transform;
-        buttonRect.anchorMin = buttonRect.anchorMax = buttonRect.pivot = Vector2.one;
-        buttonRect.anchoredPosition = new Vector2(-35, -30);
-        buttonRect.sizeDelta = new Vector2(210, 65);
+        openButton = MakeShortcut("OpenDeck", "덱", false, -35, Open);
+        mapButton = MakeShortcut("OpenMapPreview", "지도", true, -151, () => flow.OpenMapPreview(canvasRoot));
         panel = Rect("DeckOverlay", canvasRoot).gameObject;
         Stretch((RectTransform)panel.transform, Vector2.zero, Vector2.zero);
         panel.AddComponent<Image>().color = new Color(.035f, .045f, .06f, .99f);
@@ -67,12 +65,13 @@ public class DeckViewUI : MonoBehaviour
     {
         if (openButton == null) return;
         bool available = run.MasterDeck != null && (flow.IsAdventureActive || flow.IsResult);
-        openButton.gameObject.SetActive(available && !IsOpen);
+        openButton.gameObject.SetActive(available && !flow.IsOverlayOpen);
+        mapButton.gameObject.SetActive(run.HasMap && flow.IsPlaying && !flow.IsOverlayOpen);
     }
 
     public void Open()
     {
-        if (panel == null || IsOpen || run.MasterDeck == null || !(flow.IsAdventureActive || flow.IsResult)) return;
+        if (panel == null || flow.IsOverlayOpen || run.MasterDeck == null || !(flow.IsAdventureActive || flow.IsResult)) return;
         foreach (GameObject cell in cells) { cell.SetActive(false); Destroy(cell); }
         cells.Clear();
         foreach (CardInstance card in run.MasterDeck.Cards)
@@ -199,6 +198,23 @@ public class DeckViewUI : MonoBehaviour
         Stretch(Label(rect, "Label", caption).rectTransform, Vector2.zero, Vector2.zero);
         return button;
     }
+    private Button MakeShortcut(string name, string caption, bool isMap, float rightOffset, UnityEngine.Events.UnityAction action)
+    {
+        Button button = MakeButton(canvasRoot, name, caption, action);
+        var rect = (RectTransform)button.transform;
+        rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.one;
+        rect.anchoredPosition = new Vector2(rightOffset, -30);
+        rect.sizeDelta = new Vector2(108, 65);
+        TMP_Text label = button.GetComponentInChildren<TMP_Text>();
+        label.fontSize = 22;
+        Place(label.rectTransform, new Vector2(.5f, .5f), new Vector2(19, 0), new Vector2(58, 50));
+        var icon = Rect("Icon", rect).gameObject.AddComponent<AdventureShortcutIcon>();
+        icon.ShowMap = isMap;
+        icon.color = label.color;
+        icon.raycastTarget = false;
+        Place(icon.rectTransform, new Vector2(.5f, .5f), new Vector2(-27, 0), new Vector2(33, 33));
+        return button;
+    }
     private static RectTransform Rect(string name, Transform parent)
     {
         var rect = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
@@ -219,5 +235,6 @@ public class DeckViewUI : MonoBehaviour
     {
         if (panel != null) Destroy(panel);
         if (openButton != null) Destroy(openButton.gameObject);
+        if (mapButton != null) Destroy(mapButton.gameObject);
     }
 }

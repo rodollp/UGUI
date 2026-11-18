@@ -205,6 +205,36 @@ public static class MapValidation
         Expect(flow.IsPlaying && battle.State == BattleState.PlayerTurn && run.Map.ActiveNode == entry,
             "node click starts selected encounter");
         UIUpdateValidation.VerifyHUD(Find<PlayHUD>(), run);
+        yield return null;
+        var shortcuts = UnityEngine.Object.FindObjectsByType<Button>(FindObjectsSortMode.None);
+        Button mapShortcut = shortcuts.Single(b => b.name == "OpenMapPreview");
+        Button deckShortcut = shortcuts.Single(b => b.name == "OpenDeck");
+        Expect(mapShortcut.GetComponentInChildren<AdventureShortcutIcon>().ShowMap
+            && !deckShortcut.GetComponentInChildren<AdventureShortcutIcon>().ShowMap,
+            "battle shows distinct map and card shortcut icons");
+        int turn = battle.Turn;
+        mapShortcut.onClick.Invoke();
+        MapNodeIcon currentIcon = NodeButton(entry.Id).GetComponentInChildren<MapNodeIcon>();
+        Expect(flow.IsMapPreviewOpen && flow.IsPlaying && !flow.IsMap && Time.timeScale == 0
+            && currentIcon.Available && !NodeButton(entry.Id).interactable,
+            "map preview pauses the battle and marks the current node without making it selectable");
+        var timer = Find<RunTimer>();
+        float pausedTime = timer.PlayTime;
+        NodeButton(story.Id).onClick.Invoke();
+        battle.EndPlayerTurn();
+        deckShortcut.onClick.Invoke();
+        yield return null;
+        Expect(timer.PlayTime == pausedTime && !flow.IsDeckOpen && run.Map.ActiveNode == entry
+            && battle.Turn == turn && battle.State == BattleState.PlayerTurn,
+            "map preview blocks travel, turn changes and overlapping deck while the timer is paused");
+        UnityEngine.Object.FindObjectsByType<Button>(FindObjectsSortMode.None)
+            .Single(b => b.name == "CloseMapPreview").onClick.Invoke();
+        Expect(!flow.IsMapPreviewOpen && flow.IsPlaying && battle.CanPlayCards && Time.timeScale == 1,
+            "close button resumes the same battle");
+        yield return null;
+        mapShortcut.onClick.Invoke();
+        Expect(flow.TryCloseMapPreview() && battle.CanPlayCards && run.Map.ActiveNode == entry,
+            "escape dismissal also resumes the same turn");
         Expect(run.CurrentEncounter == entry.Encounter && Find<Player>().gameObject.activeInHierarchy,
             "node encounter and world enabled");
         foreach (Enemy enemy in battle.Enemies.ToArray()) enemy.Status.TakeDamage(int.MaxValue);
@@ -374,7 +404,7 @@ public static class MapValidation
             run.CompleteStage();
         }
         Expect(button.interactable, "adjacent shop becomes selectable");
-        run.AddGold(100);
+        run.AddGold(250);
         button.onClick.Invoke();
         ShopUI shop = Find<ShopUI>();
         Expect(flow.IsEvent && adventure.IsShopping && adventure.CurrentEvent == null
@@ -387,8 +417,18 @@ public static class MapValidation
         int cards = run.MasterDeck.Cards.Count;
         shop.OfferViews[inventory.DiscountIndex].GetComponent<Button>().onClick.Invoke();
         shop.ConfirmButton.onClick.Invoke();
-        Expect(run.Gold == 75 && run.MasterDeck.Cards.Count == cards + 1
+        Expect(run.Gold == 225 && run.MasterDeck.Cards.Count == cards + 1
             && inventory.IsSold(inventory.DiscountIndex), "discounted shop purchase updates gold, deck and stock");
+        Button remove = shop.transform.Find("RemoveCard").GetComponent<Button>();
+        remove.onClick.Invoke();
+        shop.RemovalViews[0].GetComponent<Button>().onClick.Invoke();
+        shop.ConfirmButton.onClick.Invoke();
+        Expect(inventory.CardRemovalUsed && !remove.interactable && run.Gold == 175
+            && run.MasterDeck.Cards.Count == cards && run.CardRemovalPrice == 100,
+            "successful removal closes the picker and disables the service");
+        Expect(!adventure.RemoveShopCard(run.MasterDeck.Cards[0]) && run.Gold == 175
+            && run.MasterDeck.Cards.Count == cards && run.CardRemovalPrice == 100,
+            "second removal is rejected even when the player can afford it");
         shop.transform.Find("LeaveShop").GetComponent<Button>().onClick.Invoke();
         Expect(flow.IsMap && node.Completed && run.Map.ActiveNode == null && !adventure.SelectNode(node.Id),
             "leaving closes the shop and completes its node once");

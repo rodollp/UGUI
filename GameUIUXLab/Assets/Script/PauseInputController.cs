@@ -33,6 +33,7 @@ public class PauseInputController : MonoBehaviour
     private void OnPausePerformed(InputAction.CallbackContext context)
     {
         if (screenFlow.TryCloseDeck()) return;
+        if (screenFlow.TryCloseMapPreview()) return;
         if (screenFlow.TryBackFromUpgrade()) return;
         if (screenFlow.TryBackFromShop()) return;
 

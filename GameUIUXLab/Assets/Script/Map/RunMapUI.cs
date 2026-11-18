@@ -14,9 +14,12 @@ public class RunMapUI : MonoBehaviour
     private const float IconSize = 68f;
     private ScrollRect scroll;
     private int shownVersion = -1;
-    private int focusedNode = -2;
+    private int focusedRow = -1;
     private RunMap builtMap;
-    private (MapNode, MapNode, bool) displayedMapState;
+    private (MapNode, MapNode, bool, bool) displayedMapState;
+    private bool isPreview;
+    private Button returnTitleButton;
+    private Button closePreviewButton;
     private readonly List<NodeView> nodeViews = new List<NodeView>();
     private readonly List<PathView> pathViews = new List<PathView>();
     private (int Hp, int MaxHp, int Gold, int Cards) displayedStatus = (-1,-1,-1,-1);
@@ -36,6 +39,33 @@ public class RunMapUI : MonoBehaviour
     }
     private static readonly Color Ink = new Color(.20f,.17f,.14f);
     private static readonly Color Gold = new Color(.54f,.29f,.08f);
+    public bool HasMap => adventure.Run.HasMap;
+
+    public bool TryShowPreview(UnityEngine.Events.UnityAction close)
+    {
+        if (closePreviewButton == null)
+        {
+            Transform exit = transform.Find("ReturnTitle");
+            if (exit == null || !exit.TryGetComponent(out returnTitleButton)) return false;
+            closePreviewButton = Instantiate(returnTitleButton, transform);
+            closePreviewButton.name = "CloseMapPreview";
+            closePreviewButton.onClick = new Button.ButtonClickedEvent();
+            closePreviewButton.onClick.AddListener(close);
+            closePreviewButton.GetComponentInChildren<TMP_Text>(true).text = "전투로 (ESC)";
+        }
+        isPreview = true;
+        focusedRow = -1;
+        returnTitleButton.gameObject.SetActive(false);
+        closePreviewButton.gameObject.SetActive(true);
+        return true;
+    }
+
+    public void HidePreview()
+    {
+        isPreview = false;
+        closePreviewButton.gameObject.SetActive(false);
+        returnTitleButton.gameObject.SetActive(true);
+    }
 
     private void OnEnable()
     {
@@ -97,8 +127,8 @@ public class RunMapUI : MonoBehaviour
         RefreshStatus();
         bool rebuilt = !ReferenceEquals(builtMap, run.Map);
         if (rebuilt) BuildMap(run);
-        var mapState = (run.Map.LastCompletedNode, run.Map.ActiveNode, run.PlayerStatus.IsDead);
-        if (!rebuilt && displayedMapState.Equals(mapState)) return;
+        var mapState = (run.Map.LastCompletedNode, run.Map.ActiveNode, run.PlayerStatus.IsDead, isPreview);
+        if (!rebuilt && displayedMapState.Equals(mapState) && focusedRow >= 0) return;
         displayedMapState = mapState;
         foreach (NodeView view in nodeViews) UpdateNode(view, run);
         foreach (PathView view in pathViews)
@@ -110,11 +140,11 @@ public class RunMapUI : MonoBehaviour
                 mark.color = completedPath ? Gold : new Color(.35f,.30f,.24f,.45f);
         }
 
-        int completed = run.Map.LastCompletedNode?.Id ?? -1;
-        if (shownVersion != run.RunVersion || focusedNode != completed)
+        int row = run.Map.IsComplete ? run.Map.Rows - 1 : (run.Map.LastCompletedNode?.Row + 1 ?? 0);
+        if (isPreview && run.Map.ActiveNode != null) row = run.Map.ActiveNode.Row;
+        if (shownVersion != run.RunVersion || focusedRow != row)
         {
-            shownVersion = run.RunVersion; focusedNode = completed;
-            int row = run.Map.IsComplete ? run.Map.Rows - 1 : (run.Map.LastCompletedNode?.Row + 1 ?? 0);
+            shownVersion = run.RunVersion; focusedRow = row;
             if (rebuilt) Canvas.ForceUpdateCanvases();
             float height = scroll.viewport.rect.height;
             scroll.StopMovement();
@@ -155,11 +185,11 @@ public class RunMapUI : MonoBehaviour
         foreach (MapNode node in run.Map.Nodes) DrawNode(node, run);
     }
 
-    private static void UpdateNode(NodeView view, RunManager run)
+    private void UpdateNode(NodeView view, RunManager run)
     {
-        bool available = run.Map.CanEnter(view.Node.Id);
+        bool available = isPreview ? view.Node == run.Map.ActiveNode : run.Map.CanEnter(view.Node.Id);
         bool completed = view.Node.Completed;
-        bool interactable = available && !run.PlayerStatus.IsDead;
+        bool interactable = !isPreview && available && !run.PlayerStatus.IsDead;
         if (view.Initialized && view.Available == available && view.Completed == completed
             && view.Interactable == interactable) return;
         view.Initialized = true; view.Available = available; view.Completed = completed;
@@ -221,6 +251,6 @@ public class RunMapUI : MonoBehaviour
         floor.font = label.font; floor.fontSize = 15; floor.alignment = TextAlignmentOptions.Center;
         floor.color = new Color(.40f,.35f,.28f); floor.text = (node.Row+1).ToString(); floor.raycastTarget = false;
         int id = node.Id;
-        button.onClick.AddListener(() => adventure.SelectNode(id));
+        button.onClick.AddListener(() => { if (!isPreview) adventure.SelectNode(id); });
     }
 }

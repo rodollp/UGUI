@@ -39,11 +39,16 @@ public static class UIUpdateValidation
         var serialized = new SerializedObject(hud);
         var energy = (TMP_Text)serialized.FindProperty("energyText").objectReferenceValue;
         var timer = (TMP_Text)serialized.FindProperty("timeText").objectReferenceValue;
+        Transform playScreen = energy.transform.parent.parent;
+        var draw = playScreen.Find("DrawPile/Count").GetComponent<TMP_Text>();
+        var discard = playScreen.Find("DiscardPile/Count").GetComponent<TMP_Text>();
+        Expect(draw.text == (run.MasterDeck.Cards.Count - 5).ToString() && discard.text == "0",
+            "first turn HUD displays the live draw and discard pile sizes");
         string oldEnergy = energy.text;
         Expect(run.PlayerStatus.TryUseEnergy(1) && run.PlayerStatus.TryUseEnergy(1), "energy events generated");
         Expect(ReferenceEquals(energy.text, oldEnergy), "multiple events defer expensive HUD updates");
         flush();
-        Expect(energy.text == $"에너지 {run.PlayerStatus.CurrentEnergy} / {run.PlayerStatus.MaxEnergy}", "one flush shows final energy");
+        Expect(energy.text == $"{run.PlayerStatus.CurrentEnergy} / {run.PlayerStatus.MaxEnergy}", "one flush shows final energy");
         run.PlayerStatus.RestoreEnergy(); flush();
         update(); string oldTime = timer.text;
         for (int i = 0; i < 100; i++) update();

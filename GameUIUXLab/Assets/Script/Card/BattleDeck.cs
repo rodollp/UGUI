@@ -9,6 +9,8 @@ public class BattleDeck
 
 
     private Random random = new Random();
+    public int DrawCount => drawPile.Count;
+    public int DiscardCount => discardPile.Count;
 
 
     public BattleDeck(MasterDeck masterDeck)

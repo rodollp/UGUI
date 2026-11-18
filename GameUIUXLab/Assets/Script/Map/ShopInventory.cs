@@ -7,6 +7,7 @@ public sealed class ShopInventory
     public IReadOnlyList<CardData> Cards { get; }
     public int DiscountIndex { get; }
     public int BasePrice { get; }
+    public bool CardRemovalUsed { get; private set; }
     private readonly bool[] purchased = new bool[CardCount];
 
     public ShopInventory(ShopData data, Random random)
@@ -25,6 +26,7 @@ public sealed class ShopInventory
     }
     public bool IsSold(int index) => index < 0 || index >= CardCount || purchased[index];
     public int Price(int index) => index == DiscountIndex ? BasePrice / 2 : BasePrice;
+    internal void MarkCardRemovalUsed() => CardRemovalUsed = true;
     public bool TryMarkPurchased(int index)
     {
         if (IsSold(index)) return false;
