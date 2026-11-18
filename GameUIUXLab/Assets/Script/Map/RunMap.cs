@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-public enum MapNodeType { Battle, Elite, Event, Rest, Treasure, Boss }
+public enum MapNodeType { Battle, Elite, Event, Rest, Treasure, Boss, Shop }
 
 public sealed class MapNode
 {
@@ -13,14 +13,16 @@ public sealed class MapNode
     public bool IsUnknown { get; }
     public EncounterData Encounter { get; }
     public MapEventData Event { get; }
+    public ShopData Shop { get; }
     public bool Completed { get; internal set; }
     public IReadOnlyList<int> Outgoing { get; }
     public bool IsCombat => Type == MapNodeType.Battle || Type == MapNodeType.Elite || Type == MapNodeType.Boss;
 
     internal MapNode(int id, int row, int column, MapNodeType type, EncounterData encounter, MapEventData data,
-        bool isUnknown = false)
+        bool isUnknown = false, ShopData shop = null)
     {
         Id = id; Row = row; Column = column; Type = type; Encounter = encounter; Event = data;
+        Shop = shop;
         IsUnknown = isUnknown;
         Outgoing = outgoing.AsReadOnly();
     }
@@ -39,6 +41,7 @@ public sealed class MapNode
                 case MapNodeType.Rest: return "휴식";
                 case MapNodeType.Treasure: return "보물";
                 case MapNodeType.Boss: return "보스";
+                case MapNodeType.Shop: return "상점";
                 default: return "전투";
             }
         }
@@ -97,6 +100,8 @@ public sealed class RunMap
 
 public static class RunMapGenerator
 {
+    public const int FirstShopFloor = 4;
+
     public static RunMap Generate(RunMapData data, int seed)
     {
         if (data == null || !data.IsValid()) throw new ArgumentException("맵 설정을 확인하세요.");
@@ -131,6 +136,19 @@ public static class RunMapGenerator
                     default: mapEvent = Pick(data.Events, random); break;
                 }
                 nodes.Add(new MapNode(row * 3 + col, row, columns == 1 ? 1 : col, type, encounter, mapEvent, unknown));
+            }
+        }
+        if (data.Shop != null)
+        {
+            var candidates = nodes.FindAll(node => node.Row + 1 >= FirstShopFloor
+                && node.Row < data.Rows - 2 && node.Row != data.TreasureRow);
+            if (candidates.Count > 0)
+            {
+                // Keep existing seeded encounters and paths independent of shop placement.
+                var shopRandom = new System.Random(seed);
+                MapNode slot = candidates[shopRandom.Next(candidates.Count)];
+                nodes[slot.Id] = new MapNode(slot.Id, slot.Row, slot.Column, MapNodeType.Shop,
+                    null, null, shop: data.Shop);
             }
         }
         var map = new RunMap(nodes, data.Rows, seed);

@@ -21,10 +21,12 @@ public class RunMapData : ScriptableObject
     public MapEventData[] Events;
     public MapEventData Rest;
     public MapEventData Treasure;
+    public ShopData Shop;
 
     public bool IsValid()
     {
         if (UnknownBattlePercent < 0 || UnknownBattlePercent > 100) return false;
+        if (Shop != null && !Shop.IsValid()) return false;
         if (rows < 3 || eliteStartFloor < 2 || eliteStartFloor >= rows - 1
             || restStartFloor < 2 || restStartFloor >= rows - 1
             || treasureFloor < 2 || treasureFloor >= rows - 1) return false;

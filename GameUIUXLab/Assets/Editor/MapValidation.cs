@@ -68,6 +68,8 @@ public static class MapValidation
         checks = 0;
         RunMapData data = AssetDatabase.LoadAssetAtPath<RunMapData>("Assets/Datas/Adventure/DefaultMap.asset");
         Expect(data != null && data.IsValid(), "default map configuration valid");
+        Expect(data.Shop != null && data.Events.All(story => story.Choices.All(choice => choice.Shop == null)),
+            "default map has a dedicated shop and no shop events");
         bool sawElite = false;
         bool sawFourthFloorRest = false;
         for (int seed = 0; seed < 16; seed++)
@@ -83,6 +85,12 @@ public static class MapValidation
             Expect(map.Nodes.All(n => n.Type != MapNodeType.Elite || n.Row + 1 >= 5), "no elites before floor five");
             Expect(map.Nodes.All(n => n.Type != MapNodeType.Rest || n.Row + 1 >= 4), "no rest before floor four");
             Expect(map.Nodes.Where(n => n.Row == map.Rows - 2).All(n => n.Type == MapNodeType.Rest), "rest before boss");
+            var shops = map.Nodes.Where(n => n.Type == MapNodeType.Shop).ToArray();
+            Expect(shops.Length == 1, "one shop per default map");
+            MapNode shop = shops[0];
+            Expect(shop.Row + 1 >= 4 && shop.Row < map.Rows - 2 && shop.Row != data.TreasureRow
+                && !shop.IsUnknown && !shop.IsCombat && shop.Event == null && shop.Shop == data.Shop,
+                "visible dedicated shop starts on floor four and leaves reserved floors intact");
             sawElite |= map.Nodes.Any(n => n.Type == MapNodeType.Elite);
             sawFourthFloorRest |= map.Nodes.Any(n => n.Row == 3 && n.Type == MapNodeType.Rest);
             Expect(map.Nodes.All(n => n.Outgoing.All(id => map.Find(id).Row == n.Row + 1)),
@@ -146,7 +154,14 @@ public static class MapValidation
         var config = UnityEngine.Object.Instantiate((RunMapData)configObject.FindProperty("mapData").objectReferenceValue);
         config.UseFixedSeed = true; config.Seed = 42;
         config.UnknownBattlePercent = 0; // Event-choice checks use deterministic event outcomes.
-        config.Events = new[] { AssetDatabase.LoadAssetAtPath<MapEventData>("Assets/Datas/Adventure/Merchant.asset") };
+        var paidEvent = ScriptableObject.CreateInstance<MapEventData>();
+        paidEvent.Title = "여행자의 거래";
+        paidEvent.Description = "여행자가 카드를 팝니다.";
+        paidEvent.Choices = new[] {
+            new MapEventChoice { Label = "카드를 구매한다", GoldCost = 25, Card = config.Shop.CardPool[0] },
+            new MapEventChoice { Label = "지나간다" }
+        };
+        config.Events = new[] { paidEvent };
         configObject.FindProperty("mapData").objectReferenceValue = config;
         configObject.ApplyModifiedPropertiesWithoutUndo();
         Button start = UnityEngine.Object.FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None)
@@ -163,6 +178,9 @@ public static class MapValidation
         }
         Expect(run.CurrentEncounter == null && run.Gold == 0 && run.MasterDeck.Cards.Count == 10, "fresh run resources");
         Expect(!Find<Player>().gameObject.activeInHierarchy && battle.Enemies.Count == 0, "map hides combat world");
+        VerifyShopNode(run, adventure, flow);
+        config.Shop = null; // Keep the regular event and battle scenarios focused on their own paths.
+        start.onClick.Invoke();
         RunMap originalMap = run.Map;
         battle.StartBattle();
         Expect(battle.State == BattleState.None, "battle cannot start without a selected combat node");
@@ -341,6 +359,39 @@ public static class MapValidation
         Expect(scroll != null && scroll.vertical && !scroll.horizontal && scroll.content.rect.height > scroll.viewport.rect.height,
             "map uses a vertical scroll viewport with spacious rows");
         UnityEngine.Object.Destroy(config);
+        UnityEngine.Object.Destroy(paidEvent);
+    }
+    private static void VerifyShopNode(RunManager run, AdventureController adventure, UIScreenFlowController flow)
+    {
+        MapNode node = run.Map.Nodes.Single(n => n.Type == MapNodeType.Shop);
+        Button button = NodeButton(node.Id);
+        MapNodeIcon icon = button.GetComponentInChildren<MapNodeIcon>();
+        Expect(icon.Kind == MapNodeType.Shop && !icon.Unknown && !button.interactable,
+            "shop icon is visible and the distant shop is locked");
+        foreach (MapNode previous in run.Map.Nodes.Where(n => n.Row < node.Row && n.Column == node.Column))
+        {
+            Expect(run.TryEnterMapNode(previous.Id), "same-column route leads to shop");
+            run.CompleteStage();
+        }
+        Expect(button.interactable, "adjacent shop becomes selectable");
+        run.AddGold(100);
+        button.onClick.Invoke();
+        ShopUI shop = Find<ShopUI>();
+        Expect(flow.IsEvent && adventure.IsShopping && adventure.CurrentEvent == null
+            && shop.gameObject.activeInHierarchy && shop.OfferViews.Count == 5,
+            "shop button immediately opens card offers");
+        var inventory = adventure.CurrentShop;
+        flow.ShowPauseScreen(); flow.ResumeGame();
+        Expect(ReferenceEquals(adventure.CurrentShop, inventory) && shop.gameObject.activeInHierarchy,
+            "pause and resume preserve shop inventory");
+        int cards = run.MasterDeck.Cards.Count;
+        shop.OfferViews[inventory.DiscountIndex].GetComponent<Button>().onClick.Invoke();
+        shop.ConfirmButton.onClick.Invoke();
+        Expect(run.Gold == 75 && run.MasterDeck.Cards.Count == cards + 1
+            && inventory.IsSold(inventory.DiscountIndex), "discounted shop purchase updates gold, deck and stock");
+        shop.transform.Find("LeaveShop").GetComponent<Button>().onClick.Invoke();
+        Expect(flow.IsMap && node.Completed && run.Map.ActiveNode == null && !adventure.SelectNode(node.Id),
+            "leaving closes the shop and completes its node once");
     }
     private static Button NodeButton(int id) => UnityEngine.Object.FindObjectsByType<Button>(FindObjectsSortMode.None)
         .Single(b => b.name == "MapNode_" + id);

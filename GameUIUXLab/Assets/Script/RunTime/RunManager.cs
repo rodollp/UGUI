@@ -36,7 +36,7 @@ public class RunManager : MonoBehaviour
         }
         if (mapData != null && !mapData.IsValid())
         {
-            Debug.LogError("맵의 전투·사건·휴식·보물 설정을 확인하세요.");
+            Debug.LogError("맵의 전투·사건·휴식·보물·상점 설정을 확인하세요.");
             return;
         }
         MasterDeck = new MasterDeck(playerData.StarterDeck);
@@ -52,7 +52,7 @@ public class RunManager : MonoBehaviour
         OnMapChanged?.Invoke();
     }
 
-    // 전투 승리 또는 사건 선택 완료 시 현재 노드의 진행을 확정합니다.
+    // 현재 노드의 진행을 확정합니다.
     public void CompleteStage()
     {
         if (HasMap)

@@ -82,7 +82,7 @@ public class RunMapUI : MonoBehaviour
             Transform hint = transform.Find("Hint");
             if (hint != null && hint.TryGetComponent<TMP_Text>(out var hintText))
             {
-                hintText.text = "휠 / 드래그로 지도 이동 · 작은 뿔: 전투 · 큰 뿔: 정예 · ?: 전투 또는 사건 · 모닥불: 휴식";
+                hintText.text = "휠 / 드래그로 지도 이동 · 작은 뿔: 전투 · 큰 뿔: 정예 · ?: 전투 또는 사건 · 모닥불: 휴식 · 가게: 상점";
                 hintText.color = Ink;
                 hintText.enableAutoSizing = true; hintText.fontSizeMin = 15; hintText.fontSizeMax = 23;
             }

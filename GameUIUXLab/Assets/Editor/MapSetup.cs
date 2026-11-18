@@ -16,7 +16,6 @@ public static class MapSetup
         if (!AssetDatabase.IsValidFolder(Folder)) AssetDatabase.CreateFolder("Assets/Datas", "Adventure");
         BattleRewardData regularRewards = AssetDatabase.LoadAssetAtPath<BattleRewardData>(
             "Assets/Datas/Rewards/DefaultBattleRewards.asset");
-        CardData bash = AssetDatabase.LoadAssetAtPath<CardData>("Assets/Datas/Rewards/Bash.asset");
         MapEventChoice leave = new MapEventChoice { Label = "지나간다", Result = "아무 일 없이 길을 떠납니다." };
         MapEventData shrine = Event("Shrine", "수상한 제단",
             "낡은 제단 위에 금빛 동전이 놓여 있습니다. 작은 대가를 치르면 가져갈 수 있을 것 같습니다.",
@@ -24,10 +23,6 @@ public static class MapSetup
                 Result = "제단은 당신의 피를 받아들이고 금화를 내어 줍니다." },
             new MapEventChoice { Label = "조용히 기도한다", HealPercent = 10, Result = "잠시 마음을 가다듬고 기력을 회복합니다." },
             leave);
-        MapEventData merchant = Event("Merchant", "떠돌이 상인",
-            "어둠 속에서 상인이 나타납니다. 강력한 카드 한 장을 금화와 교환하겠다고 합니다.",
-            new MapEventChoice { Label = "강타 카드를 구매한다", GoldCost = 25, Card = bash,
-                Result = "상인은 카드를 건네고 안개 속으로 사라집니다." }, leave);
         MapEventData cache = Event("Cache", "버려진 가방",
             "누군가 두고 간 가방을 발견했습니다. 한 가지 물건만 가져가기로 합니다.",
             new MapEventChoice { Label = "금화 주머니를 챙긴다", GoldGain = 18, Result = "가방 안에서 금화를 찾아냈습니다." },
@@ -69,9 +64,9 @@ public static class MapSetup
                 AssetDatabase.LoadAssetAtPath<EncounterData>("Assets/Datas/BattleSamples/PairEncounter.asset")
             };
             m.Elites = new[] { eliteEncounter }; m.Bosses = new[] { mapBoss };
-            m.Events = new[] { shrine, merchant, cache }; m.Rest = rest; m.Treasure = treasure;
+            m.Events = new[] { shrine, cache }; m.Rest = rest; m.Treasure = treasure;
         });
-        AssetDatabase.SaveAssets();
+        ShopSetup.Configure();
 
         var scene = EditorSceneManager.OpenScene("Assets/Scenes/CardGame.unity");
         RunManager run = Find<RunManager>();

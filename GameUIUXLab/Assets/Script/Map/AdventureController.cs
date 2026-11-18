@@ -17,6 +17,7 @@ public class AdventureController : MonoBehaviour
     private bool shopTransaction;
     private int upgradeChoice = -1;
     public bool IsChoosingUpgrade => upgradeChoice >= 0;
+    public bool HasUpgradeableCards => runManager.MasterDeck.Cards.Any(card => card.CanUpgrade);
     public CardInstance[] UpgradeCandidates => runManager.MasterDeck.Cards.Where(c => c.CanUpgrade).ToArray();
     public event Action OnEventChanged;
 
@@ -35,38 +36,40 @@ public class AdventureController : MonoBehaviour
     {
         if (!screenFlow.IsMap || !runManager.TryEnterMapNode(id)) return false;
         MapNode node = runManager.Map.ActiveNode;
-        if (node.IsCombat)
-        {
-            screenFlow.ShowPlayScreen();
-            battleManager.StartBattle();
-            if (battleManager.State != BattleState.PlayerTurn)
-            {
-                runManager.Map.CancelActiveNode();
-                screenFlow.ShowMapScreen();
-                return false;
-            }
-        }
-        else
-        {
-            ResetEvent();
-            CurrentEvent = node.Event;
-            EventResolved = false;
-            EventResult = "";
-            screenFlow.ShowEventScreen();
-            OnEventChanged?.Invoke();
-        }
+        if (node.IsCombat) return EnterBattle();
+
+        ResetEvent();
+        CurrentEvent = node.Event;
+        if (node.Shop != null) OpenShop(node.Shop);
+        screenFlow.ShowEventScreen();
+        OnEventChanged?.Invoke();
         return true;
     }
 
+    private bool EnterBattle()
+    {
+        screenFlow.ShowPlayScreen();
+        battleManager.StartBattle();
+        if (battleManager.State == BattleState.PlayerTurn) return true;
+
+        runManager.Map.CancelActiveNode();
+        screenFlow.ShowMapScreen();
+        return false;
+    }
+
+    private bool CanInteractWithVisit => screenFlow.IsEvent && !screenFlow.IsDeckOpen
+        && runManager.Map?.ActiveNode != null && runManager.PlayerStatus is { IsDead: false };
+
     public bool CanChooseEvent(int index)
     {
-        if (!screenFlow.IsEvent || screenFlow.IsDeckOpen || EventResolved || IsChoosingUpgrade || IsShopping || CurrentEvent == null || !runManager.HasMap
-            || runManager.Map.ActiveNode == null || runManager.PlayerStatus == null || runManager.PlayerStatus.IsDead
+        if (!CanInteractWithVisit || EventResolved || IsChoosingUpgrade || IsShopping || CurrentEvent == null
             || index < 0 || index >= CurrentEvent.Choices.Length) return false;
         MapEventChoice choice = CurrentEvent.Choices[index];
-        return choice.GoldCost <= runManager.Gold && choice.HealthCost < runManager.PlayerStatus.CurrentHp
-            && (!choice.UpgradeCard || UpgradeCandidates.Length > 0);
+        return CanAffordChoice(choice) && (!choice.UpgradeCard || HasUpgradeableCards);
     }
+
+    private bool CanAffordChoice(MapEventChoice choice) =>
+        choice.GoldCost <= runManager.Gold && choice.HealthCost < runManager.PlayerStatus.CurrentHp;
 
     public bool ChooseEvent(int index)
     {
@@ -75,8 +78,7 @@ public class AdventureController : MonoBehaviour
         if (choice.Shop != null)
         {
             if (!choice.Shop.IsValid()) return false;
-            CurrentShop = new ShopInventory(choice.Shop, new System.Random());
-            ShopMessage = "카드를 선택해 구매할 수 있습니다.";
+            OpenShop(choice.Shop);
             OnEventChanged?.Invoke();
             return true;
         }
@@ -102,8 +104,7 @@ public class AdventureController : MonoBehaviour
             || !runManager.MasterDeck.Cards.Contains(card) || !card.CanUpgrade
             || runManager.Map.ActiveNode == null || runManager.PlayerStatus.IsDead) return false;
         MapEventChoice choice = CurrentEvent.Choices[upgradeChoice];
-        if (choice.GoldCost > runManager.Gold || choice.HealthCost >= runManager.PlayerStatus.CurrentHp) return false;
-        return ResolveChoice(choice, card);
+        return CanAffordChoice(choice) && ResolveChoice(choice, card);
     }
 
     private bool ResolveChoice(MapEventChoice choice, CardInstance card)
@@ -150,8 +151,13 @@ public class AdventureController : MonoBehaviour
         CurrentShop = null; ShopMessage = "";
     }
 
-    private bool CanUseShop => screenFlow.IsEvent && !screenFlow.IsDeckOpen && IsShopping
-        && runManager.Map?.ActiveNode != null && !runManager.PlayerStatus.IsDead;
+    private void OpenShop(ShopData data)
+    {
+        CurrentShop = new ShopInventory(data, new System.Random());
+        ShopMessage = "카드를 선택해 구매할 수 있습니다.";
+    }
+
+    private bool CanUseShop => CanInteractWithVisit && IsShopping;
 
     public bool BuyShopCard(int index)
     {

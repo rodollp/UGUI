@@ -57,6 +57,17 @@ public class MapNodeIcon : MaskableGraphic
             Stroke(3,new Vector2(-.04f,.08f),new Vector2(.04f,.08f),new Vector2(.04f,-.08f),
                 new Vector2(-.04f,-.08f),new Vector2(-.04f,.08f));
         }
+        else if (Kind == MapNodeType.Shop)
+        {
+            Stroke(3, new Vector2(-.34f,.08f), new Vector2(-.25f,.29f), new Vector2(.25f,.29f),
+                new Vector2(.34f,.08f), new Vector2(-.34f,.08f));
+            Stroke(3, new Vector2(-.27f,.08f), new Vector2(-.27f,-.28f), new Vector2(.27f,-.28f),
+                new Vector2(.27f,.08f));
+            Stroke(3, new Vector2(-.09f,-.28f), new Vector2(-.09f,-.07f), new Vector2(.09f,-.07f),
+                new Vector2(.09f,-.28f));
+            Line(new Vector2(-.13f,.29f), new Vector2(-.17f,.08f), 2);
+            Line(new Vector2(.13f,.29f), new Vector2(.17f,.08f), 2);
+        }
         else Circle(Vector2.zero, .23f, 3);
         if (Completed) Stroke(3,new Vector2(.19f,-.36f),new Vector2(.27f,-.43f),new Vector2(.41f,-.27f));
     }

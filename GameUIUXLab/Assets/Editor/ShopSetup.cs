@@ -19,15 +19,17 @@ public static class ShopSetup
                 .Select(p => AssetDatabase.LoadAssetAtPath<CardData>("Assets/Datas/" + p + ".asset")).ToArray();
             AssetDatabase.CreateAsset(shop, path);
         }
-        var merchant = AssetDatabase.LoadAssetAtPath<MapEventData>("Assets/Datas/Adventure/Merchant.asset");
-        if (!merchant.Choices.Any(c => c.Shop != null))
+        var map = AssetDatabase.LoadAssetAtPath<RunMapData>("Assets/Datas/Adventure/DefaultMap.asset");
+        if (map != null)
         {
-            merchant.Description = "상인이 카드 다섯 장을 펼쳐 보입니다. 카드 구매와 제거 서비스를 이용할 수 있습니다.";
-            merchant.Choices = new[] {
-                new MapEventChoice { Label = "상점에 들어간다", Shop = shop },
-                new MapEventChoice { Label = "지나간다", Result = "상인을 지나쳐 길을 떠납니다." }
-            };
-            EditorUtility.SetDirty(merchant);
+            if (map.Shop == null) map.Shop = shop;
+            var merchant = AssetDatabase.LoadAssetAtPath<MapEventData>("Assets/Datas/Adventure/Merchant.asset");
+            if (merchant != null && map.Events != null && map.Events.Contains(merchant))
+            {
+                var remainingEvents = map.Events.Where(data => data != merchant).ToArray();
+                if (remainingEvents.Length > 0) map.Events = remainingEvents;
+            }
+            EditorUtility.SetDirty(map);
         }
         AssetDatabase.SaveAssets();
         Debug.Log("SHOP_SETUP_OK");
