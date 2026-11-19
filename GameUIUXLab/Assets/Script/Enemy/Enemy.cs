@@ -37,6 +37,11 @@ public class Enemy : MonoBehaviour
         if (healthBarUI != null) healthBarUI.Initialize(enemyStatus);
     }
 
+    internal void SetHealthBarDebuffVisibility(bool visible)
+    {
+        if (healthBarUI != null) healthBarUI.SetDebuffVisibility(visible);
+    }
+
     public void PlanNextAction()
     {
         if (Status == null || Status.IsDead) return;

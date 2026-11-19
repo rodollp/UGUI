@@ -12,6 +12,7 @@ public class HealthBarUI : MonoBehaviour
 
     [SerializeField] private TextMeshProUGUI debuffText;
     private CreatureStatus status;
+    private bool showDebuffs = true;
 
     public void Initialize(CreatureStatus targetStatus)
     {
@@ -33,11 +34,7 @@ public class HealthBarUI : MonoBehaviour
         if (status == null)
             return;
 
-        if (debuffText != null)
-        {
-            debuffText.text = status.GetDebuffDescription();
-            debuffText.gameObject.SetActive(debuffText.text.Length > 0);
-        }
+        RefreshDebuffs();
 
         // 체력 표시
         hpFill.fillAmount = status.MaxHp > 0
@@ -55,6 +52,20 @@ public class HealthBarUI : MonoBehaviour
         {
             blockText.text = status.CurrentBlock.ToString();
         }
+    }
+
+    internal void SetDebuffVisibility(bool visible)
+    {
+        if (showDebuffs == visible) return;
+        showDebuffs = visible;
+        RefreshDebuffs();
+    }
+
+    private void RefreshDebuffs()
+    {
+        if (debuffText == null) return;
+        if (showDebuffs) debuffText.text = status?.GetDebuffDescription(includeTurnUnit: true) ?? string.Empty;
+        debuffText.gameObject.SetActive(showDebuffs && debuffText.text.Length > 0);
     }
 
     private void EnsureDebuffText()

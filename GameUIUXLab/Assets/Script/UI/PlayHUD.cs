@@ -1,4 +1,3 @@
-using System.Text;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -11,7 +10,7 @@ public class PlayHUD : MonoBehaviour
     [SerializeField] private TextMeshProUGUI energyText;
     [SerializeField] private TextMeshProUGUI goldText;
     [SerializeField] private TextMeshProUGUI stageText;
-    [SerializeField] private TextMeshProUGUI intentText;
+    [SerializeField] private RectTransform enemyIntentRoot;
     [SerializeField] private TextMeshProUGUI resultText;
     [SerializeField] private Button endTurnButton;
     [SerializeField] private Button nextBattleButton;
@@ -24,17 +23,16 @@ public class PlayHUD : MonoBehaviour
     private int displayedGold = int.MinValue;
     private (int, bool) displayedTurn = (-1, false);
     private (int, string) displayedStage = (-1, null);
-    private readonly StringBuilder intentBuilder = new StringBuilder();
-    private readonly List<(Enemy, int, int, int, int, int, int, int, EnemyAction, string)> enemyDisplay =
-        new List<(Enemy, int, int, int, int, int, int, int, EnemyAction, string)>();
-    private int displayedPlayerVulnerable = -1;
-    private bool intentInitialized;
+    private readonly List<EnemyIntentView> enemyIntents = new();
+    private Canvas intentCanvas;
+    private Camera battleCamera;
     private TMP_Text nextBattleLabel;
     private BattleResourcesView resources;
 
     private void Awake()
     {
         if (energyText != null) resources = new BattleResourcesView(energyText);
+        if (enemyIntentRoot != null) intentCanvas = enemyIntentRoot.GetComponentInParent<Canvas>(true);
     }
 
     public void SetPileCounts(int draw, int discard) => resources?.SetPileCounts(draw, discard);
@@ -52,6 +50,7 @@ public class PlayHUD : MonoBehaviour
     {
         if (battleManager != null) battleManager.OnBattleChanged -= MarkDirty;
         if (runManager != null) runManager.OnGoldChanged -= MarkDirty;
+        foreach (EnemyIntentView view in enemyIntents) view.Refresh(null, null);
     }
 
     private void Update()
@@ -82,6 +81,18 @@ public class PlayHUD : MonoBehaviour
     private void LateUpdate()
     {
         if (uiDirty) RefreshUI();
+        if (enemyIntents.Count == 0) return;
+
+        bool show = enemyIntentRoot.gameObject.activeInHierarchy
+            && (screenFlowController == null || (screenFlowController.IsPlaying && !screenFlowController.IsOverlayOpen));
+        if (show && battleCamera == null) battleCamera = Camera.main;
+        Camera uiCamera = intentCanvas != null && intentCanvas.renderMode != RenderMode.ScreenSpaceOverlay
+            ? intentCanvas.worldCamera : null;
+        foreach (EnemyIntentView view in enemyIntents)
+        {
+            if (show && battleCamera != null) view.FollowEnemy(battleCamera, uiCamera);
+            else view.Hide();
+        }
     }
 
     public void ResetHUD() => RefreshUI();
@@ -111,41 +122,22 @@ public class PlayHUD : MonoBehaviour
             displayedStage = stage;
             stageText.text = $"{battleManager.BattleFloor}층 · {battleManager.EncounterName}";
         }
-        if (intentText != null && IntentChanged())
-        {
-            intentBuilder.Clear();
-            foreach (Enemy enemy in battleManager.Enemies)
-                if (enemy != null && enemy.Status != null && !enemy.Status.IsDead)
-                {
-                    string debuffs = enemy.Status.GetDebuffDescription();
-                    intentBuilder.AppendLine($"{enemy.Data.EnemyName}  HP {enemy.Status.CurrentHp}/{enemy.Status.MaxHp}  " +
-                        $"방어 {enemy.Status.CurrentBlock}  → {enemy.GetIntentDescription(runManager.PlayerStatus)}" +
-                        (debuffs.Length > 0 ? $" [{debuffs}]" : ""));
-                }
-            intentText.text = intentBuilder.ToString();
-        }
+        RefreshEnemyIntents(playerStatus);
         RefreshControls();
     }
 
-    private bool IntentChanged()
+    private void RefreshEnemyIntents(PlayerStatus playerStatus)
     {
-        int vulnerable = runManager.PlayerStatus?.VulnerableTurns ?? 0;
-        bool changed = !intentInitialized || displayedPlayerVulnerable != vulnerable
-            || enemyDisplay.Count != battleManager.Enemies.Count;
-        intentInitialized = true; displayedPlayerVulnerable = vulnerable;
-        int index = 0;
-        foreach (Enemy enemy in battleManager.Enemies)
+        if (enemyIntentRoot == null) return;
+        var enemies = battleManager.Enemies;
+        int count = battleManager.State is BattleState.PlayerTurn or BattleState.EnemyTurn ? enemies.Count : 0;
+        for (int i = 0; i < count; i++)
         {
-            var status = enemy != null ? enemy.Status : null;
-            var stamp = (enemy, status?.CurrentHp ?? 0, status?.MaxHp ?? 0, status?.CurrentBlock ?? 0,
-                status?.AttackPower ?? 0, status?.WeakTurns ?? 0, status?.VulnerableTurns ?? 0,
-                status?.FrailTurns ?? 0, enemy != null ? enemy.Intent : null, enemy != null ? enemy.Data?.EnemyName : null);
-            if (index >= enemyDisplay.Count) { enemyDisplay.Add(stamp); changed = true; }
-            else if (!enemyDisplay[index].Equals(stamp)) { enemyDisplay[index] = stamp; changed = true; }
-            index++;
+            if (i == enemyIntents.Count)
+                enemyIntents.Add(new EnemyIntentView(enemyIntentRoot, stageText != null ? stageText : turnText));
+            enemyIntents[i].Refresh(enemies[i], playerStatus);
         }
-        if (index < enemyDisplay.Count) enemyDisplay.RemoveRange(index, enemyDisplay.Count - index);
-        return changed;
+        for (int i = count; i < enemyIntents.Count; i++) enemyIntents[i].Refresh(null, playerStatus);
     }
 
     private void RefreshControls()

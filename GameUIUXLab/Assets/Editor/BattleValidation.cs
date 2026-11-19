@@ -233,10 +233,15 @@ public static class BattleValidation
         Expect(target.GetIntentDescription(status) == "공격 6 × 1", "Intent incorporates weak and vulnerable");
         TMP_Text playerDebuffs = Find<Player>().GetComponentsInChildren<TMP_Text>(true)
             .Single(t => t.name == "DebuffText");
-        Expect(playerDebuffs.gameObject.activeInHierarchy && playerDebuffs.text.Contains("취약 1")
-            && playerDebuffs.text.Contains("약화 1") && playerDebuffs.text.Contains("손상 1"), "Player debuffs visible");
-        TMP_Text enemyDebuffs = target.GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "DebuffText");
-        Expect(enemyDebuffs.gameObject.activeInHierarchy && enemyDebuffs.text.Contains("약화 2"), "Enemy debuffs visible");
+        Expect(playerDebuffs.gameObject.activeInHierarchy && playerDebuffs.text == "취약 1턴 · 약화 1턴 · 손상 1턴",
+            "Player debuffs show explicit remaining turns");
+        yield return null;
+        var intentRoot = (RectTransform)new SerializedObject(Find<PlayHUD>()).FindProperty("enemyIntentRoot").objectReferenceValue;
+        TMP_Text enemyDebuffs = intentRoot.GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "ActiveDebuffs");
+        Expect(enemyDebuffs.gameObject.activeSelf && enemyDebuffs.text == "취약 2턴 · 약화 2턴 · 손상 2턴",
+            "Enemy badge shows all active debuffs with remaining turns");
+        var worldEnemyDebuffs = target.GetComponentsInChildren<TMP_Text>(true).Single(t => t.name == "DebuffText");
+        Expect(!worldEnemyDebuffs.gameObject.activeSelf, "Enemy health bar does not duplicate the badge's active effects");
         if (SystemInfo.graphicsDeviceType != UnityEngine.Rendering.GraphicsDeviceType.Null)
         {
             yield return null;
@@ -249,13 +254,24 @@ public static class BattleValidation
             "Player durations decay once per round");
         Expect(target.Status.WeakTurns == 1 && target.Status.FrailTurns == 1 && target.Status.VulnerableTurns == 1,
             "Enemy durations decay once per round");
-        Expect(!playerDebuffs.gameObject.activeSelf && enemyDebuffs.text.Contains("약화 1"),
+        yield return null;
+        Expect(!playerDebuffs.gameObject.activeSelf && enemyDebuffs.text == "취약 1턴 · 약화 1턴 · 손상 1턴",
             "Debuff labels refresh after round");
         status.AddBlock(100);
         cards.EndTurn();
         while (battle.State == BattleState.EnemyTurn) yield return null;
+        yield return null;
         Expect(target.Status.GetDebuffDescription() == "" && !enemyDebuffs.gameObject.activeSelf,
             "Expired enemy debuffs hidden");
+        TMP_Text nextAction = enemyDebuffs.transform.parent.Find("Action").GetComponent<TMP_Text>();
+        foreach (DebuffType type in new[] { DebuffType.Vulnerable, DebuffType.Weak })
+        {
+            deterministicData.Actions[0] = new EnemyAction { Type = EnemyActionType.Debuff, Debuff = type, DebuffTurns = 2 };
+            target.PlanNextAction();
+            yield return null;
+            Expect(nextAction.text == $"{DebuffNames.Get(type)} 2턴 부여" && !enemyDebuffs.gameObject.activeSelf,
+                "Pending debuffs name the effect and duration without marking it as active on the enemy");
+        }
         status.ApplyDebuff(DebuffType.Weak, 3);
         status.AddAttackPower(3); status.AddDexterity(2);
         status.AddBlock(10);

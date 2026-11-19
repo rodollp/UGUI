@@ -134,12 +134,15 @@ public abstract class CreatureStatus
         if (changed) OnStatusChanged?.Invoke();
     }
 
-    public string GetDebuffDescription()
+    public string GetDebuffDescription() => GetDebuffDescription(includeTurnUnit: false);
+
+    internal string GetDebuffDescription(bool includeTurnUnit)
     {
+        string unit = includeTurnUnit ? "턴" : "";
         var parts = new System.Collections.Generic.List<string>(3);
         for (int i = 0; i < debuffTurns.Length; i++)
             if (debuffTurns[i] > 0)
-                parts.Add(DebuffNames.Get((DebuffType)i) + " " + debuffTurns[i]);
+                parts.Add($"{DebuffNames.Get((DebuffType)i)} {debuffTurns[i]}{unit}");
         return string.Join(" · ", parts);
     }
 

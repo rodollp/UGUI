@@ -92,8 +92,18 @@ public static class BattleSampleSetup
             new Vector2(50, -110), new Vector2(400, 60), 32));
         Set(hud, "stageText", Label(template, play, "StageText", new Vector2(0.5f, 1),
             new Vector2(-300, -110), new Vector2(600, 60), 32));
-        Set(hud, "intentText", Label(template, play, "IntentText", new Vector2(1, 1),
-            new Vector2(-650, -190), new Vector2(620, 200), 27));
+        Transform legacyIntent = play.Find("IntentText");
+        if (legacyIntent != null) UnityEngine.Object.DestroyImmediate(legacyIntent.gameObject);
+        var enemyIntents = play.Find("EnemyIntents") as RectTransform;
+        if (enemyIntents == null)
+        {
+            enemyIntents = new GameObject("EnemyIntents", typeof(RectTransform)).GetComponent<RectTransform>();
+            enemyIntents.SetParent(play, false);
+            enemyIntents.anchorMin = Vector2.zero;
+            enemyIntents.anchorMax = Vector2.one;
+            enemyIntents.offsetMin = enemyIntents.offsetMax = Vector2.zero;
+        }
+        Set(hud, "enemyIntentRoot", enemyIntents);
         Set(hud, "resultText", Label(template, result, "BattleResultText", new Vector2(0.5f, 0.5f),
             new Vector2(-350, 180), new Vector2(700, 80), 42));
         foreach (TMP_Text text in result.GetComponentsInChildren<TMP_Text>(true))
