@@ -49,7 +49,6 @@ public class PlayerStatus : CreatureStatus
         OnEnergyChanged?.Invoke();
     }
 
-    // 카드 효과로 얻는 에너지는 최대 에너지를 초과할 수 있습니다.
     public int GainEnergy(int amount)
     {
         if (amount <= 0 || IsDead)
@@ -64,5 +63,4 @@ public class PlayerStatus : CreatureStatus
         return gained;
     }
 
-    // 체력 회복은 CreatureStatus에서 상속받은 Heal(amount)를 사용합니다.
 }

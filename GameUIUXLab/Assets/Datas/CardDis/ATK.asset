@@ -17,5 +17,7 @@ MonoBehaviour:
   Type: 0
   TargetType: 1
   EnergyCost: 1
+  Artwork: {fileID: 21300000, guid: 1e171cf2eb2109947aa9d2f0d2c8b696, type: 3}
+  UpgradedCard: {fileID: 11400000, guid: 334cb15d14f871d4b8069d6266c96891, type: 2}
   Effects:
   - {fileID: 11400000, guid: 0de5d097f17d68544a99379cae255a5f, type: 2}

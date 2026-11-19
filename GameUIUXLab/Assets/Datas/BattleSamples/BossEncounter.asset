@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4446afbb014292d4abe0ad58dce70a8b, type: 3}
+  m_Name: BossEncounter
+  m_EditorClassIdentifier: Assembly-CSharp::EncounterData
+  EncounterName: "\uC6B0\uB450\uBA38\uB9AC"
+  Enemies:
+  - Prefab: {fileID: 3854943863630608725, guid: 3ae86a9e228672042b37a99c99652abe, type: 3}
+    Data: {fileID: 11400000, guid: a0b86406590844c488778b70a66ac57e, type: 2}
+    LocalPosition: {x: 6.913117, y: -0.15248995, z: -0.35355}

@@ -15,6 +15,9 @@ MonoBehaviour:
   CardID: 1
   CardName: "\uBC29\uC5B4"
   Type: 1
+  TargetType: 0
   EnergyCost: 1
+  Artwork: {fileID: 21300000, guid: 83551908d55a7bb48b08d61971359c5b, type: 3}
+  UpgradedCard: {fileID: 11400000, guid: 053f4ff4082b31f4dab0c2bef592a938, type: 2}
   Effects:
   - {fileID: 11400000, guid: 397d3b8f90c639f42bf4d1f44126198c, type: 2}

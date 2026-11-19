@@ -3,15 +3,18 @@ using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(RectTransform))]
-public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBeginDragHandler,IDragHandler,IEndDragHandler
+public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBeginDragHandler,IDragHandler,IEndDragHandler,IInitializePotentialDragHandler
 {
     [Header("Card Information")]
     [SerializeField] private TMP_Text costText;
     [SerializeField] private TMP_Text nameText;
     [SerializeField] private TMP_Text typeText;
     [SerializeField] private TMP_Text descriptionText;
+    [SerializeField] private Image artworkImage;
 
     [Header("Hover Settings")]
     [SerializeField] private float hoverMoveY = 100f;
@@ -28,6 +31,9 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
     private Vector3 targetScale;
 
     private bool isDragging;
+    private bool isRewardCard;
+    private ScrollRect browseScroll;
+    private bool scrollingList;
     private Vector2 dragOffset;
 
     public event Action<CardUI> OnCardClicked;
@@ -49,20 +55,23 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
 
     private void Update()
     {
-        if (!isDragging)
+        if (isDragging && IsCancelPressed()) CancelDrag();
+        if (!isDragging && rectTransform.anchoredPosition != targetPosition)
         {
-            rectTransform.anchoredPosition = Vector2.Lerp(
+            Vector2 nextPosition = Vector2.Lerp(
                 rectTransform.anchoredPosition,
                 targetPosition,
                 moveSpeed * Time.deltaTime
             );
+            rectTransform.anchoredPosition = (nextPosition - targetPosition).sqrMagnitude < .01f
+                ? targetPosition : nextPosition;
         }
 
-        rectTransform.localScale = Vector3.Lerp(
-            rectTransform.localScale,
-            targetScale,
-            moveSpeed * Time.deltaTime
-        );
+        if (rectTransform.localScale != targetScale)
+        {
+            Vector3 nextScale = Vector3.Lerp(rectTransform.localScale, targetScale, moveSpeed * Time.deltaTime);
+            rectTransform.localScale = (nextScale - targetScale).sqrMagnitude < .0001f ? targetScale : nextScale;
+        }
     }
 
     public void SetCard(CardInstance cardInstance)
@@ -81,6 +90,11 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
         costText.text = cardInstance.CurrentCost.ToString();
         typeText.text = data.Type.ToString();
         descriptionText.text = data.GetDescription();
+        if (artworkImage != null)
+        {
+            artworkImage.sprite = data.Artwork;
+            artworkImage.enabled = data.Artwork != null;
+        }
     }
 
     public void ClearCard()
@@ -93,6 +107,11 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
         costText.text = "";
         typeText.text = "";
         descriptionText.text = "";
+        if (artworkImage != null)
+        {
+            artworkImage.sprite = null;
+            artworkImage.enabled = false;
+        }
 
         targetPosition = basePosition;
         targetScale = baseScale;
@@ -128,7 +147,15 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        if (CardInstance == null)
+        if (browseScroll != null && eventData != null && eventData.button == PointerEventData.InputButton.Left)
+        {
+            scrollingList = true;
+            eventData.eligibleForClick = false;
+            browseScroll.OnBeginDrag(eventData);
+            return;
+        }
+        if (eventData == null || eventData.button != PointerEventData.InputButton.Left
+            || CardInstance == null || isRewardCard)
             return;
 
         isDragging = true;
@@ -147,8 +174,11 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
 
     public void OnDrag(PointerEventData eventData)
     {
-        if (!isDragging)
+        if (scrollingList) { browseScroll.OnDrag(eventData); return; }
+        if (eventData == null || eventData.button != PointerEventData.InputButton.Left || !isDragging)
             return;
+
+        if (IsCancelPressed()) { CancelDrag(); return; }
 
         if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
             parentRect,
@@ -162,8 +192,17 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        if (!isDragging)
+        if (scrollingList)
+        {
+            scrollingList = false;
+            browseScroll.OnEndDrag(eventData);
             return;
+        }
+        if (eventData == null || eventData.button != PointerEventData.InputButton.Left || !isDragging)
+            return;
+
+        // EventSystem may deliver the release before this component's Update.
+        if (IsCancelPressed()) { CancelDrag(); return; }
 
         isDragging = false;
 
@@ -173,6 +212,22 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
         targetScale = baseScale;
     }
 
+    private static bool IsCancelPressed() => Mouse.current != null
+        && (Mouse.current.rightButton.wasPressedThisFrame || Mouse.current.rightButton.isPressed);
+
+    public void CancelDrag()
+    {
+        scrollingList = false;
+        isDragging = false;
+        targetPosition = basePosition;
+        targetScale = baseScale;
+        if (rectTransform == null) return;
+        rectTransform.anchoredPosition = basePosition;
+        rectTransform.localScale = baseScale;
+    }
+
+    private void OnDisable() => CancelDrag();
+
     public void SetBasePosition(Vector2 position)
     {
         basePosition = position;
@@ -181,5 +236,23 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
         {
             targetPosition = basePosition;
         }
+    }
+
+    public void SetRewardMode()
+    {
+        isRewardCard = true;
+        hoverMoveY = 0;
+        hoverScale = 1.06f;
+    }
+
+    public void SetBrowseMode()
+    {
+        SetRewardMode();
+        browseScroll = GetComponentInParent<ScrollRect>();
+    }
+
+    public void OnInitializePotentialDrag(PointerEventData eventData)
+    {
+        if (browseScroll != null) browseScroll.OnInitializePotentialDrag(eventData);
     }
 }

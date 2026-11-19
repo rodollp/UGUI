@@ -5,6 +5,7 @@ public class MasterDeck
     private List<CardInstance> cards = new();
 
     public IReadOnlyList<CardInstance> Cards => cards;
+    public bool RemoveCard(CardInstance card) => card != null && cards.Remove(card);
     public void AddCard(CardInstance card)
     {
         cards.Add(card);

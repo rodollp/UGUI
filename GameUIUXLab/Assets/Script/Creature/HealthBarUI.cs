@@ -10,7 +10,10 @@ public class HealthBarUI : MonoBehaviour
     [SerializeField] private GameObject blockGroup;
     [SerializeField] private TextMeshProUGUI blockText;
 
+    [SerializeField] private TextMeshProUGUI debuffText;
     private CreatureStatus status;
+    private bool showDebuffs = true;
+    private PlayerBuffView playerBuffs;
 
     public void Initialize(CreatureStatus targetStatus)
     {
@@ -18,11 +21,18 @@ public class HealthBarUI : MonoBehaviour
             status.OnStatusChanged -= RefreshUI;
 
         status = targetStatus;
+        EnsureDebuffText();
+        if (status is PlayerStatus && hpText != null)
+            playerBuffs ??= new PlayerBuffView(hpText, debuffText.rectTransform);
 
         if (status != null)
         {
             status.OnStatusChanged += RefreshUI;
             RefreshUI();
+        }
+        else
+        {
+            playerBuffs?.Refresh(null);
         }
     }
 
@@ -31,14 +41,17 @@ public class HealthBarUI : MonoBehaviour
         if (status == null)
             return;
 
-        // Ã¼·Â Ç¥½Ã
+        RefreshDebuffs();
+        playerBuffs?.Refresh(status as PlayerStatus);
+
+        // ì²´ë ¥ í‘œì‹œ
         hpFill.fillAmount = status.MaxHp > 0
             ? (float)status.CurrentHp / status.MaxHp
             : 0f;
 
         hpText.text = $"{status.CurrentHp} / {status.MaxHp}";
 
-        // ¹æ¾îµµ Ç¥½Ã
+        // ë°©ì–´ë„ í‘œì‹œ
         bool hasBlock = status.CurrentBlock > 0;
 
         blockGroup.SetActive(hasBlock);
@@ -47,6 +60,39 @@ public class HealthBarUI : MonoBehaviour
         {
             blockText.text = status.CurrentBlock.ToString();
         }
+    }
+
+    internal void SetDebuffVisibility(bool visible)
+    {
+        if (showDebuffs == visible) return;
+        showDebuffs = visible;
+        RefreshDebuffs();
+    }
+
+    private void RefreshDebuffs()
+    {
+        if (debuffText == null) return;
+        if (showDebuffs) debuffText.text = status?.GetDebuffDescription(includeTurnUnit: true) ?? string.Empty;
+        debuffText.gameObject.SetActive(showDebuffs && debuffText.text.Length > 0);
+    }
+
+    private void EnsureDebuffText()
+    {
+        if (debuffText != null || hpText == null) return;
+        debuffText = Instantiate(hpText, hpText.transform.parent);
+        debuffText.name = "DebuffText";
+        RectTransform rect = debuffText.rectTransform;
+        rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0);
+        rect.pivot = new Vector2(0.5f, 1);
+        rect.anchoredPosition = new Vector2(0, -5);
+        rect.sizeDelta = new Vector2(240, 55);
+        debuffText.fontSize = 17;
+        debuffText.enableAutoSizing = true;
+        debuffText.fontSizeMin = 12;
+        debuffText.fontSizeMax = 17;
+        debuffText.alignment = TextAlignmentOptions.Top;
+        debuffText.color = new Color(1, 0.72f, 0.35f);
+        debuffText.raycastTarget = false;
     }
 
     private void OnDestroy()

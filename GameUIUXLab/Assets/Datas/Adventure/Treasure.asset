@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 88a85735862899548b59d1653a349c52, type: 3}
+  m_Name: Treasure
+  m_EditorClassIdentifier: Assembly-CSharp::MapEventData
+  Title: "\uC7A0\uACA8 \uC788\uC9C0 \uC54A\uC740 \uC0C1\uC790"
+  Description: "\uBA3C\uC9C0 \uC313\uC778 \uC0C1\uC790\uB97C \uBC1C\uACAC\uD588\uC2B5\uB2C8\uB2E4. \uC548\uCABD\uC5D0\uC11C \uAE08\uC18D\uC774 \uBD80\uB52A\uD788\uB294 \uC18C\uB9AC\uAC00 \uB4E4\uB9BD\uB2C8\uB2E4."
+  Choices:
+  - Label: "\uC0C1\uC790\uB97C \uC5F0\uB2E4 \xB7 \uACE8\uB4DC 25 \uD68D\uB4DD"
+    Result: "\uC0C1\uC790 \uC18D \uAE08\uD654\uB97C \uCC59\uACBC\uC2B5\uB2C8\uB2E4."
+    GoldCost: 0
+    HealthCost: 0
+    GoldGain: 25
+    HealAmount: 0
+    HealPercent: 0
+    Card: {fileID: 0}
+  - Label: "\uC9C0\uB098\uAC04\uB2E4"
+    Result: "\uC544\uBB34 \uC77C \uC5C6\uC774 \uAE38\uC744 \uB5A0\uB0A9\uB2C8\uB2E4."
+    GoldCost: 0
+    HealthCost: 0
+    GoldGain: 0
+    HealAmount: 0
+    HealPercent: 0
+    Card: {fileID: 0}
