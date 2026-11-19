@@ -95,6 +95,9 @@ public static class MapValidation
             sawFourthFloorRest |= map.Nodes.Any(n => n.Row == 3 && n.Type == MapNodeType.Rest);
             Expect(map.Nodes.All(n => n.Outgoing.All(id => map.Find(id).Row == n.Row + 1)),
                 "edges advance one floor without cycles");
+            Expect(map.Nodes.Where(n => n.Type is MapNodeType.Rest or MapNodeType.Elite or MapNodeType.Shop)
+                .All(n => n.Outgoing.All(id => map.Find(id).Type != n.Type)),
+                "no path connects two rest, elite or shop nodes of the same type");
             var reachable = map.Nodes.Where(n => n.Row == 0).Select(n => n.Id).ToList();
             for (int row = 0; row < data.Rows - 1; row++)
                 foreach (MapNode node in map.Nodes.Where(n => n.Row == row && reachable.Contains(n.Id)))

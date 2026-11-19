@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -23,16 +22,15 @@ public class PlayHUD : MonoBehaviour
     private int displayedGold = int.MinValue;
     private (int, bool) displayedTurn = (-1, false);
     private (int, string) displayedStage = (-1, null);
-    private readonly List<EnemyIntentView> enemyIntents = new();
-    private Canvas intentCanvas;
-    private Camera battleCamera;
+    private EnemyIntentOverlay enemyIntents;
     private TMP_Text nextBattleLabel;
     private BattleResourcesView resources;
 
     private void Awake()
     {
         if (energyText != null) resources = new BattleResourcesView(energyText);
-        if (enemyIntentRoot != null) intentCanvas = enemyIntentRoot.GetComponentInParent<Canvas>(true);
+        if (enemyIntentRoot != null)
+            enemyIntents = new EnemyIntentOverlay(enemyIntentRoot, stageText != null ? stageText : turnText);
     }
 
     public void SetPileCounts(int draw, int discard) => resources?.SetPileCounts(draw, discard);
@@ -50,7 +48,7 @@ public class PlayHUD : MonoBehaviour
     {
         if (battleManager != null) battleManager.OnBattleChanged -= MarkDirty;
         if (runManager != null) runManager.OnGoldChanged -= MarkDirty;
-        foreach (EnemyIntentView view in enemyIntents) view.Refresh(null, null);
+        enemyIntents?.Clear();
     }
 
     private void Update()
@@ -81,18 +79,9 @@ public class PlayHUD : MonoBehaviour
     private void LateUpdate()
     {
         if (uiDirty) RefreshUI();
-        if (enemyIntents.Count == 0) return;
-
-        bool show = enemyIntentRoot.gameObject.activeInHierarchy
-            && (screenFlowController == null || (screenFlowController.IsPlaying && !screenFlowController.IsOverlayOpen));
-        if (show && battleCamera == null) battleCamera = Camera.main;
-        Camera uiCamera = intentCanvas != null && intentCanvas.renderMode != RenderMode.ScreenSpaceOverlay
-            ? intentCanvas.worldCamera : null;
-        foreach (EnemyIntentView view in enemyIntents)
-        {
-            if (show && battleCamera != null) view.FollowEnemy(battleCamera, uiCamera);
-            else view.Hide();
-        }
+        bool battleScreenVisible = screenFlowController == null
+            || (screenFlowController.IsPlaying && !screenFlowController.IsOverlayOpen);
+        enemyIntents?.UpdatePositions(battleScreenVisible);
     }
 
     public void ResetHUD() => RefreshUI();
@@ -122,22 +111,11 @@ public class PlayHUD : MonoBehaviour
             displayedStage = stage;
             stageText.text = $"{battleManager.BattleFloor}층 · {battleManager.EncounterName}";
         }
-        RefreshEnemyIntents(playerStatus);
+        if (battleManager.State is BattleState.PlayerTurn or BattleState.EnemyTurn)
+            enemyIntents?.Refresh(battleManager.Enemies, playerStatus);
+        else
+            enemyIntents?.Clear();
         RefreshControls();
-    }
-
-    private void RefreshEnemyIntents(PlayerStatus playerStatus)
-    {
-        if (enemyIntentRoot == null) return;
-        var enemies = battleManager.Enemies;
-        int count = battleManager.State is BattleState.PlayerTurn or BattleState.EnemyTurn ? enemies.Count : 0;
-        for (int i = 0; i < count; i++)
-        {
-            if (i == enemyIntents.Count)
-                enemyIntents.Add(new EnemyIntentView(enemyIntentRoot, stageText != null ? stageText : turnText));
-            enemyIntents[i].Refresh(enemies[i], playerStatus);
-        }
-        for (int i = count; i < enemyIntents.Count; i++) enemyIntents[i].Refresh(null, playerStatus);
     }
 
     private void RefreshControls()

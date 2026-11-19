@@ -21,6 +21,7 @@ internal sealed class EnemyIntentView
     private Renderer model;
     private (EnemyActionType Type, DebuffType Debuff, int Amount, int Hits)? displayedAction;
     private (int Vulnerable, int Weak, int Frail) displayedDebuffs;
+    private bool HasIntent => enemy != null && enemy.Status != null && !enemy.Status.IsDead && enemy.Intent != null;
 
     public EnemyIntentView(RectTransform parent, TMP_Text fontTemplate)
     {
@@ -48,14 +49,8 @@ internal sealed class EnemyIntentView
 
     public void Refresh(Enemy target, PlayerStatus player)
     {
-        if (!ReferenceEquals(enemy, target))
-        {
-            if (enemy != null) enemy.SetHealthBarDebuffVisibility(true);
-            enemy = target;
-            if (enemy != null) enemy.SetHealthBarDebuffVisibility(false);
-            model = enemy != null ? enemy.GetComponentInChildren<Renderer>() : null;
-        }
-        if (enemy == null || enemy.Status == null || enemy.Status.IsDead || enemy.Intent == null)
+        Bind(target);
+        if (!HasIntent)
         {
             Hide();
             return;
@@ -64,14 +59,32 @@ internal sealed class EnemyIntentView
         string name = enemy.Data.EnemyName;
         if (enemyName.text != name) enemyName.text = name;
         RefreshDebuffs(enemy.Status);
+        RefreshAction(enemy.Intent, enemy.Status, player);
+    }
 
-        EnemyAction action = enemy.Intent;
+    public void Clear()
+    {
+        Bind(null);
+        Hide();
+    }
+
+    private void Bind(Enemy target)
+    {
+        if (ReferenceEquals(enemy, target)) return;
+        if (enemy != null) enemy.SetHealthBarDebuffVisibility(true);
+        enemy = target;
+        if (enemy != null) enemy.SetHealthBarDebuffVisibility(false);
+        model = enemy != null ? enemy.GetComponentInChildren<Renderer>() : null;
+    }
+
+    private void RefreshAction(EnemyAction action, EnemyStatus status, PlayerStatus player)
+    {
         var next = (
             action.Type,
             Debuff: action.Type == EnemyActionType.Debuff ? action.Debuff : default,
             Amount: action.Type switch
             {
-                EnemyActionType.Attack => enemy.Status.CalculateAttackDamage(action.Amount, player),
+                EnemyActionType.Attack => status.CalculateAttackDamage(action.Amount, player),
                 EnemyActionType.Debuff => action.DebuffTurns,
                 _ => action.Amount
             },
@@ -79,20 +92,14 @@ internal sealed class EnemyIntentView
         if (displayedAction == next) return;
         displayedAction = next;
 
-        actionText.text = next.Type switch
+        (string label, Color accent) = next.Type switch
         {
-            EnemyActionType.Block => $"방어 {next.Amount}",
-            EnemyActionType.Strength => $"힘 +{next.Amount}",
-            EnemyActionType.Debuff => $"{DebuffNames.Get(next.Debuff)} {next.Amount}턴 부여",
-            _ => next.Hits > 1 ? $"공격 {next.Amount} × {next.Hits}" : $"공격 {next.Amount}"
+            EnemyActionType.Block => ($"방어 {next.Amount}", new Color(.51f, .83f, 1f)),
+            EnemyActionType.Strength => ($"힘 +{next.Amount}", new Color(1f, .83f, .43f)),
+            EnemyActionType.Debuff => ($"{DebuffNames.Get(next.Debuff)} {next.Amount}턴 부여", new Color(.86f, .69f, 1f)),
+            _ => (next.Hits > 1 ? $"공격 {next.Amount} × {next.Hits}" : $"공격 {next.Amount}", new Color(1f, .59f, .47f))
         };
-        Color accent = next.Type switch
-        {
-            EnemyActionType.Block => new Color(.51f, .83f, 1f),
-            EnemyActionType.Strength => new Color(1f, .83f, .43f),
-            EnemyActionType.Debuff => new Color(.86f, .69f, 1f),
-            _ => new Color(1f, .59f, .47f)
-        };
+        actionText.text = label;
         trim.color = icon.color = actionText.color = accent;
         icon.SetKind(next.Type);
     }
@@ -110,8 +117,7 @@ internal sealed class EnemyIntentView
 
     public void FollowEnemy(Camera battleCamera, Camera uiCamera)
     {
-        if (enemy == null || !enemy.gameObject.activeInHierarchy || enemy.Status == null
-            || enemy.Status.IsDead || enemy.Intent == null)
+        if (!HasIntent || !enemy.gameObject.activeInHierarchy)
         {
             Hide();
             return;

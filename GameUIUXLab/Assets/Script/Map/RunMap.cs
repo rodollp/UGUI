@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 
 public enum MapNodeType { Battle, Elite, Event, Rest, Treasure, Boss, Shop }
@@ -66,17 +65,19 @@ public sealed class RunMap
 
     public MapNode Find(int id) => nodes.Find(n => n.Id == id);
 
-    public bool CanEnter(int id)
+    public bool CanEnter(int id) => CanEnterNode(Find(id));
+
+    private bool CanEnterNode(MapNode node)
     {
-        MapNode node = Find(id);
         if (node == null || node.Completed || ActiveNode != null || IsComplete) return false;
-        return LastCompletedNode == null ? node.Row == 0 : Contains(LastCompletedNode.Outgoing, id);
+        return LastCompletedNode == null ? node.Row == 0 : Contains(LastCompletedNode.Outgoing, node.Id);
     }
 
     public bool TryEnter(int id)
     {
-        if (!CanEnter(id)) return false;
-        ActiveNode = Find(id);
+        MapNode node = Find(id);
+        if (!CanEnterNode(node)) return false;
+        ActiveNode = node;
         return true;
     }
 
@@ -96,82 +97,5 @@ public sealed class RunMap
         foreach (int value in ids) if (value == id) return true;
         return false;
     }
-}
-
-public static class RunMapGenerator
-{
-    public const int FirstShopFloor = 4;
-
-    public static RunMap Generate(RunMapData data, int seed)
-    {
-        if (data == null || !data.IsValid()) throw new ArgumentException("맵 설정을 확인하세요.");
-        var random = new System.Random(seed);
-        var nodes = new List<MapNode>();
-        for (int row = 0; row < data.Rows; row++)
-        {
-            int rotation = random.Next(3);
-            int columns = row == data.Rows - 1 ? 1 : 3;
-            for (int col = 0; col < columns; col++)
-            {
-                MapNodeType type;
-                if (row == data.Rows - 1) type = MapNodeType.Boss;
-                else if (row == 0) type = MapNodeType.Battle;
-                else if (row == data.TreasureRow) type = MapNodeType.Treasure;
-                else if (row == data.Rows - 2) type = MapNodeType.Rest;
-                else if (row == 1)
-                    type = new[] { MapNodeType.Event, MapNodeType.Battle, MapNodeType.Battle }[(col + rotation) % 3];
-                else type = PickRegularType(data, row + 1, random);
-                bool unknown = type == MapNodeType.Event;
-                // Store the result once; UI never reveals it before this node is entered.
-                if (unknown && random.Next(100) < data.UnknownBattlePercent) type = MapNodeType.Battle;
-                EncounterData encounter = null;
-                MapEventData mapEvent = null;
-                switch (type)
-                {
-                    case MapNodeType.Battle: encounter = Pick(data.Battles, random); break;
-                    case MapNodeType.Elite: encounter = Pick(data.Elites, random); break;
-                    case MapNodeType.Boss: encounter = Pick(data.Bosses, random); break;
-                    case MapNodeType.Rest: mapEvent = data.Rest; break;
-                    case MapNodeType.Treasure: mapEvent = data.Treasure; break;
-                    default: mapEvent = Pick(data.Events, random); break;
-                }
-                nodes.Add(new MapNode(row * 3 + col, row, columns == 1 ? 1 : col, type, encounter, mapEvent, unknown));
-            }
-        }
-        if (data.Shop != null)
-        {
-            var candidates = nodes.FindAll(node => node.Row + 1 >= FirstShopFloor
-                && node.Row < data.Rows - 2 && node.Row != data.TreasureRow);
-            if (candidates.Count > 0)
-            {
-                // Keep existing seeded encounters and paths independent of shop placement.
-                var shopRandom = new System.Random(seed);
-                MapNode slot = candidates[shopRandom.Next(candidates.Count)];
-                nodes[slot.Id] = new MapNode(slot.Id, slot.Row, slot.Column, MapNodeType.Shop,
-                    null, null, shop: data.Shop);
-            }
-        }
-        var map = new RunMap(nodes, data.Rows, seed);
-        for (int row = 0; row < data.Rows - 1; row++)
-        {
-            for (int col = 0; col < 3; col++)
-                map.Find(row * 3 + col).Connect(row == data.Rows - 2 ? (row + 1) * 3 : (row + 1) * 3 + col);
-            if (row == data.Rows - 2) continue;
-            int boundary = random.Next(2);
-            if (random.Next(2) == 0) map.Find(row * 3 + boundary).Connect((row + 1) * 3 + boundary + 1);
-            else map.Find(row * 3 + boundary + 1).Connect((row + 1) * 3 + boundary);
-        }
-        return map;
-    }
-
-    private static MapNodeType PickRegularType(RunMapData data, int floor, System.Random random)
-    {
-        var pool = new List<MapNodeType> { MapNodeType.Battle, MapNodeType.Battle, MapNodeType.Event };
-        if (floor >= data.EliteStartFloor) pool.Add(MapNodeType.Elite);
-        if (floor >= data.RestStartFloor) pool.Add(MapNodeType.Rest);
-        return pool[random.Next(pool.Count)];
-    }
-
-    private static T Pick<T>(T[] values, System.Random random) => values[random.Next(values.Length)];
 }
 
