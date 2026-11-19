@@ -105,26 +105,7 @@ public static class BattleValidation
         player.Heal(100);
         Expect(player.IsDead && !player.TryUseEnergy(0) && player.GainEnergy(2) == 0, "Death is terminal");
 
-        StarterDeckData starter = ScriptableObject.CreateInstance<StarterDeckData>();
-        CardData normal = ScriptableObject.CreateInstance<CardData>();
-        CardData power = ScriptableObject.CreateInstance<CardData>();
-        power.Type = CardType.Power;
-        starter.StartingCards.Add(new StartingCardEntry { CardData = normal, Count = 1 });
-        starter.StartingCards.Add(new StartingCardEntry { CardData = power, Count = 1 });
-        MasterDeck master = new MasterDeck(starter);
-        BattleDeck deck = new BattleDeck(master);
-        CardInstance first = deck.Draw();
-        CardInstance second = deck.Draw();
-        CardInstance powerCard = first.CardData.Type == CardType.Power ? first : second;
-        CardInstance normalCard = first == powerCard ? second : first;
-        Expect(deck.PlayCard(powerCard) && !deck.PlayCard(powerCard), "Power card plays once");
-        deck.PlayCard(normalCard);
-        Expect(deck.Draw() == normalCard && deck.Draw() == null, "Refill excludes powers");
-        deck.DiscardHand();
-        Expect(deck.Draw() == normalCard && master.Cards.Count == 2, "Master deck unchanged");
-        UnityEngine.Object.DestroyImmediate(starter);
-        UnityEngine.Object.DestroyImmediate(normal);
-        UnityEngine.Object.DestroyImmediate(power);
+        VerifyPowerCards();
 
         EnemyData enemyData = ScriptableObject.CreateInstance<EnemyData>();
         enemyData.MaxHp = 20;
@@ -150,6 +131,66 @@ public static class BattleValidation
         Debug.Log($"BATTLE_MODEL_VALIDATION_OK: {assertions} assertions passed.");
     }
 
+    private static void VerifyPowerCards()
+    {
+        var strike = AssetDatabase.LoadAssetAtPath<CardData>("Assets/Datas/CardDis/ATK.asset");
+        var powers = new[] {
+            AssetDatabase.LoadAssetAtPath<CardData>("Assets/Datas/Rewards/StrengthTraining.asset"),
+            AssetDatabase.LoadAssetAtPath<CardData>("Assets/Datas/Rewards/BalanceTraining.asset")
+        };
+        var starter = ScriptableObject.CreateInstance<StarterDeckData>();
+        try
+        {
+            starter.StartingCards.Add(new StartingCardEntry { CardData = strike, Count = 1 });
+            foreach (CardData power in powers)
+            {
+                foreach (CardData definition in new[] { power, power?.UpgradedCard })
+                    Expect(definition != null && definition.Type == CardType.Power && definition.TargetType == CardTargetType.None
+                        && definition.EnergyCost == 1 && definition.Effects?.Count == 1
+                        && definition.Effects[0] is GainCombatStatEffect,
+                        "Base and upgraded powers each cost one and configure one self-targeted stat effect");
+                starter.StartingCards.Add(new StartingCardEntry { CardData = power, Count = 1 });
+            }
+
+            var master = new MasterDeck(starter);
+            VerifyPowerBattle(master, powers, 2);
+            foreach (CardInstance card in master.Cards.Skip(1))
+                Expect(card.TryUpgrade() && !card.TryUpgrade() && card.CurrentCost == 1,
+                    "A power uses the existing one-time upgrade and keeps its energy cost");
+            VerifyPowerBattle(master, powers.Select(power => power.UpgradedCard).ToArray(), 3);
+        }
+        finally
+        {
+            UnityEngine.Object.DestroyImmediate(starter);
+        }
+    }
+
+    private static void VerifyPowerBattle(MasterDeck master, CardData[] powers, int amount)
+    {
+        var player = new PlayerStatus(80);
+        var context = new CardEffectContext(player, null);
+        var deck = new BattleDeck(master);
+        foreach (CardData power in powers.Reverse())
+        {
+            CardInstance card = deck.Draw();
+            Expect(card.CardData == power && player.TryUseEnergy(card.CurrentCost) && player.CurrentEnergy == 2
+                && deck.PlayCard(card) && !deck.PlayCard(card), "Each power plays once and costs one energy");
+            power.Effects[0].Execute(context);
+            player.StartTurn();
+        }
+        Expect(player.AttackPower == amount && player.Dexterity == amount && player.CalculateAttackDamage(6) == 6 + amount
+            && player.CalculateCardBlock(5) == 5 + amount, "Both stats persist between turns and affect combat");
+
+        CardInstance normal = deck.Draw();
+        Expect(deck.PlayCard(normal) && deck.Draw() == normal && deck.Draw() == null,
+            "The battle deck refills without the played powers");
+        player.ResetCombatState();
+        var nextBattle = new BattleDeck(master);
+        Expect(player.AttackPower == 0 && player.Dexterity == 0 && nextBattle.DrawCount == 3
+            && powers.Reverse().All(power => nextBattle.Draw()?.CardData == power),
+            "A new battle resets the stats and brings back owned powers with their upgrades");
+    }
+
     private static IEnumerator VerifyScene()
     {
         yield return null; // MonoBehaviour.Start 및 카드 풀 초기화 이후 진행합니다.
@@ -162,6 +203,14 @@ public static class BattleValidation
         CardManager cards = Find<CardManager>();
         UIScreenFlowController flow = Find<UIScreenFlowController>();
         run.StartNewRun();
+        CardData strike = AssetDatabase.LoadAssetAtPath<CardData>("Assets/Datas/CardDis/ATK.asset");
+        CardData bash = AssetDatabase.LoadAssetAtPath<CardData>("Assets/Datas/Rewards/Bash.asset");
+        CardData defend = AssetDatabase.LoadAssetAtPath<CardData>("Assets/Datas/CardDis/BLO.asset");
+        var starterCards = run.MasterDeck.Cards;
+        Expect(starterCards.Count == 10 && starterCards.Count(card => card.CardData == strike) == 5
+            && starterCards.Count(card => card.CardData == bash) == 1
+            && starterCards.Count(card => card.CardData == defend) == 4,
+            "Warrior starts with five Strikes, one Bash and four Defends");
         flow.ShowPlayScreen();
         battle.StartBattle();
         PlayerStatus status = run.PlayerStatus;
@@ -186,14 +235,14 @@ public static class BattleValidation
             CapturePreview();
             CapturePreview("cards-preview.png");
         }
-        CardUI attack = Hand().FirstOrDefault(c => c.CardInstance.CardData.TargetType == CardTargetType.Enemy);
+        CardUI attack = Hand().FirstOrDefault(c => c.CardInstance.CardData == strike);
         if (attack == null)
         {
             cards.EndTurn();
             while (battle.State == BattleState.EnemyTurn) yield return null;
-            attack = Hand().FirstOrDefault(c => c.CardInstance.CardData.TargetType == CardTargetType.Enemy);
+            attack = Hand().FirstOrDefault(c => c.CardInstance.CardData == strike);
         }
-        Expect(attack != null, "Attack available within first ten draws");
+        Expect(attack != null, "Strike available within first ten draws");
         {
             int enemyHp = target.Status.CurrentHp;
             status.TryUseEnergy(status.CurrentEnergy);
@@ -273,7 +322,22 @@ public static class BattleValidation
                 "Pending debuffs name the effect and duration without marking it as active on the enemy");
         }
         status.ApplyDebuff(DebuffType.Weak, 3);
-        status.AddAttackPower(3); status.AddDexterity(2);
+        Transform buffRow = playerDebuffs.transform.parent.Find("PlayerBuffs");
+        Expect(buffRow != null && !buffRow.gameObject.activeSelf, "Zero combat stats are hidden below the health bar");
+        Vector2 debuffPosition = playerDebuffs.rectTransform.anchoredPosition;
+        var strengthLabel = buffRow.Find("Strength/Value").GetComponent<TMP_Text>();
+        var dexterityLabel = buffRow.Find("Dexterity/Value").GetComponent<TMP_Text>();
+        var powerContext = new CardEffectContext(status, null);
+        var strengthPower = AssetDatabase.LoadAssetAtPath<CardData>("Assets/Datas/Rewards/StrengthTraining.asset");
+        strengthPower.Effects[0].Execute(powerContext);
+        Expect(strengthLabel.gameObject.activeInHierarchy && strengthLabel.text == "힘 +2"
+            && !dexterityLabel.gameObject.activeInHierarchy, "Playing strength shows just its indicator immediately");
+        AssetDatabase.LoadAssetAtPath<CardData>("Assets/Datas/Rewards/BalanceTraining.asset").Effects[0].Execute(powerContext);
+        Expect(dexterityLabel.gameObject.activeInHierarchy && dexterityLabel.text == "민첩 +2"
+            && playerDebuffs.gameObject.activeInHierarchy && playerDebuffs.rectTransform.anchoredPosition.y < debuffPosition.y,
+            "Dexterity also appears and active debuffs stay below the buffs");
+        strengthPower.UpgradedCard.Effects[0].Execute(powerContext);
+        Expect(strengthLabel.text == "힘 +5", "Stacking a base and upgraded power updates the badge");
         status.AddBlock(10);
         hp = status.CurrentHp;
         target.Status.TakeDamage(int.MaxValue);
@@ -281,6 +345,8 @@ public static class BattleValidation
         Expect(status.CurrentHp == hp && status.CurrentBlock == 0
             && status.AttackPower == 0 && status.Dexterity == 0 && status.GetDebuffDescription() == "",
             "Victory clears combat stats immediately while preserving HP");
+        Expect(!buffRow.gameObject.activeSelf && playerDebuffs.rectTransform.anchoredPosition == debuffPosition,
+            "End of combat hides the buff row and restores the debuff position");
         UnityEngine.Object.Destroy(deterministicData);
         VerifyResultText("전투 승리!", false);
         if (SystemInfo.graphicsDeviceType != UnityEngine.Rendering.GraphicsDeviceType.Null)
