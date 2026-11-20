@@ -13,23 +13,15 @@ public static class RewardSetup
     public static void Configure()
     {
         if (!AssetDatabase.IsValidFolder(Folder)) AssetDatabase.CreateFolder("Assets/Datas", "Rewards");
-        DamageEffect damage = Asset<DamageEffect>("BashDamage", e => Int(e, "damage", 8));
-        BlockEffect block = Asset<BlockEffect>("IronBlock", e => Int(e, "block", 8));
-        ApplyDebuffEffect vulnerable = Asset<ApplyDebuffEffect>("BashVulnerable", e => {
-            Int(e, "debuff", (int)DebuffType.Vulnerable); Int(e, "turns", 2);
-            Int(e, "target", (int)DebuffTarget.Enemy);
-        });
-        ApplyDebuffEffect weak = Asset<ApplyDebuffEffect>("IntimidateWeak", e => {
-            Int(e, "debuff", (int)DebuffType.Weak); Int(e, "turns", 2);
-            Int(e, "target", (int)DebuffTarget.Enemy);
-        });
-        Sprite strike = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Images/Cards/strike-v1.png");
         Sprite defend = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Images/Cards/defend-v1.png");
-        CardData bash = Card("Bash", 100, "강타", CardType.Attack, CardTargetType.Enemy, 2, strike, damage, vulnerable);
-        CardData intimidate = Card("Intimidate", 101, "위협", CardType.Skill, CardTargetType.Enemy, 1, defend, weak);
-        CardData iron = Card("IronGuard", 102, "철벽", CardType.Skill, CardTargetType.None, 1, defend, block);
+        CardData intimidate = Card("Intimidate", 101, "위협", CardType.Skill, CardTargetType.Enemy, 1, defend,
+            () => Debuff(DebuffType.Weak));
+        CardData iron = Card("IronGuard", 102, "철벽", CardType.Skill, CardTargetType.None, 1, defend,
+            () => Effect<BlockEffect>(e => Int(e, "block", 8)));
         BattleRewardData rewards = Asset<BattleRewardData>("DefaultBattleRewards", r => {
-            r.MinGold = 10; r.MaxGold = 20; r.CardPool.AddRange(new[] { bash, intimidate, iron });
+            r.MinGold = 10;
+            r.MaxGold = 20;
+            r.CardPool.AddRange(new[] { intimidate, iron, MultiTargetCardSetup.GetOrCreateWildShot() });
         });
 
         var scene = EditorSceneManager.OpenScene("Assets/Scenes/CardGame.unity");
@@ -124,10 +116,35 @@ public static class RewardSetup
         return asset;
     }
     private static CardData Card(string file, uint id, string name, CardType type, CardTargetType target,
-        int cost, Sprite art, params CardEffect[] effects) => Asset<CardData>(file, c => {
-            c.CardID = id; c.CardName = name; c.Type = type; c.TargetType = target;
-            c.EnergyCost = cost; c.Artwork = art; c.Effects = effects.ToList();
-        });
+        int cost, Sprite art, params Func<CardEffect>[] effects)
+    {
+        string path = Folder + "/" + file + ".asset";
+        var card = AssetDatabase.LoadAssetAtPath<CardData>(path);
+        if (card != null) return card;
+        card = ScriptableObject.CreateInstance<CardData>();
+        card.CardID = id;
+        card.Base = new CardVersion
+        {
+            CardName = name, Type = type, TargetType = target, EnergyCost = cost, Artwork = art
+        };
+        AssetDatabase.CreateAsset(card, path);
+        foreach (var createEffect in effects) CardDataEditor.EmbedEffect(card, card.Base, createEffect());
+        return card;
+    }
+
+    private static T Effect<T>(Action<T> configure) where T : CardEffect
+    {
+        T effect = ScriptableObject.CreateInstance<T>();
+        configure(effect);
+        return effect;
+    }
+
+    private static ApplyDebuffEffect Debuff(DebuffType type) => Effect<ApplyDebuffEffect>(effect =>
+    {
+        Int(effect, "debuff", (int)type);
+        Int(effect, "turns", 2);
+        Int(effect, "target", (int)DebuffTarget.Enemy);
+    });
     private static void Int(UnityEngine.Object target, string name, int value)
     {
         var obj = new SerializedObject(target);

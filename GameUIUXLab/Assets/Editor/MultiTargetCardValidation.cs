@@ -40,8 +40,8 @@ public static class MultiTargetCardValidation
             {
                 var card = AssetDatabase.LoadAssetAtPath<CardData>("Assets/Datas/Rewards/" + name + ".asset");
                 Expect(card != null && rewards.CardPool.Contains(card), "card obtainable from rewards");
-                Expect(card.EnergyCost == 1 && card.UpgradedCard != null
-                    && card.UpgradedCard.TargetType == card.TargetType, "upgrade preserves targeting");
+                Expect(card.Base.EnergyCost == 1 && card.HasUpgrade
+                    && card.Upgrade.TargetType == card.Base.TargetType, "upgrade preserves targeting");
                 Expect(card.GetDescription().Contains(name == "WildShot" ? "무작위" : "모든 적"), "target description visible");
             }
             int count = rewards.CardPool.Count;

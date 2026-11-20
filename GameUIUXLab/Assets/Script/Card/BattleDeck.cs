@@ -79,11 +79,19 @@ public class BattleDeck
 
     public bool ContainsInHand(CardInstance card) => hand.Contains(card);
 
-    public bool PlayCard(CardInstance card)
+    public bool PlayCard(CardInstance card, Action resolveEffects = null)
     {
         if (!hand.Remove(card)) return false;
-        // 파워 카드는 이번 전투의 순환 더미에서 빠집니다.
-        if (card.CardData.Type != CardType.Power) discardPile.Add(card);
+        bool discardAfterPlay = card.Version.Type != CardType.Power;
+        try
+        {
+            resolveEffects?.Invoke();
+        }
+        finally
+        {
+            // 드로우 효과를 처리한 뒤 사용한 카드를 버린 더미에 넣습니다.
+            if (discardAfterPlay) discardPile.Add(card);
+        }
         return true;
     }
 

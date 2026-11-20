@@ -200,7 +200,7 @@ public class ShopUI : MonoBehaviour
     private void Preview(bool upgraded)
     {
         if (previewCard == null) return;
-        detailCard.SetCard(new CardInstance(upgraded && previewCard.CanUpgrade ? previewCard.CardData.UpgradedCard : previewCard.CardData));
+        detailCard.SetCard(previewCard.CopyForPreview(upgraded));
     }
     private void RefreshDetailAction()
     {

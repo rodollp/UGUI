@@ -8,16 +8,14 @@ using UnityEngine.UI;
 
 public static class UpgradeSetup
 {
-    private const string Folder = "Assets/Datas/Upgrades";
     [MenuItem("Tools/Cards/Configure Upgrades")]
     public static void Configure()
     {
-        if (!AssetDatabase.IsValidFolder(Folder)) AssetDatabase.CreateFolder("Assets/Datas", "Upgrades");
-        Upgrade("Assets/Datas/CardDis/ATK.asset", "StrikePlus", 9, 0);
-        Upgrade("Assets/Datas/CardDis/BLO.asset", "DefendPlus", 8, 0);
-        Upgrade("Assets/Datas/Rewards/Bash.asset", "BashPlus", 12, 3);
-        Upgrade("Assets/Datas/Rewards/Intimidate.asset", "IntimidatePlus", 0, 3);
-        Upgrade("Assets/Datas/Rewards/IronGuard.asset", "IronGuardPlus", 11, 0);
+        Upgrade("Assets/Datas/CardDis/ATK.asset", 9, 0);
+        Upgrade("Assets/Datas/CardDis/BLO.asset", 8, 0);
+        Upgrade("Assets/Datas/Rewards/Bash.asset", 12, 3);
+        Upgrade("Assets/Datas/Rewards/Intimidate.asset", 0, 3);
+        Upgrade("Assets/Datas/Rewards/IronGuard.asset", 11, 0);
         var rest = AssetDatabase.LoadAssetAtPath<MapEventData>("Assets/Datas/Adventure/Rest.asset");
         if (!rest.Choices.Any(c => c.UpgradeCard))
         {
@@ -85,26 +83,28 @@ public static class UpgradeSetup
     public static void ConfigureAndRun() { Configure(); KoreanFontSetup.ConfigureAndRun(); }
     private static MapEventChoice UpgradeChoice() => new MapEventChoice {
         Label = "카드 한 장을 강화한다", UpgradeCard = true, Result = "카드를 강화했습니다." };
-    private static void Upgrade(string path, string name, int amount, int turns)
+    private static void Upgrade(string path, int amount, int turns)
     {
         CardData source = AssetDatabase.LoadAssetAtPath<CardData>(path);
-        if (source.UpgradedCard != null) return;
-        CardData target = UnityEngine.Object.Instantiate(source);
-        target.name = name; target.CardName = source.CardName + "+"; target.CardID = source.CardID + 1000;
-        target.UpgradedCard = null;
-        target.Effects = source.Effects.Select((effect, index) => {
+        if (source.HasUpgrade) return;
+        CardVersion basic = source.Base;
+        source.Upgrade = new CardVersion
+        {
+            CardName = basic.CardName + "+", Type = basic.Type, TargetType = basic.TargetType,
+            EnergyCost = basic.EnergyCost, Artwork = basic.Artwork
+        };
+        foreach (CardEffect effect in basic.Effects)
+        {
             CardEffect copy = UnityEngine.Object.Instantiate(effect);
-            copy.name = name + "Effect" + index;
             var serialized = new SerializedObject(copy);
             if (effect is DamageEffect) serialized.FindProperty("damage").intValue = amount;
             if (effect is BlockEffect) serialized.FindProperty("block").intValue = amount;
             if (effect is ApplyDebuffEffect) serialized.FindProperty("turns").intValue = turns;
             serialized.ApplyModifiedPropertiesWithoutUndo();
-            AssetDatabase.CreateAsset(copy, Folder + "/" + copy.name + ".asset");
-            return copy;
-        }).ToList();
-        AssetDatabase.CreateAsset(target, Folder + "/" + name + ".asset");
-        source.UpgradedCard = target; EditorUtility.SetDirty(source);
+            CardDataEditor.EmbedEffect(source, source.Upgrade, copy);
+        }
+        source.HasUpgrade = true;
+        EditorUtility.SetDirty(source);
     }
     private static void Set(UnityEngine.Object target, string field, UnityEngine.Object value)
     {

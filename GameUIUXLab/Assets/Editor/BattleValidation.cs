@@ -144,7 +144,8 @@ public static class BattleValidation
             starter.StartingCards.Add(new StartingCardEntry { CardData = strike, Count = 1 });
             foreach (CardData power in powers)
             {
-                foreach (CardData definition in new[] { power, power?.UpgradedCard })
+                Expect(power != null && power.HasUpgrade, "Power is configured with an upgrade");
+                foreach (CardVersion definition in new[] { power.Base, power.Upgrade })
                     Expect(definition != null && definition.Type == CardType.Power && definition.TargetType == CardTargetType.None
                         && definition.EnergyCost == 1 && definition.Effects?.Count == 1
                         && definition.Effects[0] is GainCombatStatEffect,
@@ -153,11 +154,11 @@ public static class BattleValidation
             }
 
             var master = new MasterDeck(starter);
-            VerifyPowerBattle(master, powers, 2);
+            VerifyPowerBattle(master, powers, 2, false);
             foreach (CardInstance card in master.Cards.Skip(1))
                 Expect(card.TryUpgrade() && !card.TryUpgrade() && card.CurrentCost == 1,
                     "A power uses the existing one-time upgrade and keeps its energy cost");
-            VerifyPowerBattle(master, powers.Select(power => power.UpgradedCard).ToArray(), 3);
+            VerifyPowerBattle(master, powers, 3, true);
         }
         finally
         {
@@ -165,7 +166,7 @@ public static class BattleValidation
         }
     }
 
-    private static void VerifyPowerBattle(MasterDeck master, CardData[] powers, int amount)
+    private static void VerifyPowerBattle(MasterDeck master, CardData[] powers, int amount, bool upgraded)
     {
         var player = new PlayerStatus(80);
         var context = new CardEffectContext(player, null);
@@ -173,9 +174,10 @@ public static class BattleValidation
         foreach (CardData power in powers.Reverse())
         {
             CardInstance card = deck.Draw();
-            Expect(card.CardData == power && player.TryUseEnergy(card.CurrentCost) && player.CurrentEnergy == 2
+            Expect(card.CardData == power && card.IsUpgraded == upgraded
+                && player.TryUseEnergy(card.CurrentCost) && player.CurrentEnergy == 2
                 && deck.PlayCard(card) && !deck.PlayCard(card), "Each power plays once and costs one energy");
-            power.Effects[0].Execute(context);
+            card.Version.Effects[0].Execute(context);
             player.StartTurn();
         }
         Expect(player.AttackPower == amount && player.Dexterity == amount && player.CalculateAttackDamage(6) == 6 + amount
@@ -187,7 +189,11 @@ public static class BattleValidation
         player.ResetCombatState();
         var nextBattle = new BattleDeck(master);
         Expect(player.AttackPower == 0 && player.Dexterity == 0 && nextBattle.DrawCount == 3
-            && powers.Reverse().All(power => nextBattle.Draw()?.CardData == power),
+            && powers.Reverse().All(power =>
+            {
+                CardInstance card = nextBattle.Draw();
+                return card?.CardData == power && card.IsUpgraded == upgraded;
+            }),
             "A new battle resets the stats and brings back owned powers with their upgrades");
     }
 
@@ -329,14 +335,14 @@ public static class BattleValidation
         var dexterityLabel = buffRow.Find("Dexterity/Value").GetComponent<TMP_Text>();
         var powerContext = new CardEffectContext(status, null);
         var strengthPower = AssetDatabase.LoadAssetAtPath<CardData>("Assets/Datas/Rewards/StrengthTraining.asset");
-        strengthPower.Effects[0].Execute(powerContext);
+        strengthPower.Base.Effects[0].Execute(powerContext);
         Expect(strengthLabel.gameObject.activeInHierarchy && strengthLabel.text == "힘 +2"
             && !dexterityLabel.gameObject.activeInHierarchy, "Playing strength shows just its indicator immediately");
-        AssetDatabase.LoadAssetAtPath<CardData>("Assets/Datas/Rewards/BalanceTraining.asset").Effects[0].Execute(powerContext);
+        AssetDatabase.LoadAssetAtPath<CardData>("Assets/Datas/Rewards/BalanceTraining.asset").Base.Effects[0].Execute(powerContext);
         Expect(dexterityLabel.gameObject.activeInHierarchy && dexterityLabel.text == "민첩 +2"
             && playerDebuffs.gameObject.activeInHierarchy && playerDebuffs.rectTransform.anchoredPosition.y < debuffPosition.y,
             "Dexterity also appears and active debuffs stay below the buffs");
-        strengthPower.UpgradedCard.Effects[0].Execute(powerContext);
+        strengthPower.Upgrade.Effects[0].Execute(powerContext);
         Expect(strengthLabel.text == "힘 +5", "Stacking a base and upgraded power updates the badge");
         status.AddBlock(10);
         hp = status.CurrentHp;

@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class CardManager : MonoBehaviour
@@ -37,14 +38,19 @@ public class CardManager : MonoBehaviour
         playHUD.ResetHUD();
     }
 
-    public void BeginPlayerTurn()
+    public void BeginPlayerTurn() => DrawCards(drawCount);
+
+    private void DrawCards(int amount)
     {
         if (battleDeck == null) return;
-        for (int i = 0; i < drawCount; i++)
+        PlayerStatus player = runManager.PlayerStatus;
+        Func<Vector2, EnemyStatus> getPreviewTarget = GetDamagePreviewTarget;
+        for (int i = 0; i < amount && playerHand.HasRoom; i++)
         {
             CardInstance card = battleDeck.Draw();
             if (card == null) break;
-            playerHand.AddCard(card);
+            bool previewsTarget = card.Version.TargetType is CardTargetType.Enemy or CardTargetType.AllEnemies;
+            playerHand.AddCard(card, player, previewsTarget ? getPreviewTarget : null);
         }
         RefreshPileCounts();
     }
@@ -63,12 +69,18 @@ public class CardManager : MonoBehaviour
         RefreshPileCounts();
     }
 
+    private EnemyStatus GetDamagePreviewTarget(Vector2 screenPosition)
+    {
+        if (targetSelector == null || !battleManager.CanPlayCards) return null;
+        Enemy target = targetSelector.GetTarget(screenPosition);
+        return battleManager.IsValidTarget(target) ? target.Status : null;
+    }
+
     private void HandleCardDropped(CardUI cardUI, Vector2 screenPosition)
     {
         if (battleManager == null || !battleManager.CanPlayCards || cardUI == null
             || cardUI.CardInstance == null) return;
-        CardData data = cardUI.CardInstance.CardData;
-        if (data.TargetType != CardTargetType.Enemy)
+        if (cardUI.CardInstance.Version.TargetType != CardTargetType.Enemy)
         {
             if (screenPosition.y >= Screen.height * useHeightRatio) UseCard(cardUI);
         }
@@ -80,11 +92,13 @@ public class CardManager : MonoBehaviour
 
     public void UseCard(CardUI cardUI, Enemy target = null)
     {
+        BattleDeck deck = battleDeck;
         if (IsResolvingCard || battleManager == null || !battleManager.CanPlayCards
-            || battleDeck == null || cardUI == null || !playerHand.OwnsCard(cardUI)) return;
+            || deck == null || cardUI == null || !playerHand.OwnsCard(cardUI)) return;
         CardInstance card = cardUI.CardInstance;
-        if (card == null || card.CardData == null || !battleDeck.ContainsInHand(card)) return;
-        if (!CardTargetResolver.TryResolve(card.CardData.TargetType, battleManager.Enemies,
+        if (card == null || card.CardData == null || !deck.ContainsInHand(card)) return;
+        CardVersion version = card.Version;
+        if (!CardTargetResolver.TryResolve(version.TargetType, battleManager.Enemies,
             target, out EnemyStatus[] targets)) return;
         PlayerStatus status = runManager.PlayerStatus;
         if (!status.CanUseEnergy(card.CurrentCost))
@@ -97,22 +111,23 @@ public class CardManager : MonoBehaviour
         try
         {
             if (!status.TryUseEnergy(card.CurrentCost)) return;
-            // 소유권을 먼저 제거하여 같은 카드를 중복 실행하지 못하게 합니다.
-            battleDeck.PlayCard(card);
-            RefreshPileCounts();
-            playerHand.RemoveCard(cardUI);
-            CardEffectContext context = new CardEffectContext(status,
-                targets.Length == 1 ? targets[0] : null, targets);
-            ExecuteEffects(card.CardData, context);
+            deck.PlayCard(card, () =>
+            {
+                playerHand.RemoveCard(cardUI);
+                CardEffectContext context = new CardEffectContext(status,
+                    targets.Length == 1 ? targets[0] : null, targets, DrawCards);
+                ExecuteEffects(version, context);
+            });
         }
         finally
         {
             IsResolvingCard = false;
+            RefreshPileCounts();
             battleManager.CheckBattleEnd();
         }
     }
 
-    private static void ExecuteEffects(CardData data, CardEffectContext context)
+    private static void ExecuteEffects(CardVersion data, CardEffectContext context)
     {
         if (data.Effects == null) return;
         foreach (CardEffect effect in data.Effects)

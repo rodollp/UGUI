@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
@@ -10,44 +9,50 @@ public static class MultiTargetCardSetup
     {
         var rewards = AssetDatabase.LoadAssetAtPath<BattleRewardData>(Folder + "DefaultBattleRewards.asset");
         if (rewards == null) throw new System.InvalidOperationException("Default battle rewards missing");
-        Add(rewards, "WildShot", "유탄", 110, CardTargetType.RandomEnemy, 10, 14);
-        Add(rewards, "WhirlSlash", "회전베기", 111, CardTargetType.AllEnemies, 6, 9);
+        var cards = new[] {
+            GetOrCreateWildShot(),
+            GetOrCreateAttack("WhirlSlash", "회전베기", 111, CardTargetType.AllEnemies, 6, 9)
+        };
+        foreach (CardData card in cards)
+            if (!rewards.CardPool.Contains(card)) rewards.CardPool.Add(card);
         EditorUtility.SetDirty(rewards);
         AssetDatabase.SaveAssets();
         Debug.Log("MULTI_TARGET_CARD_SETUP_OK");
     }
 
-    private static void Add(BattleRewardData rewards, string name, string title, uint id,
+    internal static CardData GetOrCreateWildShot() =>
+        GetOrCreateAttack("WildShot", "유탄", 110, CardTargetType.RandomEnemy, 10, 14);
+
+    private static CardData GetOrCreateAttack(string name, string title, uint id,
         CardTargetType target, int damage, int upgradedDamage)
     {
         var card = AssetDatabase.LoadAssetAtPath<CardData>(Folder + name + ".asset");
-        if (card == null)
-        {
-            var upgrade = Create(name + "Plus", title + "+", id + 1000, target, upgradedDamage);
-            card = Create(name, title, id, target, damage);
-            card.UpgradedCard = upgrade;
-            EditorUtility.SetDirty(card);
-        }
-        if (!rewards.CardPool.Contains(card)) rewards.CardPool.Add(card);
+        if (card != null) return card;
+
+        Sprite art = AssetDatabase.LoadAssetAtPath<CardData>("Assets/Datas/CardDis/ATK.asset").Base.Artwork;
+        card = ScriptableObject.CreateInstance<CardData>();
+        card.CardID = id;
+        card.Base = Attack(title, target, art);
+        card.HasUpgrade = true;
+        card.Upgrade = Attack(title + "+", target, art);
+        AssetDatabase.CreateAsset(card, Folder + name + ".asset");
+        AddDamage(card, card.Base, damage);
+        AddDamage(card, card.Upgrade, upgradedDamage);
+        return card;
     }
 
-    private static CardData Create(string name, string title, uint id, CardTargetType target, int damage)
+    private static CardVersion Attack(string title, CardTargetType target, Sprite art) => new CardVersion
+    {
+        CardName = title, Type = CardType.Attack, TargetType = target, EnergyCost = 1, Artwork = art
+    };
+
+    private static void AddDamage(CardData card, CardVersion version, int damage)
     {
         var effect = ScriptableObject.CreateInstance<DamageEffect>();
         var serialized = new SerializedObject(effect);
         serialized.FindProperty("damage").intValue = damage;
         serialized.ApplyModifiedPropertiesWithoutUndo();
-        AssetDatabase.CreateAsset(effect, Folder + name + "Damage.asset");
-        var card = ScriptableObject.CreateInstance<CardData>();
-        card.CardID = id;
-        card.CardName = title;
-        card.Type = CardType.Attack;
-        card.TargetType = target;
-        card.EnergyCost = 1;
-        card.Artwork = AssetDatabase.LoadAssetAtPath<CardData>("Assets/Datas/CardDis/ATK.asset").Artwork;
-        card.Effects = new List<CardEffect> { effect };
-        AssetDatabase.CreateAsset(card, Folder + name + ".asset");
-        return card;
+        CardDataEditor.EmbedEffect(card, version, effect);
     }
 
     public static void ConfigureAndRun()

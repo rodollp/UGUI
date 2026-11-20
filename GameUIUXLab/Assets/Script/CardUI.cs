@@ -35,6 +35,9 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
     private ScrollRect browseScroll;
     private bool scrollingList;
     private Vector2 dragOffset;
+    private PlayerStatus damagePreviewPlayer;
+    private EnemyStatus damagePreviewTarget;
+    private Func<Vector2, EnemyStatus> getDamagePreviewTarget;
 
     public event Action<CardUI> OnCardClicked;
     public event Action<CardUI,Vector2> OnCardDropped;
@@ -74,22 +77,25 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
         }
     }
 
-    public void SetCard(CardInstance cardInstance)
+    public void SetCard(CardInstance cardInstance, PlayerStatus player = null,
+        Func<Vector2, EnemyStatus> findTarget = null)
     {
-        CardInstance = cardInstance;
-
         if (cardInstance == null)
         {
             ClearCard();
             return;
         }
 
-        CardData data = cardInstance.CardData;
+        SetDamagePreviewTarget(null);
+        SetDamagePreviewPlayer(player);
+        getDamagePreviewTarget = findTarget;
+        CardInstance = cardInstance;
+        CardVersion data = cardInstance.Version;
 
         nameText.text = data.CardName;
         costText.text = cardInstance.CurrentCost.ToString();
         typeText.text = data.Type.ToString();
-        descriptionText.text = data.GetDescription();
+        RefreshDescription();
         if (artworkImage != null)
         {
             artworkImage.sprite = data.Artwork;
@@ -100,6 +106,9 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
     public void ClearCard()
     {
         CardInstance = null;
+        SetDamagePreviewTarget(null);
+        SetDamagePreviewPlayer(null);
+        getDamagePreviewTarget = null;
 
         isDragging = false;
 
@@ -117,6 +126,36 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
         targetScale = baseScale;
 
         rectTransform.localScale = baseScale;
+    }
+
+    private void RefreshDescription()
+    {
+        if (CardInstance != null)
+            descriptionText.text = CardInstance.Version.GetDescription(damagePreviewPlayer, damagePreviewTarget);
+    }
+
+    private void SetDamagePreviewPlayer(PlayerStatus player)
+    {
+        if (damagePreviewPlayer == player) return;
+        if (damagePreviewPlayer != null) damagePreviewPlayer.OnStatusChanged -= RefreshDescription;
+        damagePreviewPlayer = player;
+        if (isActiveAndEnabled && player != null) player.OnStatusChanged += RefreshDescription;
+    }
+
+    private void SetDamagePreviewTarget(EnemyStatus target)
+    {
+        if (damagePreviewTarget == target) return;
+        if (damagePreviewTarget != null) damagePreviewTarget.OnStatusChanged -= RefreshDescription;
+        damagePreviewTarget = target;
+        if (target != null) target.OnStatusChanged += RefreshDescription;
+        RefreshDescription();
+    }
+
+    private void OnEnable()
+    {
+        if (damagePreviewPlayer == null) return;
+        damagePreviewPlayer.OnStatusChanged += RefreshDescription;
+        RefreshDescription();
     }
 
     public void OnClickCard()
@@ -159,6 +198,7 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
             return;
 
         isDragging = true;
+        SetDamagePreviewTarget(getDamagePreviewTarget?.Invoke(eventData.position));
 
         targetScale = baseScale * hoverScale;
 
@@ -179,6 +219,7 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
             return;
 
         if (IsCancelPressed()) { CancelDrag(); return; }
+        SetDamagePreviewTarget(getDamagePreviewTarget?.Invoke(eventData.position));
 
         if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
             parentRect,
@@ -205,6 +246,7 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
         if (IsCancelPressed()) { CancelDrag(); return; }
 
         isDragging = false;
+        SetDamagePreviewTarget(null);
 
         OnCardDropped?.Invoke(this, eventData.position);
 
@@ -219,6 +261,7 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
     {
         scrollingList = false;
         isDragging = false;
+        SetDamagePreviewTarget(null);
         targetPosition = basePosition;
         targetScale = baseScale;
         if (rectTransform == null) return;
@@ -226,7 +269,11 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
         rectTransform.localScale = baseScale;
     }
 
-    private void OnDisable() => CancelDrag();
+    private void OnDisable()
+    {
+        if (damagePreviewPlayer != null) damagePreviewPlayer.OnStatusChanged -= RefreshDescription;
+        CancelDrag();
+    }
 
     public void SetBasePosition(Vector2 position)
     {

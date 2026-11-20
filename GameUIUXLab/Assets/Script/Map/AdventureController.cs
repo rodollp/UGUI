@@ -113,7 +113,7 @@ public class AdventureController : MonoBehaviour
         int hp = runManager.PlayerStatus.CurrentHp;
         int gold = runManager.Gold;
         if (!runManager.TrySpendGold(choice.GoldCost)) { EventResolved = false; return false; }
-        string originalName = card?.CardData.CardName;
+        string originalName = card?.Version.CardName;
         if (card != null) card.TryUpgrade();
         upgradeChoice = -1;
         runManager.PlayerStatus.TakeDamage(choice.HealthCost);
@@ -125,7 +125,7 @@ public class AdventureController : MonoBehaviour
         runManager.CompleteStage();
         EventResult = choice.Result + $"\n\n체력 {runManager.PlayerStatus.CurrentHp - hp:+0;-0;0} · 골드 {runManager.Gold - gold:+0;-0;0}"
             + (choice.Card != null ? $"\n{choice.Card.CardName} 카드를 획득했습니다." : "");
-        if (card != null) EventResult += $"\n{originalName} → {card.CardData.CardName} 강화 완료";
+        if (card != null) EventResult += $"\n{originalName} → {card.Version.CardName} 강화 완료";
         OnEventChanged?.Invoke();
         return true;
     }
@@ -189,7 +189,7 @@ public class AdventureController : MonoBehaviour
             int price = runManager.CardRemovalPrice;
             if (!runManager.TryRemoveCard(card)) return false;
             shop.MarkCardRemovalUsed();
-            ShopMessage = $"{card.CardData.CardName} 카드 제거 · {price}골드 사용";
+            ShopMessage = $"{card.Version.CardName} 카드 제거 · {price}골드 사용";
             OnEventChanged?.Invoke();
             return true;
         }

@@ -14,15 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ShopData
   CardPrice: 50
   CardPool:
-  - {fileID: 11400000, guid: acd52997e2c75a34d92ead398522cbbf, type: 2}
   - {fileID: 11400000, guid: f05cd11ccd1818f46b93f1c37a43b3ba, type: 2}
   - {fileID: 11400000, guid: 05617ea4e2b634d43a8d51359128f74f, type: 2}
   - {fileID: 11400000, guid: eb67d6990c29cd24098b11acf7384b72, type: 2}
   - {fileID: 11400000, guid: ad437152c1526a14ea36d8bd766b18df, type: 2}
   - {fileID: 11400000, guid: 8e90ea82ba2a4e95a43b6bec51c5ccdf, type: 2}
   - {fileID: 11400000, guid: a44b29177a89434aa0de58729cd2a8a7, type: 2}
+  - {fileID: 11400000, guid: 02a64fe5075244f2b21782b0f209c151, type: 2}
+  - {fileID: 11400000, guid: 96bd54da1f2a44c59d7e122bd840254a, type: 2}
+  - {fileID: 11400000, guid: c6b57581ed8d45a6988f2e79ea3c1824, type: 2}
   ExcludedCards:
   - {fileID: 11400000, guid: 1ff62808b61df2e4c8594377b7937524, type: 2}
   - {fileID: 11400000, guid: a71151deffa9df241868a8eb705286fb, type: 2}
-  - {fileID: 11400000, guid: 334cb15d14f871d4b8069d6266c96891, type: 2}
-  - {fileID: 11400000, guid: 053f4ff4082b31f4dab0c2bef592a938, type: 2}
+  - {fileID: 11400000, guid: acd52997e2c75a34d92ead398522cbbf, type: 2}

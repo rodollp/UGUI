@@ -147,8 +147,8 @@ public class CardUpgradeUI : MonoBehaviour
     private void Preview(bool upgraded)
     {
         if (selected == null || !selected.CanUpgrade) return;
-        detailCard.SetCard(new CardInstance(upgraded ? selected.CardData.UpgradedCard : selected.CardData));
-        detailNote.text = $"{selected.CardData.CardName} → {selected.CardData.UpgradedCard.CardName} · "
+        detailCard.SetCard(selected.CopyForPreview(upgraded));
+        detailNote.text = $"{selected.Version.CardName} → {selected.CardData.Upgrade.CardName} · "
             + (upgraded ? "강화 후 미리보기" : "현재 카드") + " · 강화 확정 시에만 적용됩니다.";
         confirm.interactable = true;
     }

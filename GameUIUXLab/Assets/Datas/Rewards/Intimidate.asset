@@ -13,11 +13,50 @@ MonoBehaviour:
   m_Name: Intimidate
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   CardID: 101
-  CardName: "\uC704\uD611"
-  Type: 1
-  TargetType: 1
-  EnergyCost: 1
-  Artwork: {fileID: 21300000, guid: 83551908d55a7bb48b08d61971359c5b, type: 3}
-  UpgradedCard: {fileID: 11400000, guid: 061c37475cc02e04da2f883d1aad2a8d, type: 2}
-  Effects:
-  - {fileID: 11400000, guid: 11ee30fa126c7dd41aa620448a441f80, type: 2}
+  Base:
+    CardName: "\uC704\uD611"
+    Type: 1
+    TargetType: 1
+    EnergyCost: 1
+    Artwork: {fileID: 21300000, guid: 83551908d55a7bb48b08d61971359c5b, type: 3}
+    Effects:
+    - {fileID: 11400001}
+  HasUpgrade: 1
+  Upgrade:
+    CardName: "\uC704\uD611+"
+    Type: 1
+    TargetType: 1
+    EnergyCost: 1
+    Artwork: {fileID: 21300000, guid: 83551908d55a7bb48b08d61971359c5b, type: 3}
+    Effects:
+    - {fileID: 11400002}
+--- !u!114 &11400001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63f12ca74179ec246bbd3fd2a0f5d3ca, type: 3}
+  m_Name: IntimidateWeak
+  m_EditorClassIdentifier: Assembly-CSharp::ApplyDebuffEffect
+  debuff: 1
+  turns: 2
+  target: 0
+--- !u!114 &11400002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63f12ca74179ec246bbd3fd2a0f5d3ca, type: 3}
+  m_Name: IntimidatePlusEffect0
+  m_EditorClassIdentifier: Assembly-CSharp::ApplyDebuffEffect
+  debuff: 1
+  turns: 3
+  target: 0

@@ -15,7 +15,7 @@ public static class ShopSetup
             shop.CardPrice = 50;
             shop.CardPool = AssetDatabase.LoadAssetAtPath<BattleRewardData>(
                 "Assets/Datas/Rewards/DefaultBattleRewards.asset").CardPool.ToArray();
-            shop.ExcludedCards = new[] { "CardDis/ATK", "CardDis/BLO", "Upgrades/StrikePlus", "Upgrades/DefendPlus" }
+            shop.ExcludedCards = new[] { "CardDis/ATK", "CardDis/BLO", "Rewards/Bash" }
                 .Select(p => AssetDatabase.LoadAssetAtPath<CardData>("Assets/Datas/" + p + ".asset")).ToArray();
             AssetDatabase.CreateAsset(shop, path);
         }

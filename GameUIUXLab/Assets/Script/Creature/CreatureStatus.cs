@@ -80,7 +80,7 @@ public abstract class CreatureStatus
     }
 
     // 체력은 유지하고 전투 중에만 유효한 능력치를 제거합니다.
-    public void ResetCombatState()
+    public virtual void ResetCombatState()
     {
         CurrentBlock = 0;
         AttackPower = 0;

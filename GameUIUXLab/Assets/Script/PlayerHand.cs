@@ -16,6 +16,8 @@ public class PlayerHand : MonoBehaviour
     private readonly List<CardUI> cardPool = new();
     private readonly List<CardUI> activeCards = new();
 
+    public bool HasRoom => activeCards.Count < cardPool.Count;
+
     public event Action<CardUI> OnCardClicked;
     public event Action<CardUI, Vector2> OnCardDropped;
 
@@ -47,7 +49,8 @@ public class PlayerHand : MonoBehaviour
     {
         OnCardDropped?.Invoke(card, screenPosition);
     }
-    public void AddCard(CardInstance cardInstance)
+    public void AddCard(CardInstance cardInstance, PlayerStatus player = null,
+        Func<Vector2, EnemyStatus> getDamagePreviewTarget = null)
     {
         if (cardInstance == null)
             return;
@@ -56,7 +59,7 @@ public class PlayerHand : MonoBehaviour
         {
             if (!card.gameObject.activeSelf)
             {
-                card.SetCard(cardInstance);
+                card.SetCard(cardInstance, player, getDamagePreviewTarget);
                 card.gameObject.SetActive(true);
 
                 RefreshLayout();

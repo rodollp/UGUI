@@ -13,11 +13,48 @@ MonoBehaviour:
   m_Name: StrengthTraining
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   CardID: 112
-  CardName: "\uC644\uB825 \uB2E8\uB828"
-  Type: 2
-  TargetType: 0
-  EnergyCost: 1
-  Artwork: {fileID: 21300000, guid: 1e171cf2eb2109947aa9d2f0d2c8b696, type: 3}
-  UpgradedCard: {fileID: 11400000, guid: b6d5c014d72244de84f42544a4e055b0, type: 2}
-  Effects:
-  - {fileID: 11400000, guid: 593d6ae5b38d44d8bb058d414e63b261, type: 2}
+  Base:
+    CardName: "\uC644\uB825 \uB2E8\uB828"
+    Type: 2
+    TargetType: 0
+    EnergyCost: 1
+    Artwork: {fileID: 21300000, guid: 1e171cf2eb2109947aa9d2f0d2c8b696, type: 3}
+    Effects:
+    - {fileID: 11400001}
+  HasUpgrade: 1
+  Upgrade:
+    CardName: "\uC644\uB825 \uB2E8\uB828+"
+    Type: 2
+    TargetType: 0
+    EnergyCost: 1
+    Artwork: {fileID: 21300000, guid: 1e171cf2eb2109947aa9d2f0d2c8b696, type: 3}
+    Effects:
+    - {fileID: 11400002}
+--- !u!114 &11400001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3ceea6ab0d7348638aa68ef7e049e736, type: 3}
+  m_Name: StrengthTrainingEffect
+  m_EditorClassIdentifier: Assembly-CSharp::GainCombatStatEffect
+  stat: 0
+  amount: 2
+--- !u!114 &11400002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3ceea6ab0d7348638aa68ef7e049e736, type: 3}
+  m_Name: StrengthTrainingPlusEffect
+  m_EditorClassIdentifier: Assembly-CSharp::GainCombatStatEffect
+  stat: 0
+  amount: 3

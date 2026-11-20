@@ -10,6 +10,9 @@ public class DamageEffect : CardEffect
         foreach (EnemyStatus target in context.Targets)
             if (target != null && !target.IsDead) context.Player.DealAttackDamage(target, damage);
     }
-    public override string GetDescription() => $"피해를 {damage} 줍니다.";
+    public override string GetDescription() => GetDescription(null, null);
+
+    public string GetDescription(PlayerStatus player, EnemyStatus target) =>
+        $"피해를 {player?.CalculateAttackDamage(damage, target) ?? damage} 줍니다.";
 }
 

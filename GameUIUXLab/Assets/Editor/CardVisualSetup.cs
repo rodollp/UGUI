@@ -16,8 +16,8 @@ public static class CardVisualSetup
         foreach (string guid in AssetDatabase.FindAssets("t:CardData", new[] { "Assets/Datas" }))
         {
             CardData data = AssetDatabase.LoadAssetAtPath<CardData>(AssetDatabase.GUIDToAssetPath(guid));
-            if (data.Type == CardType.Attack) data.Artwork = strike;
-            else if (data.Type == CardType.Skill) data.Artwork = defend;
+            ApplyArtwork(data.Base, strike, defend);
+            if (data.HasUpgrade) ApplyArtwork(data.Upgrade, strike, defend);
             EditorUtility.SetDirty(data);
         }
 
@@ -53,6 +53,12 @@ public static class CardVisualSetup
         finally { PrefabUtility.UnloadPrefabContents(prefab); }
         AssetDatabase.SaveAssets();
         Debug.Log("CARD_VISUAL_SETUP_OK");
+    }
+
+    private static void ApplyArtwork(CardVersion card, Sprite strike, Sprite defend)
+    {
+        if (card.Type == CardType.Attack) card.Artwork = strike;
+        else if (card.Type == CardType.Skill) card.Artwork = defend;
     }
 
     private static void Text(GameObject prefab, string name, float size, Color color, TextAlignmentOptions alignment)

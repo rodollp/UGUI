@@ -167,9 +167,7 @@ public class DeckViewUI : MonoBehaviour
     {
         if (inspectedCard == null) return;
         bool preview = upgraded && inspectedCard.CanUpgrade;
-        CardData data = preview ? inspectedCard.CardData.UpgradedCard : inspectedCard.CardData;
-        // A separate instance keeps preview changes out of the persistent run deck.
-        detailCard.SetCard(new CardInstance(data));
+        detailCard.SetCard(inspectedCard.CopyForPreview(preview));
         detailNote.text = inspectedCard.IsUpgraded ? "이미 강화된 카드입니다."
             : !inspectedCard.CanUpgrade ? "강화 정보가 없는 카드입니다."
             : preview ? "강화 후 미리보기 · 실제 카드는 변경되지 않습니다." : "현재 카드 · 체크하면 강화 후 효과를 확인할 수 있습니다.";

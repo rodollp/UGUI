@@ -31,19 +31,18 @@ TakeDamage는 고정 피해 API이므로 취약·약화의 영향을 받지 않�
 
 ## 카드에 연결
 
-1. Create → Card Effects → Apply Debuff로 효과 에셋을 만든다.
+1. CardData를 열고 기본 또는 강화 영역의 '효과 추가'에서 Apply Debuff Effect를 고른다.
 2. Debuff에서 Vulnerable / Weak / Frail을 선택한다.
-3. Turns에 지속시간을 설정한다.
-4. Target을 Enemy 또는 Player로 설정한다.
-5. 해당 CardData의 Effects 배열에 추가한다.
+3. Turns에 지속시간을 설정하고 Target을 Enemy 또는 Player로 설정한다.
+4. 화살표 버튼으로 다른 효과와의 실행 순서를 맞춘다.
 
-Enemy 대상 효과가 있는 카드는 CardData.TargetType도 Enemy로 설정해야 한다.
+Enemy 대상 효과를 특정 적에게 적용하려면 카드 버전의 Target Type을 Enemy로 설정한다.
 Player는 자신에게 디버프를 주는 대가가 있는 카드에 사용할 수 있다.
 Effects의 순서대로 실행하므로 취약 효과를 공격 효과 앞에 넣으면 그 카드의 공격에도 취약이 적용된다.
 
 Tools → Battle → Create Debuff Effect Samples 메뉴로 2라운드 샘플 효과 3개를 만든다.
 Assets/Datas/Effects/Debuffs의 VulnerableEffect와 WeakEffect는 적 대상,
-FrailEffect는 플레이어 자신 대상이다. 기본 덱과 기존 카드의 밸런스는 변경하지 않는다.
+FrailEffect는 플레이어 자신 대상이다.
 
 ## 적 행동에 연결
 

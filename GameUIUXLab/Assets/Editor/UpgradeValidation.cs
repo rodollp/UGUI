@@ -13,22 +13,40 @@ public static class UpgradeValidation
     {
         checks++; if (!condition) throw new InvalidOperationException("Upgrade: " + message);
     }
+    [MenuItem("Tools/Cards/Validate Card Assets")]
     public static void VerifyModels()
     {
         checks = 0;
-        string[] paths = { "CardDis/ATK", "CardDis/BLO", "Rewards/Bash", "Rewards/Intimidate", "Rewards/IronGuard" };
+        string[] paths = { "CardDis/ATK", "CardDis/BLO", "Rewards/Bash", "Rewards/Intimidate", "Rewards/IronGuard",
+            "Rewards/WildShot", "Rewards/WhirlSlash", "Rewards/StrengthTraining", "Rewards/BalanceTraining" };
         foreach (string path in paths)
         {
-            CardData data = AssetDatabase.LoadAssetAtPath<CardData>("Assets/Datas/" + path + ".asset");
+            string assetPath = "Assets/Datas/" + path + ".asset";
+            CardData data = AssetDatabase.LoadAssetAtPath<CardData>(assetPath);
+            Expect(data != null && data.HasUpgrade && data.Base.Effects.Count > 0 && data.Upgrade.Effects.Count > 0
+                && data.Base.Effects.Concat(data.Upgrade.Effects).All(effect =>
+                effect != null && AssetDatabase.IsSubAsset(effect) && AssetDatabase.GetAssetPath(effect) == assetPath),
+                "both versions load their effects from the same card file");
             var card = new CardInstance(data); var sibling = new CardInstance(data);
-            Expect(card.TryUpgrade() && card.CardData != data && card.CardData.CardName.EndsWith("+"), "upgrade uses separate data");
-            Expect(!card.TryUpgrade() && sibling.CardData == data && sibling.CanUpgrade, "one copy upgrades only once");
+            CardInstance preview = card.CopyForPreview(true);
+            Expect(preview.IsUpgraded && preview.Version == data.Upgrade && card.Version == data.Base,
+                "preview reads the upgrade without editing the owned card");
+            Expect(card.TryUpgrade() && card.CardData == data && card.Version == data.Upgrade
+                && card.Version.CardName.EndsWith("+"), "upgrade selects the second version of the same asset");
+            Expect(!card.TryUpgrade() && sibling.Version == data.Base && sibling.CanUpgrade, "one copy upgrades only once");
             Expect(card.CopyForBattle().IsUpgraded && card.CopyForBattle().CardData == card.CardData, "battle copy retains upgrade");
             var player = new PlayerStatus(100); var enemy = new EnemyStatus(100);
-            foreach (var effect in card.CardData.Effects) effect.Execute(new CardEffectContext(player, enemy));
+            foreach (var effect in card.Version.Effects) effect.Execute(new CardEffectContext(player, enemy));
             if (path.EndsWith("ATK")) Expect(enemy.CurrentHp == 91, "strike plus deals nine damage");
             if (path.EndsWith("BLO")) Expect(player.CurrentBlock == 8, "defend plus gives eight block");
-            if (path.EndsWith("Bash")) Expect(enemy.CurrentHp == 88 && enemy.GetDebuffTurns(DebuffType.Vulnerable) == 3, "bash plus upgrades both effects");
+            if (path.EndsWith("Bash"))
+            {
+                Expect(enemy.CurrentHp == 88 && enemy.GetDebuffTurns(DebuffType.Vulnerable) == 3, "bash plus upgrades both effects in order");
+                player.AddAttackPower(3);
+                Expect(sibling.Version.GetDescription(player).Contains("피해를 11")
+                    && card.Version.GetDescription(player, enemy).Contains("피해를 22"),
+                    "bash previews the current version with strength and target vulnerability");
+            }
             if (path.EndsWith("Intimidate")) Expect(enemy.GetDebuffTurns(DebuffType.Weak) == 3, "intimidate plus weak lasts three turns");
             if (path.EndsWith("IronGuard")) Expect(player.CurrentBlock == 11, "iron guard plus gives eleven block");
         }
@@ -79,13 +97,14 @@ public static class UpgradeValidation
         var detail = ui.GetComponentsInChildren<CardUI>(true)
             .Single(v => v.transform.parent.name == "EnlargedCard");
         var toggle = ui.GetComponentInChildren<Toggle>(true);
-        Expect(toggle.isOn && detail.CardInstance.CardData == original.UpgradedCard,
+        Expect(toggle.isOn && detail.CardInstance.CardData == original && detail.CardInstance.IsUpgraded,
             "detail initially shows upgraded card");
         toggle.isOn = false;
-        Expect(detail.CardInstance.CardData == original && target.CardData == original && run.Gold == gold,
+        Expect(!detail.CardInstance.IsUpgraded && detail.CardInstance.CardData == original
+            && target.CardData == original && run.Gold == gold,
             "unchecking shows current card without mutation or payment");
         toggle.isOn = true;
-        Expect(detail.CardInstance.CardData == original.UpgradedCard && !target.IsUpgraded,
+        Expect(detail.CardInstance.CardData == original && detail.CardInstance.IsUpgraded && !target.IsUpgraded,
             "rechecking restores upgrade preview only");
         ui.HandleBack();
         Expect(!ui.IsInspectingCard && adventure.IsChoosingUpgrade && !target.IsUpgraded && run.Gold == gold,
@@ -96,7 +115,8 @@ public static class UpgradeValidation
             typeof(BattleValidation).GetMethod("CapturePreview", BindingFlags.Static | BindingFlags.NonPublic)
                 .Invoke(null, new object[] { "upgrade-preview.png" });
         Button(ui, "confirm").onClick.Invoke(); Button(ui, "confirm").onClick.Invoke();
-        Expect(target.IsUpgraded && sibling.CardData == original && run.Gold == gold - 10 && node.Completed,
+        Expect(target.IsUpgraded && !sibling.IsUpgraded && sibling.CardData == original
+            && run.Gold == gold - 10 && node.Completed,
             "confirm upgrades only selected copy and charges once");
         Expect(!adventure.ConfirmUpgrade(target) && run.PlayerStatus.CurrentHp == hp, "resolved event cannot repeat");
         adventure.ReturnFromEvent();
@@ -104,7 +124,7 @@ public static class UpgradeValidation
         for (int i = 0; i < run.MasterDeck.Cards.Count; i++)
         {
             CardInstance drawn = deck.Draw();
-            if (drawn.CardData == target.CardData) found = drawn.IsUpgraded;
+            if (drawn.CardData == target.CardData && drawn.IsUpgraded) found = true;
             deck.PlayCard(drawn);
         }
         Expect(found, "next battle receives upgraded master-deck card");
