@@ -56,6 +56,8 @@ MonoBehaviour:
     HealAmount: 0
     HealPercent: 0
     Card: {fileID: 0}
+    UpgradeCard: 0
+    Shop: {fileID: 0}
   - Label: "\uC870\uC6A9\uD788 \uAE30\uB3C4\uD55C\uB2E4"
     Result: "\uC7A0\uC2DC \uB9C8\uC74C\uC744 \uAC00\uB2E4\uB4EC\uACE0 \uAE30\uB825\uC744 \uD68C\uBCF5\uD569\uB2C8\uB2E4."
     GoldCost: 0
@@ -64,6 +66,8 @@ MonoBehaviour:
     HealAmount: 0
     HealPercent: 10
     Card: {fileID: 0}
+    UpgradeCard: 0
+    Shop: {fileID: 0}
   - Label: "\uC9C0\uB098\uAC04\uB2E4"
     Result: "\uC544\uBB34 \uC77C \uC5C6\uC774 \uAE38\uC744 \uB5A0\uB0A9\uB2C8\uB2E4."
     GoldCost: 0
@@ -72,6 +76,8 @@ MonoBehaviour:
     HealAmount: 0
     HealPercent: 0
     Card: {fileID: 0}
+    UpgradeCard: 0
+    Shop: {fileID: 0}
 --- !u!114 &11400002
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -95,6 +101,8 @@ MonoBehaviour:
     HealAmount: 0
     HealPercent: 0
     Card: {fileID: 0}
+    UpgradeCard: 0
+    Shop: {fileID: 0}
   - Label: "\uCE58\uB8CC \uC57D\uD488\uC744 \uC0AC\uC6A9\uD55C\uB2E4"
     Result: "\uB0A8\uC544 \uC788\uB358 \uC57D\uD488\uC73C\uB85C \uC0C1\uCC98\uB97C \uCE58\uB8CC\uD569\uB2C8\uB2E4."
     GoldCost: 0
@@ -103,6 +111,8 @@ MonoBehaviour:
     HealAmount: 12
     HealPercent: 0
     Card: {fileID: 0}
+    UpgradeCard: 0
+    Shop: {fileID: 0}
   - Label: "\uC9C0\uB098\uAC04\uB2E4"
     Result: "\uC544\uBB34 \uC77C \uC5C6\uC774 \uAE38\uC744 \uB5A0\uB0A9\uB2C8\uB2E4."
     GoldCost: 0
@@ -111,6 +121,8 @@ MonoBehaviour:
     HealAmount: 0
     HealPercent: 0
     Card: {fileID: 0}
+    UpgradeCard: 0
+    Shop: {fileID: 0}
 --- !u!114 &11400003
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -135,6 +147,7 @@ MonoBehaviour:
     HealPercent: 0
     Card: {fileID: 0}
     UpgradeCard: 1
+    Shop: {fileID: 0}
   - Label: "\uC9C0\uB098\uAC04\uB2E4"
     Result: "\uB300\uC7A5\uC7A5\uC774\uC5D0\uAC8C \uC778\uC0AC\uD558\uACE0 \uAE38\uC744 \uB5A0\uB0A9\uB2C8\uB2E4."
     GoldCost: 0
@@ -144,3 +157,4 @@ MonoBehaviour:
     HealPercent: 0
     Card: {fileID: 0}
     UpgradeCard: 0
+    Shop: {fileID: 0}
