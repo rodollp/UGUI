@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: BalanceTraining
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   CardID: 113
+  Rarity: 1
   Base:
     CardName: "\uADE0\uD615 \uAC10\uAC01"
     Type: 2

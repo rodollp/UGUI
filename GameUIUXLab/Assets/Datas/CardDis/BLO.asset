@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: BLO
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   CardID: 1
+  Rarity: 0
   Base:
     CardName: "\uBC29\uC5B4"
     Type: 1

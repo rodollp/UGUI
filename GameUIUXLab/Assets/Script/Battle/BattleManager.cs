@@ -10,6 +10,7 @@ public class BattleManager : MonoBehaviour
     [Header("References")]
     [SerializeField] private RunManager runManager;
     [SerializeField] private Player player;
+    internal Player PlayerCharacter => player;
     [SerializeField] private CardManager cardManager;
     [SerializeField] private UIScreenFlowController screenFlowController;
     [SerializeField] private Transform enemyRoot;

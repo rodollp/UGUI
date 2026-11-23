@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: WildShot
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   CardID: 110
+  Rarity: 0
   Base:
     CardName: "\uC720\uD0C4"
     Type: 0

@@ -12,7 +12,18 @@ internal sealed class BattleResourcesView
     private static readonly Color Accent = new Color(.94f, .65f, .38f);
     private static readonly Color TextColor = new Color(.98f, .92f, .81f);
 
+    private static readonly Color ShortfallColor = new Color(1f, .68f, .58f);
     private readonly TMP_Text energyText;
+    private const float ShortfallDuration = 1.2f;
+    private const float FadeDuration = .22f;
+    private readonly RectTransform speechRoot;
+    private readonly RectTransform speechBubble;
+    private readonly CanvasGroup speechVisibility;
+    private readonly Canvas canvas;
+    private Transform speaker;
+    private Renderer speakerModel;
+    private Camera battleCamera;
+    private float shortfallUntil;
     private (int? Current, int? Maximum) displayedEnergy;
 
     public BattleResourcesView(TMP_Text energyText)
@@ -31,6 +42,28 @@ internal sealed class BattleResourcesView
 
         drawCountText = CreatePile(playScreen, "DrawPile", "뽑기", 28);
         discardCountText = CreatePile(playScreen, "DiscardPile", "버림", 130);
+        speechRoot = (RectTransform)playScreen;
+        canvas = speechRoot.GetComponentInParent<Canvas>();
+        var bubble = new GameObject("PlayerSpeech", typeof(RectTransform), typeof(CanvasGroup), typeof(Image));
+        speechBubble = (RectTransform)bubble.transform;
+        speechBubble.SetParent(speechRoot, false);
+        Place(speechBubble, speechRoot.pivot, new Vector2(.5f, 0), Vector2.zero, new Vector2(248, 48));
+        speechVisibility = bubble.GetComponent<CanvasGroup>();
+        speechVisibility.blocksRaycasts = false;
+        speechVisibility.interactable = false;
+        bubble.GetComponent<Image>().color = PanelColor;
+
+        var tail = new GameObject("Tail", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+        tail.rectTransform.SetParent(speechBubble, false);
+        Place(tail.rectTransform, new Vector2(.5f, 0), new Vector2(.5f, .5f), Vector2.zero, new Vector2(12, 12));
+        tail.rectTransform.localRotation = Quaternion.Euler(0, 0, 45);
+        tail.color = PanelColor;
+        tail.raycastTarget = false;
+
+        TMP_Text line = CreateLabel(speechBubble, "Line", "에너지가 부족해", 23, Vector2.zero);
+        line.rectTransform.sizeDelta = new Vector2(228, 38);
+        bubble.SetActive(false);
+
         energyText.text = string.Empty;
         SetPileCounts(0, 0);
     }
@@ -40,6 +73,70 @@ internal sealed class BattleResourcesView
         if (displayedEnergy == (current, maximum)) return;
         displayedEnergy = (current, maximum);
         energyText.text = current.HasValue ? $"{current} / {maximum}" : string.Empty;
+    }
+
+    public void ShowEnergyShortfall(Player player)
+    {
+        Transform nextSpeaker = player != null ? player.transform : null;
+        if (speaker != nextSpeaker)
+        {
+            speaker = nextSpeaker;
+            speakerModel = player != null ? player.GetComponentInChildren<Renderer>() : null;
+        }
+
+        energyText.color = ShortfallColor;
+        shortfallUntil = Time.unscaledTime + ShortfallDuration;
+        UpdateEnergyShortfall();
+    }
+
+    public void UpdateEnergyShortfall()
+    {
+        if (shortfallUntil == 0f) return;
+
+        float remaining = shortfallUntil - Time.unscaledTime;
+        if (remaining <= 0f)
+        {
+            ClearEnergyShortfall();
+            return;
+        }
+
+        if (battleCamera == null) battleCamera = Camera.main;
+        if (speaker == null || battleCamera == null)
+        {
+            speechBubble.gameObject.SetActive(false);
+            return;
+        }
+
+        Vector3 head = speaker.position + Vector3.up * 1.8f;
+        if (speakerModel != null)
+        {
+            Bounds bounds = speakerModel.bounds;
+            head = new Vector3(bounds.center.x, bounds.max.y, bounds.center.z);
+        }
+
+        Vector3 screenPoint = battleCamera.WorldToScreenPoint(head);
+        Camera uiCamera = canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay
+            ? canvas.worldCamera : null;
+        if (screenPoint.z <= 0f || !RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            speechRoot, screenPoint, uiCamera, out Vector2 point))
+        {
+            speechBubble.gameObject.SetActive(false);
+            return;
+        }
+
+        float elapsed = ShortfallDuration - remaining;
+        float rise = Mathf.SmoothStep(0, 8, Mathf.Clamp01(elapsed / .15f));
+        speechBubble.anchoredPosition = point + Vector2.up * (20 + rise);
+        speechVisibility.alpha = Mathf.Min(Mathf.Clamp01(elapsed / .08f), Mathf.Clamp01(remaining / FadeDuration));
+        speechBubble.gameObject.SetActive(true);
+    }
+
+    public void ClearEnergyShortfall()
+    {
+        if (shortfallUntil == 0f) return;
+        shortfallUntil = 0f;
+        energyText.color = TextColor;
+        speechBubble.gameObject.SetActive(false);
     }
 
     public void SetPileCounts(int draw, int discard)

@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: TacticalPreparation
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   CardID: 114
+  Rarity: 0
   Base:
     CardName: "\uC804\uC220 \uC815\uBE44"
     Type: 1

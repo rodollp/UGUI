@@ -6,7 +6,6 @@ public class CardManager : MonoBehaviour
     [Header("References")]
     [SerializeField] private PlayerHand playerHand;
     [SerializeField] private PlayHUD playHUD;
-    [SerializeField] private UIManager uiManager;
     [SerializeField] private RunManager runManager;
     [SerializeField] private TargetSelector targetSelector;
     [Header("Deck Settings")]
@@ -45,12 +44,13 @@ public class CardManager : MonoBehaviour
         if (battleDeck == null) return;
         PlayerStatus player = runManager.PlayerStatus;
         Func<Vector2, EnemyStatus> getPreviewTarget = GetDamagePreviewTarget;
+        Action onInsufficientEnergy = ShowEnergyShortfall;
         for (int i = 0; i < amount && playerHand.HasRoom; i++)
         {
             CardInstance card = battleDeck.Draw();
             if (card == null) break;
             bool previewsTarget = card.Version.TargetType is CardTargetType.Enemy or CardTargetType.AllEnemies;
-            playerHand.AddCard(card, player, previewsTarget ? getPreviewTarget : null);
+            playerHand.AddCard(card, player, previewsTarget ? getPreviewTarget : null, onInsufficientEnergy);
         }
         RefreshPileCounts();
     }
@@ -103,7 +103,7 @@ public class CardManager : MonoBehaviour
         PlayerStatus status = runManager.PlayerStatus;
         if (!status.CanUseEnergy(card.CurrentCost))
         {
-            if (uiManager != null) uiManager.ShowToast("에너지가 부족합니다.");
+            ShowEnergyShortfall();
             return;
         }
 
@@ -125,6 +125,12 @@ public class CardManager : MonoBehaviour
             RefreshPileCounts();
             battleManager.CheckBattleEnd();
         }
+    }
+
+    private void ShowEnergyShortfall()
+    {
+        if (battleManager != null && battleManager.CanPlayCards)
+            playHUD?.ShowEnergyShortfall();
     }
 
     private static void ExecuteEffects(CardVersion data, CardEffectContext context)

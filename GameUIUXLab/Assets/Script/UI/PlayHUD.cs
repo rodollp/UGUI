@@ -35,6 +35,11 @@ public class PlayHUD : MonoBehaviour
 
     public void SetPileCounts(int draw, int discard) => resources?.SetPileCounts(draw, discard);
 
+    public void ShowEnergyShortfall()
+    {
+        if (battleManager != null) resources?.ShowEnergyShortfall(battleManager.PlayerCharacter);
+    }
+
     private void OnEnable()
     {
         if (battleManager != null) battleManager.OnBattleChanged += MarkDirty;
@@ -49,6 +54,7 @@ public class PlayHUD : MonoBehaviour
         if (battleManager != null) battleManager.OnBattleChanged -= MarkDirty;
         if (runManager != null) runManager.OnGoldChanged -= MarkDirty;
         enemyIntents?.Clear();
+        resources?.ClearEnergyShortfall();
     }
 
     private void Update()
@@ -82,9 +88,17 @@ public class PlayHUD : MonoBehaviour
         bool battleScreenVisible = screenFlowController == null
             || (screenFlowController.IsPlaying && !screenFlowController.IsOverlayOpen);
         enemyIntents?.UpdatePositions(battleScreenVisible);
+        if (battleScreenVisible && battleManager != null && battleManager.CanPlayCards)
+            resources?.UpdateEnergyShortfall();
+        else
+            resources?.ClearEnergyShortfall();
     }
 
-    public void ResetHUD() => RefreshUI();
+    public void ResetHUD()
+    {
+        resources?.ClearEnergyShortfall();
+        RefreshUI();
+    }
     public void NextTurn() => RefreshUI();
 
     private void RefreshUI()

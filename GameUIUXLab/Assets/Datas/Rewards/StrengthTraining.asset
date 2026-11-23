@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: StrengthTraining
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   CardID: 112
+  Rarity: 1
   Base:
     CardName: "\uC644\uB825 \uB2E8\uB828"
     Type: 2

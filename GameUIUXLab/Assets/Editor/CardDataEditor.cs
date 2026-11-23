@@ -10,6 +10,7 @@ public sealed class CardDataEditor : Editor
     {
         serializedObject.Update();
         EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(CardData.CardID)));
+        EditorGUILayout.PropertyField(serializedObject.FindProperty(nameof(CardData.Rarity)), new GUIContent("등급"));
         DrawVersion(serializedObject.FindProperty(nameof(CardData.Base)), "기본");
 
         var hasUpgrade = serializedObject.FindProperty(nameof(CardData.HasUpgrade));

@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: EnergyRecovery
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   CardID: 115
+  Rarity: 1
   Base:
     CardName: "\uAE30\uB825 \uD68C\uBCF5"
     Type: 2

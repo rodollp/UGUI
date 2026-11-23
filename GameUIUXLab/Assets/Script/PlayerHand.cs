@@ -50,7 +50,7 @@ public class PlayerHand : MonoBehaviour
         OnCardDropped?.Invoke(card, screenPosition);
     }
     public void AddCard(CardInstance cardInstance, PlayerStatus player = null,
-        Func<Vector2, EnemyStatus> getDamagePreviewTarget = null)
+        Func<Vector2, EnemyStatus> getDamagePreviewTarget = null, Action onInsufficientEnergy = null)
     {
         if (cardInstance == null)
             return;
@@ -59,7 +59,7 @@ public class PlayerHand : MonoBehaviour
         {
             if (!card.gameObject.activeSelf)
             {
-                card.SetCard(cardInstance, player, getDamagePreviewTarget);
+                card.SetCard(cardInstance, player, getDamagePreviewTarget, onInsufficientEnergy);
                 card.gameObject.SetActive(true);
 
                 RefreshLayout();

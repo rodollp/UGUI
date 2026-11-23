@@ -11,6 +11,12 @@ public enum CardType
     Power
 }
 
+public enum CardRarity
+{
+    [InspectorName("일반")] Common = 0,
+    [InspectorName("희귀")] Rare = 1
+}
+
 public enum CardTargetType
 {
     None,
@@ -23,6 +29,7 @@ public enum CardTargetType
 public class CardData : ScriptableObject
 {
     public uint CardID;
+    public CardRarity Rarity;
     public CardVersion Base = new();
     public bool HasUpgrade;
     public CardVersion Upgrade = new();

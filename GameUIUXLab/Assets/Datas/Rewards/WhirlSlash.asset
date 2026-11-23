@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: WhirlSlash
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   CardID: 111
+  Rarity: 0
   Base:
     CardName: "\uD68C\uC804\uBCA0\uAE30"
     Type: 0

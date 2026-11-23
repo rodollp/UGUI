@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: IronGuard
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   CardID: 102
+  Rarity: 0
   Base:
     CardName: "\uCCA0\uBCBD"
     Type: 1

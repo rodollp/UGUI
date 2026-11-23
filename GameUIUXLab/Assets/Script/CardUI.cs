@@ -21,6 +21,8 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
     [SerializeField] private float hoverScale = 1.3f;
     [SerializeField] private float moveSpeed = 12f;
 
+    private static readonly Color UnaffordableCostColor = new Color(1f, .68f, .58f);
+    private Color defaultCostColor;
     private RectTransform rectTransform;
     private RectTransform parentRect;
 
@@ -38,6 +40,7 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
     private PlayerStatus damagePreviewPlayer;
     private EnemyStatus damagePreviewTarget;
     private Func<Vector2, EnemyStatus> getDamagePreviewTarget;
+    private Action onInsufficientEnergy;
 
     public event Action<CardUI> OnCardClicked;
     public event Action<CardUI,Vector2> OnCardDropped;
@@ -46,6 +49,7 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
 
     private void Awake()
     {
+        if (costText != null) defaultCostColor = costText.color;
         rectTransform = GetComponent<RectTransform>();
         parentRect = rectTransform.parent as RectTransform;
 
@@ -78,7 +82,7 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
     }
 
     public void SetCard(CardInstance cardInstance, PlayerStatus player = null,
-        Func<Vector2, EnemyStatus> findTarget = null)
+        Func<Vector2, EnemyStatus> findTarget = null, Action onInsufficientEnergy = null)
     {
         if (cardInstance == null)
         {
@@ -89,11 +93,12 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
         SetDamagePreviewTarget(null);
         SetDamagePreviewPlayer(player);
         getDamagePreviewTarget = findTarget;
+        this.onInsufficientEnergy = onInsufficientEnergy;
         CardInstance = cardInstance;
         CardVersion data = cardInstance.Version;
 
         nameText.text = data.CardName;
-        costText.text = cardInstance.CurrentCost.ToString();
+        RefreshCost();
         typeText.text = data.Type.ToString();
         RefreshDescription();
         if (artworkImage != null)
@@ -109,11 +114,13 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
         SetDamagePreviewTarget(null);
         SetDamagePreviewPlayer(null);
         getDamagePreviewTarget = null;
+        onInsufficientEnergy = null;
 
         isDragging = false;
 
         nameText.text = "";
         costText.text = "";
+        costText.color = defaultCostColor;
         typeText.text = "";
         descriptionText.text = "";
         if (artworkImage != null)
@@ -128,6 +135,15 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
         rectTransform.localScale = baseScale;
     }
 
+    private void RefreshCost()
+    {
+        if (CardInstance == null) return;
+        int cost = CardInstance.CurrentCost;
+        costText.text = cost.ToString();
+        costText.color = damagePreviewPlayer != null && damagePreviewPlayer.CurrentEnergy < cost
+            ? UnaffordableCostColor : defaultCostColor;
+    }
+
     private void RefreshDescription()
     {
         if (CardInstance != null)
@@ -137,9 +153,17 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
     private void SetDamagePreviewPlayer(PlayerStatus player)
     {
         if (damagePreviewPlayer == player) return;
-        if (damagePreviewPlayer != null) damagePreviewPlayer.OnStatusChanged -= RefreshDescription;
+        if (damagePreviewPlayer != null)
+        {
+            damagePreviewPlayer.OnStatusChanged -= RefreshDescription;
+            damagePreviewPlayer.OnEnergyChanged -= RefreshCost;
+        }
         damagePreviewPlayer = player;
-        if (isActiveAndEnabled && player != null) player.OnStatusChanged += RefreshDescription;
+        if (isActiveAndEnabled && player != null)
+        {
+            player.OnStatusChanged += RefreshDescription;
+            player.OnEnergyChanged += RefreshCost;
+        }
     }
 
     private void SetDamagePreviewTarget(EnemyStatus target)
@@ -155,7 +179,9 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
     {
         if (damagePreviewPlayer == null) return;
         damagePreviewPlayer.OnStatusChanged += RefreshDescription;
+        damagePreviewPlayer.OnEnergyChanged += RefreshCost;
         RefreshDescription();
+        RefreshCost();
     }
 
     public void OnClickCard()
@@ -196,6 +222,13 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
         if (eventData == null || eventData.button != PointerEventData.InputButton.Left
             || CardInstance == null || isRewardCard)
             return;
+
+        if (damagePreviewPlayer != null && damagePreviewPlayer.CurrentEnergy < CardInstance.CurrentCost)
+        {
+            eventData.eligibleForClick = false;
+            onInsufficientEnergy?.Invoke();
+            return;
+        }
 
         isDragging = true;
         SetDamagePreviewTarget(getDamagePreviewTarget?.Invoke(eventData.position));
@@ -271,7 +304,11 @@ public class CardUI : MonoBehaviour,IPointerEnterHandler,IPointerExitHandler,IBe
 
     private void OnDisable()
     {
-        if (damagePreviewPlayer != null) damagePreviewPlayer.OnStatusChanged -= RefreshDescription;
+        if (damagePreviewPlayer != null)
+        {
+            damagePreviewPlayer.OnStatusChanged -= RefreshDescription;
+            damagePreviewPlayer.OnEnergyChanged -= RefreshCost;
+        }
         CancelDrag();
     }
 

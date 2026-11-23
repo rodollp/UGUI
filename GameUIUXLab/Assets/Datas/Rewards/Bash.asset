@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Bash
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   CardID: 100
+  Rarity: 0
   Base:
     CardName: "\uAC15\uD0C0"
     Type: 0
