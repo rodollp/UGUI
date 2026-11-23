@@ -33,10 +33,22 @@ public static class MapValidation
         };
     }
 
+    [MenuItem("Tools/Map/Validate Adventure")]
+    private static void RunInEditor()
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode) return;
+        if (EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) Run();
+    }
+
     public static void Run()
     {
         try { VerifyModels(); RewardValidation.VerifyModels(); UpgradeValidation.VerifyModels(); }
-        catch (Exception error) { Debug.LogException(error); EditorApplication.Exit(1); return; }
+        catch (Exception error)
+        {
+            Debug.LogException(error);
+            if (Application.isBatchMode) EditorApplication.Exit(1);
+            return;
+        }
         EditorSceneManager.OpenScene("Assets/Scenes/CardGame.unity");
         SessionState.SetBool(Active, true); EditorApplication.isPlaying = true;
     }
@@ -48,13 +60,15 @@ public static class MapValidation
             if (routine.MoveNext()) return;
             Debug.Log($"MAP_SCENE_VALIDATION_OK: {checks} assertions passed.");
             EditorApplication.update -= Tick;
-            SessionState.SetBool(Active, false); SessionState.SetBool(Legacy, true);
+            SessionState.SetBool(Active, false); SessionState.SetBool(Legacy, Application.isBatchMode);
             EditorApplication.isPlaying = false;
         }
         catch (Exception error)
         {
             Debug.LogException(error); SessionState.SetBool(Active, false);
-            EditorApplication.update -= Tick; EditorApplication.Exit(1);
+            EditorApplication.update -= Tick;
+            if (Application.isBatchMode) EditorApplication.Exit(1);
+            else EditorApplication.isPlaying = false;
         }
     }
     private static void Expect(bool value, string message)
@@ -345,7 +359,8 @@ public static class MapValidation
 
         var upgradeChecks = UpgradeValidation.VerifyScene(config);
         while (upgradeChecks.MoveNext()) yield return upgradeChecks.Current;
-        config.Events = new[] { AssetDatabase.LoadAssetAtPath<MapEventData>("Assets/Datas/Adventure/Shrine.asset") };
+        var defaultMap = AssetDatabase.LoadAssetAtPath<RunMapData>("Assets/Datas/Adventure/DefaultMap.asset");
+        config.Events = new[] { MapSetup.FindEvent(defaultMap, "Shrine") };
         adventure.BeginRun();
         MapNode shrine = run.Map.Nodes.Single(n => n.Row == 1 && n.Type == MapNodeType.Event);
         adventure.SelectNode(run.Map.Nodes.First(n => n.Row == 0 && n.Column == shrine.Column).Id);

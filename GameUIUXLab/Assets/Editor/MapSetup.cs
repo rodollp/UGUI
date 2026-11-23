@@ -17,16 +17,6 @@ public static class MapSetup
         BattleRewardData regularRewards = AssetDatabase.LoadAssetAtPath<BattleRewardData>(
             "Assets/Datas/Rewards/DefaultBattleRewards.asset");
         MapEventChoice leave = new MapEventChoice { Label = "지나간다", Result = "아무 일 없이 길을 떠납니다." };
-        MapEventData shrine = Event("Shrine", "수상한 제단",
-            "낡은 제단 위에 금빛 동전이 놓여 있습니다. 작은 대가를 치르면 가져갈 수 있을 것 같습니다.",
-            new MapEventChoice { Label = "피를 바치고 동전을 얻는다", HealthCost = 6, GoldGain = 35,
-                Result = "제단은 당신의 피를 받아들이고 금화를 내어 줍니다." },
-            new MapEventChoice { Label = "조용히 기도한다", HealPercent = 10, Result = "잠시 마음을 가다듬고 기력을 회복합니다." },
-            leave);
-        MapEventData cache = Event("Cache", "버려진 가방",
-            "누군가 두고 간 가방을 발견했습니다. 한 가지 물건만 가져가기로 합니다.",
-            new MapEventChoice { Label = "금화 주머니를 챙긴다", GoldGain = 18, Result = "가방 안에서 금화를 찾아냈습니다." },
-            new MapEventChoice { Label = "치료 약품을 사용한다", HealAmount = 12, Result = "남아 있던 약품으로 상처를 치료합니다." }, leave);
         MapEventData rest = Event("Rest", "조용한 야영지",
             "모닥불의 온기가 남아 있습니다. 다음 싸움을 앞두고 쉬어 갈 수 있습니다.",
             new MapEventChoice { Label = "휴식한다 · 최대 체력의 30% 회복", HealPercent = 30,
@@ -58,14 +48,30 @@ public static class MapSetup
         EncounterData mapBoss = Asset<EncounterData>("MapBossEncounter", e => {
             e.EncounterName = boss.EncounterName; e.Enemies = boss.Enemies; e.Rewards = bossRewards;
         });
-        Asset<RunMapData>("DefaultMap", m => {
+        bool newMap = AssetDatabase.LoadAssetAtPath<RunMapData>(Folder + "/DefaultMap.asset") == null;
+        var mapData = Asset<RunMapData>("DefaultMap", m => {
             m.Battles = new[] {
                 AssetDatabase.LoadAssetAtPath<EncounterData>("Assets/Datas/BattleSamples/GoblinEncounter.asset"),
                 AssetDatabase.LoadAssetAtPath<EncounterData>("Assets/Datas/BattleSamples/PairEncounter.asset")
             };
             m.Elites = new[] { eliteEncounter }; m.Bosses = new[] { mapBoss };
-            m.Events = new[] { shrine, cache }; m.Rest = rest; m.Treasure = treasure;
+            m.Rest = rest; m.Treasure = treasure;
         });
+        if (newMap)
+        {
+            MapEventData shrine = GetOrCreateEvent(mapData, "Shrine", "수상한 제단",
+                "낡은 제단 위에 금빛 동전이 놓여 있습니다. 작은 대가를 치르면 가져갈 수 있을 것 같습니다.",
+                new MapEventChoice { Label = "피를 바치고 동전을 얻는다", HealthCost = 6, GoldGain = 35,
+                    Result = "제단은 당신의 피를 받아들이고 금화를 내어 줍니다." },
+                new MapEventChoice { Label = "조용히 기도한다", HealPercent = 10, Result = "잠시 마음을 가다듬고 기력을 회복합니다." },
+                leave);
+            MapEventData cache = GetOrCreateEvent(mapData, "Cache", "버려진 가방",
+                "누군가 두고 간 가방을 발견했습니다. 한 가지 물건만 가져가기로 합니다.",
+                new MapEventChoice { Label = "금화 주머니를 챙긴다", GoldGain = 18, Result = "가방 안에서 금화를 찾아냈습니다." },
+                new MapEventChoice { Label = "치료 약품을 사용한다", HealAmount = 12, Result = "남아 있던 약품으로 상처를 치료합니다." }, leave);
+            mapData.Events = new[] { shrine, cache };
+            EditorUtility.SetDirty(mapData);
+        }
         ShopSetup.Configure();
 
         var scene = EditorSceneManager.OpenScene("Assets/Scenes/CardGame.unity");
@@ -144,6 +150,29 @@ public static class MapSetup
 
     private static MapEventData Event(string name, string title, string description, params MapEventChoice[] choices) =>
         Asset<MapEventData>(name, e => { e.Title = title; e.Description = description; e.Choices = choices; });
+
+    internal static MapEventData FindEvent(RunMapData map, string name)
+    {
+        return map.Events?.FirstOrDefault(e => e != null && e.name == name)
+            ?? AssetDatabase.LoadAllAssetsAtPath(AssetDatabase.GetAssetPath(map))
+                .OfType<MapEventData>().FirstOrDefault(e => e.name == name)
+            ?? AssetDatabase.LoadAssetAtPath<MapEventData>(Folder + "/" + name + ".asset");
+    }
+
+    internal static MapEventData GetOrCreateEvent(RunMapData map, string name, string title,
+        string description, params MapEventChoice[] choices)
+    {
+        MapEventData existing = FindEvent(map, name);
+        if (existing != null) return existing;
+
+        var data = ScriptableObject.CreateInstance<MapEventData>();
+        data.name = name;
+        data.Title = title;
+        data.Description = description;
+        data.Choices = choices;
+        AssetDatabase.AddObjectToAsset(data, map);
+        return data;
+    }
     private static T Asset<T>(string name, Action<T> configure) where T : ScriptableObject
     {
         string path = Folder + "/" + name + ".asset";

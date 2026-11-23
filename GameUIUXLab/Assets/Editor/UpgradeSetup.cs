@@ -23,22 +23,18 @@ public static class UpgradeSetup
             choices.Insert(Math.Min(1, choices.Count), UpgradeChoice());
             rest.Choices = choices.ToArray(); EditorUtility.SetDirty(rest);
         }
-        string eventPath = "Assets/Datas/Adventure/Smith.asset";
-        var smith = AssetDatabase.LoadAssetAtPath<MapEventData>(eventPath);
-        if (smith == null)
-        {
-            smith = ScriptableObject.CreateInstance<MapEventData>();
-            smith.Title = "길가의 대장장이";
-            smith.Description = "대장장이가 장비를 손봐 주겠다고 합니다. 덱에서 카드 한 장을 강화할 수 있습니다.";
-            smith.Choices = new[] { UpgradeChoice(), new MapEventChoice {
-                Label = "지나간다", Result = "대장장이에게 인사하고 길을 떠납니다." } };
-            AssetDatabase.CreateAsset(smith, eventPath);
-        }
         var map = AssetDatabase.LoadAssetAtPath<RunMapData>("Assets/Datas/Adventure/DefaultMap.asset");
-        if (!map.Events.Contains(smith))
+        var smith = MapSetup.GetOrCreateEvent(map, "Smith", "길가의 대장장이",
+            "대장장이가 장비를 손봐 주겠다고 합니다. 덱에서 카드 한 장을 강화할 수 있습니다.",
+            UpgradeChoice(), new MapEventChoice {
+                Label = "지나간다", Result = "대장장이에게 인사하고 길을 떠납니다." });
+        var events = map.Events ?? Array.Empty<MapEventData>();
+        if (!events.Contains(smith))
         {
-            map.Events = map.Events.Concat(new[] { smith }).ToArray(); EditorUtility.SetDirty(map);
+            map.Events = events.Concat(new[] { smith }).ToArray();
+            EditorUtility.SetDirty(map);
         }
+
         var scene = EditorSceneManager.OpenScene("Assets/Scenes/CardGame.unity");
         var ui = UnityEngine.Object.FindObjectsByType<MapEventUI>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single();
         var adventure = UnityEngine.Object.FindObjectsByType<AdventureController>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single();

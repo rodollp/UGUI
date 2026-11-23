@@ -68,7 +68,8 @@ public static class UpgradeValidation
     {
         checks = 0;
         var adventure = Find<AdventureController>(); var run = adventure.Run;
-        var smith = UnityEngine.Object.Instantiate(AssetDatabase.LoadAssetAtPath<MapEventData>("Assets/Datas/Adventure/Smith.asset"));
+        var defaultMap = AssetDatabase.LoadAssetAtPath<RunMapData>("Assets/Datas/Adventure/DefaultMap.asset");
+        var smith = UnityEngine.Object.Instantiate(MapSetup.FindEvent(defaultMap, "Smith"));
         smith.Choices[0].GoldCost = 10;
         config.Events = new[] { smith };
         adventure.BeginRun(); run.AddGold(100);
