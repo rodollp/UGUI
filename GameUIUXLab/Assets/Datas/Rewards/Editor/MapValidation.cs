@@ -194,6 +194,7 @@ public static class MapValidation
                 "twelve-floor node buttons do not overlap");
         }
         Expect(run.CurrentEncounter == null && run.Gold == 0 && run.MasterDeck.Cards.Count == 10, "fresh run resources");
+        VerifyRelicBar(Find<RunMapUI>().transform, run);
         Expect(!Find<Player>().gameObject.activeInHierarchy && battle.Enemies.Count == 0, "map hides combat world");
         VerifyShopNode(run, adventure, flow);
         config.Shop = null; // Keep the regular event and battle scenarios focused on their own paths.
@@ -221,7 +222,10 @@ public static class MapValidation
         NodeButton(entry.Id).onClick.Invoke();
         Expect(flow.IsPlaying && battle.State == BattleState.PlayerTurn && run.Map.ActiveNode == entry,
             "node click starts selected encounter");
-        UIUpdateValidation.VerifyHUD(Find<PlayHUD>(), run);
+        var playHud = Find<PlayHUD>();
+        UIUpdateValidation.VerifyHUD(playHud, run);
+        var turnLabel = (TMP_Text)new SerializedObject(playHud).FindProperty("turnText").objectReferenceValue;
+        VerifyRelicBar(turnLabel.transform.parent, run);
         yield return null;
         var shortcuts = UnityEngine.Object.FindObjectsByType<Button>(FindObjectsSortMode.None);
         Button mapShortcut = shortcuts.Single(b => b.name == "OpenMapPreview");
@@ -382,6 +386,7 @@ public static class MapValidation
         MapNode failed = run.Map.ActiveNode;
         run.PlayerStatus.TakeDamage(int.MaxValue);
         Expect(battle.State == BattleState.Defeat && !failed.Completed && run.Gold == 0, "defeat grants no map progress or reward");
+        Expect(run.PlayerStatus.CurrentHp == 0 && battle.HpRestoredByRelics == 0, "Defeat does not trigger the warrior relic");
         adventure.ReturnToMap();
         Expect(!flow.IsMap && !adventure.SelectNode(run.Map.Nodes.Last().Id), "defeat cannot resume route");
         flow.ShowTitleScreen();
@@ -406,9 +411,85 @@ public static class MapValidation
         var scroll = Find<RunMapUI>().GetComponentInChildren<ScrollRect>(true);
         Expect(scroll != null && scroll.vertical && !scroll.horizontal && scroll.content.rect.height > scroll.viewport.rect.height,
             "map uses a vertical scroll viewport with spacious rows");
+        var relicChecks = VerifyRelics(run, adventure, battle);
+        while (relicChecks.MoveNext()) yield return relicChecks.Current;
         UnityEngine.Object.Destroy(config);
         UnityEngine.Object.Destroy(paidEvent);
     }
+
+    private static IEnumerator VerifyRelics(RunManager run, AdventureController adventure, BattleManager battle)
+    {
+        RelicData crest = AssetDatabase.LoadAssetAtPath<RelicData>("Assets/Datas/Relics/WarriorCrest.asset");
+        RelicData talisman = AssetDatabase.LoadAssetAtPath<RelicData>("Assets/Datas/Relics/WornTalisman.asset");
+        adventure.BeginRun();
+        Expect(crest != null && talisman != null && run.Relics.SequenceEqual(new[] { crest }),
+            "The warrior starts with its configured relic");
+        MapNode treasure = run.Map.Nodes.First(node => node.Type == MapNodeType.Treasure);
+        foreach (MapNode previous in run.Map.Nodes.Where(node => node.Row < treasure.Row && node.Column == treasure.Column))
+        {
+            Expect(run.TryEnterMapNode(previous.Id), "The route reaches the treasure");
+            run.CompleteStage();
+        }
+        Expect(adventure.SelectNode(treasure.Id), "The treasure opens its event screen");
+        int relicChoice = Array.FindIndex(adventure.CurrentEvent.Choices, choice => choice.Relic == talisman);
+        int gold = run.Gold;
+        Expect(relicChoice >= 0 && adventure.ChooseEvent(relicChoice) && run.Gold == gold
+            && run.Relics.SequenceEqual(new[] { crest, talisman }), "The treasure grants the selected relic once");
+        Expect(!adventure.ChooseEvent(relicChoice) && !run.TryAddRelic(talisman), "A duplicate relic is rejected");
+        adventure.ReturnFromEvent();
+        VerifyRelicBar(Find<RunMapUI>().transform, run);
+
+        int combats = 0;
+        while (!run.IsRunComplete && combats < 2)
+        {
+            MapNode next = run.Map.Nodes.Where(node => run.Map.CanEnter(node.Id))
+                .OrderBy(node => node.IsCombat ? 0 : 1).First();
+            if (!next.IsCombat)
+            {
+                Expect(run.TryEnterMapNode(next.Id), "The route continues after treasure");
+                run.CompleteStage();
+                continue;
+            }
+            Expect(adventure.SelectNode(next.Id) && battle.Turn == 1 && run.PlayerStatus.CurrentBlock == 4,
+                "The talisman grants four block on the first turn of combat");
+            if (combats == 0)
+            {
+                battle.EndPlayerTurn();
+                while (battle.State == BattleState.EnemyTurn) yield return null;
+                Expect(battle.Turn == 2 && run.PlayerStatus.CurrentBlock == 0,
+                    "The talisman does not trigger on the second turn");
+            }
+            int missingHp = combats == 0 ? 2 : 10;
+            run.PlayerStatus.ResetBlock();
+            run.PlayerStatus.Heal(run.PlayerStatus.MaxHp);
+            run.PlayerStatus.TakeDamage(missingHp);
+            foreach (Enemy enemy in battle.Enemies.ToArray()) enemy.Status.TakeDamage(int.MaxValue);
+            battle.CheckBattleEnd();
+            int expectedHealing = combats == 0 ? 2 : 6;
+            Expect(battle.HpRestoredByRelics == expectedHealing
+                && run.PlayerStatus.CurrentHp == run.PlayerStatus.MaxHp - missingHp + expectedHealing,
+                "Warrior victory healing applies once for up to six HP");
+            ClaimCard();
+            NextButton().onClick.Invoke();
+            combats++;
+        }
+        Expect(combats == 2, "The talisman also applies in the following combat");
+        adventure.BeginRun();
+        Expect(run.Relics.SequenceEqual(new[] { crest }), "A new run replaces acquired relics with the starter relic");
+        VerifyRelicBar(Find<RunMapUI>().transform, run);
+    }
+
+    private static void VerifyRelicBar(Transform screen, RunManager run)
+    {
+        var bar = screen.Find("RelicBar") as RectTransform;
+        Expect(bar != null && bar.gameObject.activeInHierarchy && bar.anchorMin == Vector2.up
+            && bar.anchorMax == Vector2.up && bar.pivot == Vector2.up, "Relic bar is visible at the upper left");
+        var label = bar.GetComponentInChildren<TMP_Text>();
+        Expect(label.text == "유물  ·  " + string.Join("  ·  ", run.Relics.Select(relic => relic.DisplayName))
+            && !label.raycastTarget && !bar.GetComponent<Image>().raycastTarget,
+            "The relic bar lists the current inventory without intercepting clicks");
+    }
+
     private static void VerifyShopNode(RunManager run, AdventureController adventure, UIScreenFlowController flow)
     {
         MapNode node = run.Map.Nodes.Single(n => n.Type == MapNodeType.Shop);

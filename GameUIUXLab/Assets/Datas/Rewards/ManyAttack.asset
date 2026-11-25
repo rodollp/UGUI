@@ -22,17 +22,15 @@ MonoBehaviour:
     Artwork: {fileID: 21300000, guid: 1e171cf2eb2109947aa9d2f0d2c8b696, type: 3}
     Effects:
     - {fileID: 5447356406623314755}
-    - {fileID: 4168110530299223724}
   HasUpgrade: 1
   Upgrade:
     CardName: "\uC5F0\uC18D\uBCA0\uAE30+"
     Type: 0
     TargetType: 1
     EnergyCost: 1
-    Artwork: {fileID: 0}
+    Artwork: {fileID: 21300000, guid: 1e171cf2eb2109947aa9d2f0d2c8b696, type: 3}
     Effects:
     - {fileID: 567687218189732739}
-    - {fileID: 1294285546786048172}
 --- !u!114 &567687218189732739
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -46,32 +44,7 @@ MonoBehaviour:
   m_Name: Damage Effect
   m_EditorClassIdentifier: Assembly-CSharp::DamageEffect
   damage: 4
---- !u!114 &1294285546786048172
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 825039c3ceac7db4fa62f2377d0843bc, type: 3}
-  m_Name: Damage Effect
-  m_EditorClassIdentifier: Assembly-CSharp::DamageEffect
-  damage: 4
---- !u!114 &4168110530299223724
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 825039c3ceac7db4fa62f2377d0843bc, type: 3}
-  m_Name: Damage Effect
-  m_EditorClassIdentifier: Assembly-CSharp::DamageEffect
-  damage: 3
+  hits: 2
 --- !u!114 &5447356406623314755
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -85,3 +58,4 @@ MonoBehaviour:
   m_Name: Damage Effect
   m_EditorClassIdentifier: Assembly-CSharp::DamageEffect
   damage: 3
+  hits: 2

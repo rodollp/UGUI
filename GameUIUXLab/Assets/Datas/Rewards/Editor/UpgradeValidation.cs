@@ -18,7 +18,7 @@ public static class UpgradeValidation
     {
         checks = 0;
         string[] paths = { "CardDis/ATK", "CardDis/BLO", "Rewards/Bash", "Rewards/Intimidate", "Rewards/IronGuard",
-            "Rewards/WildShot", "Rewards/WhirlSlash", "Rewards/StrengthTraining", "Rewards/BalanceTraining" };
+            "Rewards/WildShot", "Rewards/WhirlSlash", "Rewards/StrengthTraining", "Rewards/BalanceTraining", "Rewards/ManyAttack" };
         foreach (string path in paths)
         {
             string assetPath = "Assets/Datas/" + path + ".asset";
@@ -37,7 +37,8 @@ public static class UpgradeValidation
             Expect(card.CopyForBattle().IsUpgraded && card.CopyForBattle().CardData == card.CardData, "battle copy retains upgrade");
             var player = new PlayerStatus(100); var enemy = new EnemyStatus(100);
             foreach (var effect in card.Version.Effects) effect.Execute(new CardEffectContext(player, enemy));
-            if (path.EndsWith("ATK")) Expect(enemy.CurrentHp == 91, "strike plus deals nine damage");
+            if (path.EndsWith("ATK")) Expect(enemy.CurrentHp == 91 && data.Upgrade.GetDescription() == "피해를 9 줍니다.",
+                "strike plus uses the original single-hit description and damage");
             if (path.EndsWith("BLO")) Expect(player.CurrentBlock == 8, "defend plus gives eight block");
             if (path.EndsWith("Bash"))
             {
@@ -49,6 +50,22 @@ public static class UpgradeValidation
             }
             if (path.EndsWith("Intimidate")) Expect(enemy.GetDebuffTurns(DebuffType.Weak) == 3, "intimidate plus weak lasts three turns");
             if (path.EndsWith("IronGuard")) Expect(player.CurrentBlock == 11, "iron guard plus gives eleven block");
+            if (path.EndsWith("ManyAttack"))
+            {
+                Expect(data.Base.Effects.Count == 1 && data.Base.GetDescription() == "피해를 3만큼 2번 줍니다.",
+                    "the base multi-hit card shows one damage line");
+                Expect(data.Upgrade.Effects.Count == 1 && data.Upgrade.GetDescription() == "피해를 4만큼 2번 줍니다."
+                    && enemy.CurrentHp == 92, "the upgraded card describes and deals four damage twice");
+                player.AddAttackPower(2);
+                var blockedEnemy = new EnemyStatus(100);
+                blockedEnemy.AddBlock(4);
+                int damageUpdates = 0;
+                blockedEnemy.OnStatusChanged += () => damageUpdates++;
+                data.Base.Effects[0].Execute(new CardEffectContext(player, blockedEnemy));
+                Expect(data.Base.GetDescription(player, blockedEnemy) == "피해를 5만큼 2번 줍니다."
+                    && damageUpdates == 2 && blockedEnemy.CurrentHp == 94 && blockedEnemy.CurrentBlock == 0,
+                    "both hits use attack power and apply damage separately through block");
+            }
         }
         var invalid = ScriptableObject.CreateInstance<MapEventData>();
         invalid.Choices = new[] { new MapEventChoice { Label = "강화", UpgradeCard = true } };

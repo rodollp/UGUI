@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class RunManager : MonoBehaviour
@@ -15,6 +16,8 @@ public class RunManager : MonoBehaviour
 
     public MasterDeck MasterDeck { get; private set; }
     public PlayerStatus PlayerStatus { get; private set; }
+    private readonly List<RelicData> relics = new();
+    public IReadOnlyList<RelicData> Relics => relics;
     public int Gold { get; private set; }
     public int CardsRemoved { get; private set; }
     public int CardRemovalPrice => (int)Math.Min(int.MaxValue, 50L + 50L * CardsRemoved);
@@ -41,6 +44,8 @@ public class RunManager : MonoBehaviour
         }
         MasterDeck = new MasterDeck(playerData.StarterDeck);
         PlayerStatus = new PlayerStatus(playerData.MaxHp);
+        relics.Clear();
+        TryAddRelic(playerData.StartingRelic);
         Gold = 0;
         CardsRemoved = 0;
         OnGoldChanged?.Invoke();
@@ -68,6 +73,13 @@ public class RunManager : MonoBehaviour
     private void SelectCurrentEncounter()
     {
         CurrentEncounter = CurrentStage != null ? CurrentStage.SelectEncounter() : null;
+    }
+
+    public bool TryAddRelic(RelicData relic)
+    {
+        if (relic == null || PlayerStatus == null || PlayerStatus.IsDead || relics.Contains(relic)) return false;
+        relics.Add(relic);
+        return true;
     }
 
     public int AddGold(int amount)

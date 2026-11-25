@@ -65,11 +65,12 @@ public class AdventureController : MonoBehaviour
         if (!CanInteractWithVisit || EventResolved || IsChoosingUpgrade || IsShopping || CurrentEvent == null
             || index < 0 || index >= CurrentEvent.Choices.Length) return false;
         MapEventChoice choice = CurrentEvent.Choices[index];
-        return CanAffordChoice(choice) && (!choice.UpgradeCard || HasUpgradeableCards);
+        return CanResolveChoice(choice) && (!choice.UpgradeCard || HasUpgradeableCards);
     }
 
-    private bool CanAffordChoice(MapEventChoice choice) =>
-        choice.GoldCost <= runManager.Gold && choice.HealthCost < runManager.PlayerStatus.CurrentHp;
+    private bool CanResolveChoice(MapEventChoice choice) =>
+        choice.GoldCost <= runManager.Gold && choice.HealthCost < runManager.PlayerStatus.CurrentHp
+        && (choice.Relic == null || !runManager.Relics.Contains(choice.Relic));
 
     public bool ChooseEvent(int index)
     {
@@ -104,7 +105,7 @@ public class AdventureController : MonoBehaviour
             || !runManager.MasterDeck.Cards.Contains(card) || !card.CanUpgrade
             || runManager.Map.ActiveNode == null || runManager.PlayerStatus.IsDead) return false;
         MapEventChoice choice = CurrentEvent.Choices[upgradeChoice];
-        return CanAffordChoice(choice) && ResolveChoice(choice, card);
+        return CanResolveChoice(choice) && ResolveChoice(choice, card);
     }
 
     private bool ResolveChoice(MapEventChoice choice, CardInstance card)
@@ -122,9 +123,11 @@ public class AdventureController : MonoBehaviour
             + (long)runManager.PlayerStatus.MaxHp * choice.HealPercent / 100);
         runManager.PlayerStatus.Heal(heal);
         if (choice.Card != null) runManager.MasterDeck.AddCard(new CardInstance(choice.Card));
+        bool acquiredRelic = runManager.TryAddRelic(choice.Relic);
         runManager.CompleteStage();
         EventResult = choice.Result + $"\n\n체력 {runManager.PlayerStatus.CurrentHp - hp:+0;-0;0} · 골드 {runManager.Gold - gold:+0;-0;0}"
             + (choice.Card != null ? $"\n{choice.Card.CardName} 카드를 획득했습니다." : "");
+        if (acquiredRelic) EventResult += $"\n{choice.Relic.DisplayName} 유물을 획득했습니다.";
         if (card != null) EventResult += $"\n{originalName} → {card.Version.CardName} 강화 완료";
         OnEventChanged?.Invoke();
         return true;

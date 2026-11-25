@@ -12,6 +12,7 @@ public class MapEventChoice
     [Min(0)] public int HealAmount;
     [Range(0, 100)] public int HealPercent;
     public CardData Card;
+    public RelicData Relic;
     public bool UpgradeCard;
     public ShopData Shop;
 }
@@ -34,8 +35,9 @@ public class MapEventData : ScriptableObject
                 || choice.HealPercent < 0 || choice.HealPercent > 100) return false;
             if (choice.Shop != null && (!choice.Shop.IsValid() || choice.UpgradeCard
                 || choice.GoldCost != 0 || choice.HealthCost != 0 || choice.GoldGain != 0
-                || choice.HealAmount != 0 || choice.HealPercent != 0 || choice.Card != null)) return false;
-            if (choice.GoldCost == 0 && choice.HealthCost == 0 && !choice.UpgradeCard && choice.Shop == null) freeChoice = true;
+                || choice.HealAmount != 0 || choice.HealPercent != 0 || choice.Card != null || choice.Relic != null)) return false;
+            if (choice.GoldCost == 0 && choice.HealthCost == 0 && !choice.UpgradeCard
+                && choice.Shop == null && choice.Relic == null) freeChoice = true;
         }
         return freeChoice;
     }

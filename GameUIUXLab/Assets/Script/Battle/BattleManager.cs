@@ -26,6 +26,7 @@ public class BattleManager : MonoBehaviour
     private readonly System.Random rewardRandom = new System.Random();
     public BattleRewardOffer RewardOffer { get; private set; }
     public int GoldAwarded { get; private set; }
+    public int HpRestoredByRelics { get; private set; }
     public bool HasPendingCardReward => RewardOffer != null && !RewardOffer.IsClaimed;
     public IReadOnlyList<Enemy> Enemies => enemies;
     public BattleState State { get; private set; }
@@ -140,6 +141,11 @@ public class BattleManager : MonoBehaviour
         Turn++;
         playerStatus.ResetBlock();
         playerStatus.StartTurn();
+        if (Turn == 1)
+        {
+            foreach (RelicData relic in runManager.Relics)
+                playerStatus.AddBlock(relic.FirstTurnBlock);
+        }
         State = BattleState.PlayerTurn;
         cardManager.BeginPlayerTurn();
         NotifyChanged();
@@ -175,7 +181,14 @@ public class BattleManager : MonoBehaviour
         cardManager.EndBattle();
         // Preserve HP, but do not carry combat-only stats into rewards or map events.
         playerStatus.ResetCombatState();
-        if (won) GrantVictoryRewards();
+        if (won)
+        {
+            int hpBeforeHealing = playerStatus.CurrentHp;
+            foreach (RelicData relic in runManager.Relics)
+                playerStatus.Heal(relic.VictoryHeal);
+            HpRestoredByRelics = playerStatus.CurrentHp - hpBeforeHealing;
+            GrantVictoryRewards();
+        }
         NotifyChanged();
         OnBattleEnded?.Invoke(won);
         if (screenFlowController != null) screenFlowController.ShowResultScreen();
@@ -208,6 +221,7 @@ public class BattleManager : MonoBehaviour
         State = BattleState.None;
         RewardOffer = null;
         GoldAwarded = 0;
+        HpRestoredByRelics = 0;
         battleRewards = null;
         if (cardManager != null) cardManager.EndBattle();
         ReleasePlayer();

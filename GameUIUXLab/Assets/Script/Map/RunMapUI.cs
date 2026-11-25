@@ -22,7 +22,8 @@ public class RunMapUI : MonoBehaviour
     private Button closePreviewButton;
     private readonly List<NodeView> nodeViews = new List<NodeView>();
     private readonly List<PathView> pathViews = new List<PathView>();
-    private (int Hp, int MaxHp, int Gold, int Cards) displayedStatus = (-1,-1,-1,-1);
+    private (int Hp, int MaxHp, int Gold, int Cards) displayedStatus;
+    private RelicBarView relicBar;
     private bool? displayedComplete;
     private sealed class NodeView
     {
@@ -66,6 +67,8 @@ public class RunMapUI : MonoBehaviour
         closePreviewButton.gameObject.SetActive(false);
         returnTitleButton.gameObject.SetActive(true);
     }
+
+    private void Awake() => relicBar = new RelicBarView(statusText, new Vector2(50, -45));
 
     private void OnEnable()
     {
@@ -124,6 +127,7 @@ public class RunMapUI : MonoBehaviour
     {
         RunManager run = adventure.Run;
         if (!run.HasMap || run.PlayerStatus == null) return;
+        relicBar.Refresh(run);
         RefreshStatus();
         bool rebuilt = !ReferenceEquals(builtMap, run.Map);
         if (rebuilt) BuildMap(run);
@@ -157,11 +161,12 @@ public class RunMapUI : MonoBehaviour
     {
         RunManager run = adventure.Run;
         if (!run.HasMap || run.PlayerStatus == null) return;
-        var status = (run.PlayerStatus.CurrentHp, run.PlayerStatus.MaxHp, run.Gold, run.MasterDeck.Cards.Count);
-        if (!displayedStatus.Equals(status))
+        var status = (Hp: run.PlayerStatus.CurrentHp, MaxHp: run.PlayerStatus.MaxHp, run.Gold,
+            Cards: run.MasterDeck.Cards.Count);
+        if (displayedStatus != status)
         {
             displayedStatus = status;
-            statusText.text = $"체력 {status.Item1}/{status.Item2}   ·   골드 {status.Item3}   ·   덱 {status.Item4}장";
+            statusText.text = $"체력 {status.Hp}/{status.MaxHp}   ·   골드 {status.Gold}   ·   덱 {status.Cards}장";
         }
         if (displayedComplete != run.IsRunComplete)
         {

@@ -25,9 +25,11 @@ public class PlayHUD : MonoBehaviour
     private EnemyIntentOverlay enemyIntents;
     private TMP_Text nextBattleLabel;
     private BattleResourcesView resources;
+    private RelicBarView relicBar;
 
     private void Awake()
     {
+        if (turnText != null) relicBar = new RelicBarView(turnText, new Vector2(50, -112));
         if (energyText != null) resources = new BattleResourcesView(energyText);
         if (enemyIntentRoot != null)
             enemyIntents = new EnemyIntentOverlay(enemyIntentRoot, stageText != null ? stageText : turnText);
@@ -105,6 +107,7 @@ public class PlayHUD : MonoBehaviour
     {
         uiDirty = false;
         if (battleManager == null || runManager == null) return;
+        relicBar?.Refresh(runManager);
         if (goldText != null && displayedGold != runManager.Gold)
         {
             displayedGold = runManager.Gold;

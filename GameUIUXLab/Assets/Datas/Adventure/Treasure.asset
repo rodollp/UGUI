@@ -23,6 +23,15 @@ MonoBehaviour:
     HealAmount: 0
     HealPercent: 0
     Card: {fileID: 0}
+  - Label: "\uD638\uC2E0\uBD80\uB97C \uCC59\uAE34\uB2E4 \u00B7 \uCCAB \uD134 \uBC29\uC5B4\uB3C4 4"
+    Result: "\uC0C1\uC790\uC5D0\uC11C \uB0A1\uC740 \uD638\uC2E0\uBD80\uB97C \uBC1C\uACAC\uD588\uC2B5\uB2C8\uB2E4."
+    GoldCost: 0
+    HealthCost: 0
+    GoldGain: 0
+    HealAmount: 0
+    HealPercent: 0
+    Card: {fileID: 0}
+    Relic: {fileID: 11400000, guid: 391df3524407487194e3097efed41615, type: 2}
   - Label: "\uC9C0\uB098\uAC04\uB2E4"
     Result: "\uC544\uBB34 \uC77C \uC5C6\uC774 \uAE38\uC744 \uB5A0\uB0A9\uB2C8\uB2E4."
     GoldCost: 0

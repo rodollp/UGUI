@@ -344,13 +344,17 @@ public static class BattleValidation
             "Dexterity also appears and active debuffs stay below the buffs");
         strengthPower.Upgrade.Effects[0].Execute(powerContext);
         Expect(strengthLabel.text == "힘 +5", "Stacking a base and upgraded power updates the badge");
+        status.ResetBlock();
+        status.TakeDamage(10);
         status.AddBlock(10);
         hp = status.CurrentHp;
         target.Status.TakeDamage(int.MaxValue);
         Expect(battle.State == BattleState.Victory && run.StageIndex == 1, "Victory advances one floor");
-        Expect(status.CurrentHp == hp && status.CurrentBlock == 0
+        Expect(status.CurrentHp == hp + 6 && battle.HpRestoredByRelics == 6 && status.CurrentBlock == 0
             && status.AttackPower == 0 && status.Dexterity == 0 && status.GetDebuffDescription() == "",
-            "Victory clears combat stats immediately while preserving HP");
+            "Victory heals six from the warrior relic and clears combat stats");
+        battle.CheckBattleEnd();
+        Expect(status.CurrentHp == hp + 6, "Repeated victory checks do not heal again");
         Expect(!buffRow.gameObject.activeSelf && playerDebuffs.rectTransform.anchoredPosition == debuffPosition,
             "End of combat hides the buff row and restores the debuff position");
         UnityEngine.Object.Destroy(deterministicData);
@@ -375,6 +379,7 @@ public static class BattleValidation
         Expect(battle.State == BattleState.Defeat && run.StageIndex == 1 && Hand().Length == 0, "Defeat stops progression");
         Expect(run.Gold == goldBeforeDefeat && run.MasterDeck.Cards.Count == deckBeforeDefeat
             && battle.RewardOffer == null && !battle.TrySelectRewardCard(0), "Defeat has no gold or card reward");
+        Expect(status.CurrentHp == 0 && battle.HpRestoredByRelics == 0, "Defeat never triggers victory healing");
         VerifyResultText("패배", false);
         battle.StartNextBattle();
         Expect(battle.State == BattleState.Defeat, "Cannot advance after defeat");
