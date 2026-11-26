@@ -115,7 +115,7 @@ public class CardManager : MonoBehaviour
             {
                 playerHand.RemoveCard(cardUI);
                 CardEffectContext context = new CardEffectContext(status,
-                    targets.Length == 1 ? targets[0] : null, targets, DrawCards);
+                    targets.Length == 1 ? targets[0] : null, targets, DrawCards, version.CardName);
                 ExecuteEffects(version, context);
             });
         }

@@ -30,16 +30,29 @@ public class MapEventData : ScriptableObject
         bool freeChoice = false;
         foreach (MapEventChoice choice in Choices)
         {
-            if (choice == null || string.IsNullOrWhiteSpace(choice.Label) || choice.GoldCost < 0
-                || choice.HealthCost < 0 || choice.GoldGain < 0 || choice.HealAmount < 0
-                || choice.HealPercent < 0 || choice.HealPercent > 100) return false;
-            if (choice.Shop != null && (!choice.Shop.IsValid() || choice.UpgradeCard
-                || choice.GoldCost != 0 || choice.HealthCost != 0 || choice.GoldGain != 0
-                || choice.HealAmount != 0 || choice.HealPercent != 0 || choice.Card != null || choice.Relic != null)) return false;
+            if (!IsValidChoice(choice)) return false;
             if (choice.GoldCost == 0 && choice.HealthCost == 0 && !choice.UpgradeCard
                 && choice.Shop == null && choice.Relic == null) freeChoice = true;
         }
         return freeChoice;
+    }
+
+    public bool IsValidTreasure()
+    {
+        if (Choices == null || Choices.Length != 1) return false;
+        MapEventChoice choice = Choices[0];
+        return IsValidChoice(choice) && choice.GoldCost == 0 && choice.HealthCost == 0
+            && choice.GoldGain > 0 && choice.Relic != null && !choice.UpgradeCard && choice.Shop == null;
+    }
+
+    private static bool IsValidChoice(MapEventChoice choice)
+    {
+        if (choice == null || string.IsNullOrWhiteSpace(choice.Label) || choice.GoldCost < 0
+            || choice.HealthCost < 0 || choice.GoldGain < 0 || choice.HealAmount < 0
+            || choice.HealPercent < 0 || choice.HealPercent > 100) return false;
+        return choice.Shop == null || (choice.Shop.IsValid() && !choice.UpgradeCard
+            && choice.GoldCost == 0 && choice.HealthCost == 0 && choice.GoldGain == 0
+            && choice.HealAmount == 0 && choice.HealPercent == 0 && choice.Card == null && choice.Relic == null);
     }
 }
 

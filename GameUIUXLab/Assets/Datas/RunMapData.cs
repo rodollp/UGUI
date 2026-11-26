@@ -32,7 +32,7 @@ public class RunMapData : ScriptableObject
             || treasureFloor < 2 || treasureFloor >= rows - 1) return false;
         if (!ValidEncounters(Battles) || !ValidEncounters(Elites)
             || !ValidEncounters(Bosses) || Events == null || Events.Length == 0
-            || Rest == null || !Rest.IsValid() || Treasure == null || !Treasure.IsValid()) return false;
+            || Rest == null || !Rest.IsValid() || Treasure == null || !Treasure.IsValidTreasure()) return false;
         foreach (MapEventData data in Events)
             if (data == null || !data.IsValid()) return false;
         return true;

@@ -179,16 +179,12 @@ public class BattleManager : MonoBehaviour
             return;
         State = won ? BattleState.Victory : BattleState.Defeat;
         cardManager.EndBattle();
-        // Preserve HP, but do not carry combat-only stats into rewards or map events.
         playerStatus.ResetCombatState();
-        if (won)
-        {
-            int hpBeforeHealing = playerStatus.CurrentHp;
-            foreach (RelicData relic in runManager.Relics)
-                playerStatus.Heal(relic.VictoryHeal);
-            HpRestoredByRelics = playerStatus.CurrentHp - hpBeforeHealing;
-            GrantVictoryRewards();
-        }
+        int hpBeforeHealing = playerStatus.CurrentHp;
+        foreach (RelicData relic in runManager.Relics)
+            playerStatus.Heal(relic.BattleEndHeal);
+        HpRestoredByRelics = playerStatus.CurrentHp - hpBeforeHealing;
+        if (won) GrantVictoryRewards();
         NotifyChanged();
         OnBattleEnded?.Invoke(won);
         if (screenFlowController != null) screenFlowController.ShowResultScreen();

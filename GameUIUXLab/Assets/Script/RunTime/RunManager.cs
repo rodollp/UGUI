@@ -79,6 +79,7 @@ public class RunManager : MonoBehaviour
     {
         if (relic == null || PlayerStatus == null || PlayerStatus.IsDead || relics.Contains(relic)) return false;
         relics.Add(relic);
+        PlayerStatus.AddStrikeDamageBonus(relic.StrikeDamageBonus);
         return true;
     }
 

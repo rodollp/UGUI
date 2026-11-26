@@ -21,10 +21,11 @@ public static class MapSetup
             "모닥불의 온기가 남아 있습니다. 다음 싸움을 앞두고 쉬어 갈 수 있습니다.",
             new MapEventChoice { Label = "휴식한다 · 최대 체력의 30% 회복", HealPercent = 30,
                 Result = "모닥불 곁에서 충분히 쉬었습니다." }, leave);
+        RelicData treasureRelic = AssetDatabase.LoadAssetAtPath<RelicData>("Assets/Datas/Relics/WornTalisman.asset");
         MapEventData treasure = Event("Treasure", "잠겨 있지 않은 상자",
             "먼지 쌓인 상자를 발견했습니다. 안쪽에서 금속이 부딪히는 소리가 들립니다.",
-            new MapEventChoice { Label = "상자를 연다 · 골드 25 획득", GoldGain = 25,
-                Result = "상자 속 금화를 챙겼습니다." }, leave);
+            new MapEventChoice { Label = "상자를 연다 · 골드 25 + 유물", GoldGain = 25, Relic = treasureRelic,
+                Result = "상자를 열었습니다." });
         EnemyData elite = Asset<EnemyData>("EliteGuard", e => {
             e.EnemyName = "정예 수호병"; e.EnemyType = EnemyType.Elite; e.MaxHp = 40;
             e.Actions = new[] {

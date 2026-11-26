@@ -29,7 +29,7 @@ public class PlayHUD : MonoBehaviour
 
     private void Awake()
     {
-        if (turnText != null) relicBar = new RelicBarView(turnText, new Vector2(50, -112));
+        if (turnText != null) relicBar = new RelicBarView(turnText, new Vector2(50, -112), tooltipGap: 76);
         if (energyText != null) resources = new BattleResourcesView(energyText);
         if (enemyIntentRoot != null)
             enemyIntents = new EnemyIntentOverlay(enemyIntentRoot, stageText != null ? stageText : turnText);

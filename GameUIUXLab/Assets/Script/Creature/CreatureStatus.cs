@@ -21,6 +21,8 @@ public abstract class CreatureStatus
     public event Action OnStatusChanged;
     public event Action OnDead;
 
+    protected void NotifyStatusChanged() => OnStatusChanged?.Invoke();
+
     protected CreatureStatus(int maxHp)
     {
         MaxHp = Math.Max(1, maxHp);
@@ -147,10 +149,13 @@ public abstract class CreatureStatus
     }
 
     /// <summary>힘 → 약화와 취약의 배율 → 마지막에 한 번 내림. 방어도 차감 전 피해입니다.</summary>
-    public int CalculateAttackDamage(int baseDamage, CreatureStatus target = null)
+    public int CalculateAttackDamage(int baseDamage, CreatureStatus target = null) =>
+        CalculateAttackDamage(baseDamage, target, 0);
+
+    protected int CalculateAttackDamage(int baseDamage, CreatureStatus target, int bonusDamage)
     {
         if (IsDead || (target != null && target.IsDead)) return 0;
-        long amount = Math.Max(0L, (long)baseDamage + AttackPower);
+        long amount = Math.Max(0L, (long)baseDamage + AttackPower + bonusDamage);
         long divisor = 1;
         if (WeakTurns > 0) { amount *= 3; divisor *= 4; }
         if (target != null && target.VulnerableTurns > 0) { amount *= 3; divisor *= 2; }

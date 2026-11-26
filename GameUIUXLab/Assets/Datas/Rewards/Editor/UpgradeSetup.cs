@@ -24,10 +24,12 @@ public static class UpgradeSetup
             rest.Choices = choices.ToArray(); EditorUtility.SetDirty(rest);
         }
         var map = AssetDatabase.LoadAssetAtPath<RunMapData>("Assets/Datas/Adventure/DefaultMap.asset");
+        var hammer = AssetDatabase.LoadAssetAtPath<RelicData>("Assets/Datas/Relics/SmithHammer.asset");
         var smith = MapSetup.GetOrCreateEvent(map, "Smith", "길가의 대장장이",
-            "대장장이가 장비를 손봐 주겠다고 합니다. 덱에서 카드 한 장을 강화할 수 있습니다.",
+            "대장장이가 카드 한 장을 강화해 주거나 직접 쓰던 망치를 건네겠다고 합니다.",
             UpgradeChoice(), new MapEventChoice {
-                Label = "지나간다", Result = "대장장이에게 인사하고 길을 떠납니다." });
+                Label = "대장장이의 망치를 받는다", Result = "대장장이가 손때 묻은 망치를 건넸습니다.", Relic = hammer },
+            new MapEventChoice { Label = "지나간다", Result = "대장장이에게 인사하고 길을 떠납니다." });
         var events = map.Events ?? Array.Empty<MapEventData>();
         if (!events.Contains(smith))
         {

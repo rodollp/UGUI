@@ -22,7 +22,8 @@ public class RunMapUI : MonoBehaviour
     private Button closePreviewButton;
     private readonly List<NodeView> nodeViews = new List<NodeView>();
     private readonly List<PathView> pathViews = new List<PathView>();
-    private (int Hp, int MaxHp, int Gold, int Cards) displayedStatus;
+    private (int Gold, int Cards) displayedStatus = (-1, -1);
+    private MapHealthView healthView;
     private RelicBarView relicBar;
     private bool? displayedComplete;
     private sealed class NodeView
@@ -68,7 +69,14 @@ public class RunMapUI : MonoBehaviour
         returnTitleButton.gameObject.SetActive(true);
     }
 
-    private void Awake() => relicBar = new RelicBarView(statusText, new Vector2(50, -45));
+    private void Awake()
+    {
+        const float panelGap = 12f;
+        var relicPosition = new Vector2(50, -38);
+        var healthPosition = relicPosition + Vector2.down * (RelicBarView.BarHeight + panelGap);
+        relicBar = new RelicBarView(statusText, relicPosition, tooltipGap: MapHealthView.Height + 2 * panelGap);
+        healthView = new MapHealthView(statusText, healthPosition);
+    }
 
     private void OnEnable()
     {
@@ -80,6 +88,7 @@ public class RunMapUI : MonoBehaviour
     {
         adventure.Run.OnMapChanged -= Refresh;
         adventure.Run.OnGoldChanged -= RefreshStatus;
+        healthView.Bind(null);
     }
 
     private Vector2 Position(MapNode node, int rows)
@@ -126,6 +135,7 @@ public class RunMapUI : MonoBehaviour
     public void Refresh()
     {
         RunManager run = adventure.Run;
+        healthView.Bind(run.HasMap ? run.PlayerStatus : null);
         if (!run.HasMap || run.PlayerStatus == null) return;
         relicBar.Refresh(run);
         RefreshStatus();
@@ -161,12 +171,11 @@ public class RunMapUI : MonoBehaviour
     {
         RunManager run = adventure.Run;
         if (!run.HasMap || run.PlayerStatus == null) return;
-        var status = (Hp: run.PlayerStatus.CurrentHp, MaxHp: run.PlayerStatus.MaxHp, run.Gold,
-            Cards: run.MasterDeck.Cards.Count);
+        var status = (run.Gold, Cards: run.MasterDeck.Cards.Count);
         if (displayedStatus != status)
         {
             displayedStatus = status;
-            statusText.text = $"체력 {status.Hp}/{status.MaxHp}   ·   골드 {status.Gold}   ·   덱 {status.Cards}장";
+            statusText.text = $"골드 {status.Gold}   ·   덱 {status.Cards}장";
         }
         if (displayedComplete != run.IsRunComplete)
         {

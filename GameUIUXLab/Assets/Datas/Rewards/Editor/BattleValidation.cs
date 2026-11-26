@@ -352,7 +352,7 @@ public static class BattleValidation
         Expect(battle.State == BattleState.Victory && run.StageIndex == 1, "Victory advances one floor");
         Expect(status.CurrentHp == hp + 6 && battle.HpRestoredByRelics == 6 && status.CurrentBlock == 0
             && status.AttackPower == 0 && status.Dexterity == 0 && status.GetDebuffDescription() == "",
-            "Victory heals six from the warrior relic and clears combat stats");
+            "Ending a won battle heals six from the warrior relic and clears combat stats");
         battle.CheckBattleEnd();
         Expect(status.CurrentHp == hp + 6, "Repeated victory checks do not heal again");
         Expect(!buffRow.gameObject.activeSelf && playerDebuffs.rectTransform.anchoredPosition == debuffPosition,
@@ -379,7 +379,7 @@ public static class BattleValidation
         Expect(battle.State == BattleState.Defeat && run.StageIndex == 1 && Hand().Length == 0, "Defeat stops progression");
         Expect(run.Gold == goldBeforeDefeat && run.MasterDeck.Cards.Count == deckBeforeDefeat
             && battle.RewardOffer == null && !battle.TrySelectRewardCard(0), "Defeat has no gold or card reward");
-        Expect(status.CurrentHp == 0 && battle.HpRestoredByRelics == 0, "Defeat never triggers victory healing");
+        Expect(status.CurrentHp == 0 && battle.HpRestoredByRelics == 0, "The warrior relic cannot revive a defeated player");
         VerifyResultText("패배", false);
         battle.StartNextBattle();
         Expect(battle.State == BattleState.Defeat, "Cannot advance after defeat");

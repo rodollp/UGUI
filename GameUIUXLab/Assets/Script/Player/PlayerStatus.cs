@@ -4,6 +4,7 @@ public class PlayerStatus : CreatureStatus
 {
     private readonly int baseMaxEnergy;
     private int pendingMaxEnergyIncrease;
+    private int strikeDamageBonus;
 
     public int MaxEnergy { get; private set; }
     public int CurrentEnergy { get; private set; }
@@ -16,6 +17,19 @@ public class PlayerStatus : CreatureStatus
         baseMaxEnergy = Math.Max(0, maxEnergy);
         MaxEnergy = baseMaxEnergy;
         CurrentEnergy = baseMaxEnergy;
+    }
+
+    internal void AddStrikeDamageBonus(int amount)
+    {
+        if (amount <= 0) return;
+        strikeDamageBonus += Math.Min(amount, int.MaxValue - strikeDamageBonus);
+        NotifyStatusChanged();
+    }
+
+    internal int CalculateCardAttackDamage(int baseDamage, EnemyStatus target, string cardName)
+    {
+        bool isStrike = cardName?.IndexOf(RelicData.StrikeCardName, StringComparison.Ordinal) >= 0;
+        return CalculateAttackDamage(baseDamage, target, isStrike ? strikeDamageBonus : 0);
     }
 
     public bool CanUseEnergy(int cost)

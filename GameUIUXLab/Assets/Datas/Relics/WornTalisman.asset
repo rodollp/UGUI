@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: WornTalisman
   m_EditorClassIdentifier: Assembly-CSharp::RelicData
   DisplayName: "\uB0A1\uC740 \uD638\uC2E0\uBD80"
-  VictoryHeal: 0
+  BattleEndHeal: 0
   FirstTurnBlock: 4

@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: WarriorCrest
   m_EditorClassIdentifier: Assembly-CSharp::RelicData
   DisplayName: "\uC804\uC0AC\uC758 \uBB38\uC7A5"
-  VictoryHeal: 6
+  BattleEndHeal: 6
   FirstTurnBlock: 0

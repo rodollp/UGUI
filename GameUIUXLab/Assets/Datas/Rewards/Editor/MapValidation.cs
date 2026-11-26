@@ -203,7 +203,13 @@ public static class MapValidation
         battle.StartBattle();
         Expect(battle.State == BattleState.None, "battle cannot start without a selected combat node");
         yield return null;
-        UIUpdateValidation.VerifyMap(Find<RunMapUI>(), run);
+        var mapUI = Find<RunMapUI>();
+        UIUpdateValidation.VerifyMap(mapUI, run);
+        VerifyMapHealth(mapUI, run.PlayerStatus);
+        run.PlayerStatus.TakeDamage(7);
+        VerifyMapHealth(mapUI, run.PlayerStatus);
+        run.PlayerStatus.Heal(7);
+        VerifyMapHealth(mapUI, run.PlayerStatus);
         Capture("map-preview.png");
         var previewScroll = Find<RunMapUI>().GetComponentInChildren<ScrollRect>(true);
         previewScroll.verticalNormalizedPosition = 1;
@@ -234,7 +240,9 @@ public static class MapValidation
             && !deckShortcut.GetComponentInChildren<AdventureShortcutIcon>().ShowMap,
             "battle shows distinct map and card shortcut icons");
         int turn = battle.Turn;
+        run.PlayerStatus.TakeDamage(4);
         mapShortcut.onClick.Invoke();
+        VerifyMapHealth(mapUI, run.PlayerStatus);
         MapNodeIcon currentIcon = NodeButton(entry.Id).GetComponentInChildren<MapNodeIcon>();
         Expect(flow.IsMapPreviewOpen && flow.IsPlaying && !flow.IsMap && Time.timeScale == 0
             && currentIcon.Available && !NodeButton(entry.Id).interactable,
@@ -258,6 +266,7 @@ public static class MapValidation
             "escape dismissal also resumes the same turn");
         Expect(run.CurrentEncounter == entry.Encounter && Find<Player>().gameObject.activeInHierarchy,
             "node encounter and world enabled");
+        run.PlayerStatus.Heal(4);
         foreach (Enemy enemy in battle.Enemies.ToArray()) enemy.Status.TakeDamage(int.MaxValue);
         Expect(battle.State == BattleState.Victory && battle.HasPendingCardReward && entry.Completed,
             "victory completes node and awaits reward");
@@ -386,7 +395,7 @@ public static class MapValidation
         MapNode failed = run.Map.ActiveNode;
         run.PlayerStatus.TakeDamage(int.MaxValue);
         Expect(battle.State == BattleState.Defeat && !failed.Completed && run.Gold == 0, "defeat grants no map progress or reward");
-        Expect(run.PlayerStatus.CurrentHp == 0 && battle.HpRestoredByRelics == 0, "Defeat does not trigger the warrior relic");
+        Expect(run.PlayerStatus.CurrentHp == 0 && battle.HpRestoredByRelics == 0, "Battle-end healing does not revive a defeated player");
         adventure.ReturnToMap();
         Expect(!flow.IsMap && !adventure.SelectNode(run.Map.Nodes.Last().Id), "defeat cannot resume route");
         flow.ShowTitleScreen();
@@ -413,6 +422,7 @@ public static class MapValidation
             "map uses a vertical scroll viewport with spacious rows");
         var relicChecks = VerifyRelics(run, adventure, battle);
         while (relicChecks.MoveNext()) yield return relicChecks.Current;
+        VerifyStrikeRelic(config, run, adventure, battle);
         UnityEngine.Object.Destroy(config);
         UnityEngine.Object.Destroy(paidEvent);
     }
@@ -424,6 +434,8 @@ public static class MapValidation
         adventure.BeginRun();
         Expect(crest != null && talisman != null && run.Relics.SequenceEqual(new[] { crest }),
             "The warrior starts with its configured relic");
+        Expect(crest.GetEffectDescription() == "전투 종료 시 체력을 최대 6 회복합니다.",
+            "The warrior relic describes its battle-end trigger");
         MapNode treasure = run.Map.Nodes.First(node => node.Type == MapNodeType.Treasure);
         foreach (MapNode previous in run.Map.Nodes.Where(node => node.Row < treasure.Row && node.Column == treasure.Column))
         {
@@ -431,12 +443,21 @@ public static class MapValidation
             run.CompleteStage();
         }
         Expect(adventure.SelectNode(treasure.Id), "The treasure opens its event screen");
-        int relicChoice = Array.FindIndex(adventure.CurrentEvent.Choices, choice => choice.Relic == talisman);
+        Transform eventScreen = Find<MapEventUI>().transform;
+        Button open = eventScreen.Find("Choice0").GetComponent<Button>();
+        Expect(adventure.CurrentEvent.Choices.Length == 1 && open.gameObject.activeInHierarchy && open.interactable
+            && !eventScreen.Find("Choice1").gameObject.activeSelf && !eventScreen.Find("Choice2").gameObject.activeSelf,
+            "The treasure presents one open action");
         int gold = run.Gold;
-        Expect(relicChoice >= 0 && adventure.ChooseEvent(relicChoice) && run.Gold == gold
-            && run.Relics.SequenceEqual(new[] { crest, talisman }), "The treasure grants the selected relic once");
-        Expect(!adventure.ChooseEvent(relicChoice) && !run.TryAddRelic(talisman), "A duplicate relic is rejected");
+        open.onClick.Invoke();
+        Expect(adventure.EventResolved && run.Gold == gold + 25
+            && run.Relics.SequenceEqual(new[] { crest, talisman })
+            && adventure.EventResult.Contains("골드 +25") && adventure.EventResult.Contains(talisman.DisplayName),
+            "Opening the treasure awards and shows both gold and relic");
+        Expect(!adventure.ChooseEvent(0) && !run.TryAddRelic(talisman) && run.Gold == gold + 25,
+            "The treasure cannot grant rewards twice");
         adventure.ReturnFromEvent();
+        Expect(!adventure.SelectNode(treasure.Id), "The opened treasure cannot be revisited");
         VerifyRelicBar(Find<RunMapUI>().transform, run);
 
         int combats = 0;
@@ -468,7 +489,7 @@ public static class MapValidation
             int expectedHealing = combats == 0 ? 2 : 6;
             Expect(battle.HpRestoredByRelics == expectedHealing
                 && run.PlayerStatus.CurrentHp == run.PlayerStatus.MaxHp - missingHp + expectedHealing,
-                "Warrior victory healing applies once for up to six HP");
+                "Warrior battle-end healing applies once for up to six HP");
             ClaimCard();
             NextButton().onClick.Invoke();
             combats++;
@@ -479,15 +500,116 @@ public static class MapValidation
         VerifyRelicBar(Find<RunMapUI>().transform, run);
     }
 
+    private static void VerifyStrikeRelic(RunMapData config, RunManager run, AdventureController adventure, BattleManager battle)
+    {
+        var defaultMap = AssetDatabase.LoadAssetAtPath<RunMapData>("Assets/Datas/Adventure/DefaultMap.asset");
+        var smith = defaultMap.Events.Single(data => data.name == "Smith");
+        var hammer = AssetDatabase.LoadAssetAtPath<RelicData>("Assets/Datas/Relics/SmithHammer.asset");
+        var strike = AssetDatabase.LoadAssetAtPath<CardData>("Assets/Datas/CardDis/ATK.asset");
+        var bash = AssetDatabase.LoadAssetAtPath<CardData>("Assets/Datas/Rewards/Bash.asset");
+        config.Events = new[] { smith };
+        config.UnknownBattlePercent = 0;
+        adventure.BeginRun();
+        Expect(strike.Base.GetDescription(run.PlayerStatus) == "피해를 6 줍니다.", "Strike starts at its base damage");
+
+        MapNode eventNode = run.Map.Nodes.Single(node => node.Row == 1 && node.Event == smith);
+        MapNode approach = run.Map.Nodes.Single(node => node.Row == 0 && node.Column == eventNode.Column);
+        Expect(run.TryEnterMapNode(approach.Id), "Route reaches the smith");
+        run.CompleteStage();
+        Expect(adventure.SelectNode(eventNode.Id), "The smith event opens");
+        int choice = Array.FindIndex(smith.Choices, option => option.Relic == hammer);
+        Expect(hammer != null && choice >= 0, "The smith offers the hammer relic");
+        Find<MapEventUI>().transform.Find("Choice" + choice).GetComponent<Button>().onClick.Invoke();
+        Expect(adventure.EventResolved && run.Relics.Contains(hammer) && !adventure.ChooseEvent(choice),
+            "The smith grants the hammer once");
+        adventure.ReturnFromEvent();
+        VerifyRelicBar(Find<RunMapUI>().transform, run);
+
+        foreach (CardInstance card in run.MasterDeck.Cards.ToArray()) run.MasterDeck.RemoveCard(card);
+        var upgradedStrike = new CardInstance(strike);
+        upgradedStrike.TryUpgrade();
+        run.MasterDeck.AddCard(new CardInstance(strike));
+        run.MasterDeck.AddCard(upgradedStrike);
+        run.MasterDeck.AddCard(new CardInstance(bash));
+
+        MapNode next = run.Map.Nodes.First(node => run.Map.CanEnter(node.Id));
+        while (!next.IsCombat)
+        {
+            Expect(run.TryEnterMapNode(next.Id), "The route continues after the smith");
+            run.CompleteStage();
+            next = run.Map.Nodes.First(node => run.Map.CanEnter(node.Id));
+        }
+        Expect(adventure.SelectNode(next.Id), "Combat starts after acquiring the hammer");
+        CardUI[] hand = UnityEngine.Object.FindObjectsByType<CardUI>(FindObjectsSortMode.None)
+            .Where(view => view.CardInstance != null).ToArray();
+        CardUI basic = hand.Single(view => view.CardInstance.CardData == strike && !view.CardInstance.IsUpgraded);
+        string Description(CardUI view) =>
+            ((TMP_Text)new SerializedObject(view).FindProperty("descriptionText").objectReferenceValue).text;
+        Expect(Description(basic) == "피해를 9 줍니다."
+            && Description(hand.Single(view => view.CardInstance.IsUpgraded)) == "피해를 12 줍니다."
+            && Description(hand.Single(view => view.CardInstance.CardData == bash)).StartsWith("피해를 8 줍니다."),
+            "The hand shows the bonus on Strike and Strike+ and the base damage on Bash");
+
+        Enemy enemy = battle.Enemies.First();
+        int hp = enemy.Status.CurrentHp;
+        Find<CardManager>().UseCard(basic, enemy);
+        Expect(enemy.Status.CurrentHp == hp - 9, "Playing Strike deals the damage shown on the card");
+
+        var multiHit = AssetDatabase.LoadAssetAtPath<CardData>("Assets/Datas/Rewards/ManyAttack.asset")
+            .Base.Effects.OfType<DamageEffect>().Single();
+        var practiceTarget = new EnemyStatus(30);
+        const string multiStrikeName = "연속 타격";
+        multiHit.Execute(new CardEffectContext(run.PlayerStatus, practiceTarget, cardName: multiStrikeName));
+        Expect(practiceTarget.CurrentHp == 18
+            && multiHit.GetDescription(run.PlayerStatus, null, multiStrikeName) == "피해를 6만큼 2번 줍니다.",
+            "A named multi-hit attack receives the bonus per hit");
+
+        adventure.BeginRun();
+        Expect(!run.Relics.Contains(hammer) && strike.Base.GetDescription(run.PlayerStatus) == "피해를 6 줍니다.",
+            "A new run clears the hammer bonus");
+    }
+
+    private static void VerifyMapHealth(RunMapUI map, PlayerStatus player)
+    {
+        var health = map.transform.Find("MapHealth") as RectTransform;
+        Expect(health != null && health.gameObject.activeInHierarchy
+            && health.anchorMin == Vector2.up && health.anchorMax == Vector2.up,
+            "The map shows health in the upper-left HUD");
+        var value = health.Find("Value").GetComponent<TMP_Text>();
+        var fill = (RectTransform)health.Find("Track/Fill");
+        Expect(value.text == $"{player.CurrentHp} / {player.MaxHp}"
+            && Mathf.Approximately(fill.anchorMax.x, (float)player.CurrentHp / player.MaxHp),
+            "The map health value and fill match the current player status");
+    }
+
     private static void VerifyRelicBar(Transform screen, RunManager run)
     {
         var bar = screen.Find("RelicBar") as RectTransform;
         Expect(bar != null && bar.gameObject.activeInHierarchy && bar.anchorMin == Vector2.up
             && bar.anchorMax == Vector2.up && bar.pivot == Vector2.up, "Relic bar is visible at the upper left");
-        var label = bar.GetComponentInChildren<TMP_Text>();
-        Expect(label.text == "유물  ·  " + string.Join("  ·  ", run.Relics.Select(relic => relic.DisplayName))
-            && !label.raycastTarget && !bar.GetComponent<Image>().raycastTarget,
-            "The relic bar lists the current inventory without intercepting clicks");
+        var targets = bar.GetComponentsInChildren<RelicTooltipTarget>();
+        Expect(targets.Length == run.Relics.Count && !bar.GetComponent<Image>().raycastTarget,
+            "There is one hover target per owned relic");
+        Transform tooltip = bar.Find("RelicTooltip");
+        var title = tooltip.Find("Title").GetComponent<TMP_Text>();
+        var description = tooltip.Find("Description").GetComponent<TMP_Text>();
+        Expect(!tooltip.gameObject.activeSelf && !tooltip.GetComponent<Image>().raycastTarget,
+            "The tooltip starts hidden and does not intercept pointer input");
+        for (int i = 0; i < targets.Length; i++)
+        {
+            var relic = run.Relics[i];
+            var target = targets[i];
+            target.OnPointerEnter(null);
+            Expect(tooltip.gameObject.activeInHierarchy && title.text == relic.DisplayName
+                && description.text == relic.GetEffectDescription(), "Hover identifies the relic and explains its effect");
+            if (i > 0)
+            {
+                targets[i - 1].OnPointerExit(null);
+                Expect(tooltip.gameObject.activeInHierarchy, "Leaving a previous relic does not hide the current tooltip");
+            }
+        }
+        targets.Last().OnPointerExit(null);
+        Expect(!tooltip.gameObject.activeSelf, "Leaving the current relic hides the tooltip");
     }
 
     private static void VerifyShopNode(RunManager run, AdventureController adventure, UIScreenFlowController flow)

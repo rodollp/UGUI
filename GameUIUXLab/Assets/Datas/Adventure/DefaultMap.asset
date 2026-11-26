@@ -136,7 +136,7 @@ MonoBehaviour:
   m_Name: Smith
   m_EditorClassIdentifier: Assembly-CSharp::MapEventData
   Title: "\uAE38\uAC00\uC758 \uB300\uC7A5\uC7A5\uC774"
-  Description: "\uB300\uC7A5\uC7A5\uC774\uAC00 \uC7A5\uBE44\uB97C \uC190\uBD10 \uC8FC\uACA0\uB2E4\uACE0 \uD569\uB2C8\uB2E4. \uB371\uC5D0\uC11C \uCE74\uB4DC \uD55C \uC7A5\uC744 \uAC15\uD654\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4."
+  Description: "\uB300\uC7A5\uC7A5\uC774\uAC00 \uCE74\uB4DC \uD55C \uC7A5\uC744 \uAC15\uD654\uD574 \uC8FC\uAC70\uB098 \uC9C1\uC811 \uC4F0\uB358 \uB9DD\uCE58\uB97C \uAC74\uB124\uACA0\uB2E4\uACE0 \uD569\uB2C8\uB2E4."
   Choices:
   - Label: "\uCE74\uB4DC \uD55C \uC7A5\uC744 \uAC15\uD654\uD55C\uB2E4"
     Result: "\uCE74\uB4DC\uB97C \uAC15\uD654\uD588\uC2B5\uB2C8\uB2E4."
@@ -147,6 +147,17 @@ MonoBehaviour:
     HealPercent: 0
     Card: {fileID: 0}
     UpgradeCard: 1
+    Shop: {fileID: 0}
+  - Label: "\uB300\uC7A5\uC7A5\uC774\uC758 \uB9DD\uCE58\uB97C \uBC1B\uB294\uB2E4"
+    Result: "\uB300\uC7A5\uC7A5\uC774\uAC00 \uC190\uB54C \uBB3B\uC740 \uB9DD\uCE58\uB97C \uAC74\uB138\uC2B5\uB2C8\uB2E4."
+    GoldCost: 0
+    HealthCost: 0
+    GoldGain: 0
+    HealAmount: 0
+    HealPercent: 0
+    Card: {fileID: 0}
+    Relic: {fileID: 11400000, guid: 60361d04d80842448158024fc5578589, type: 2}
+    UpgradeCard: 0
     Shop: {fileID: 0}
   - Label: "\uC9C0\uB098\uAC04\uB2E4"
     Result: "\uB300\uC7A5\uC7A5\uC774\uC5D0\uAC8C \uC778\uC0AC\uD558\uACE0 \uAE38\uC744 \uB5A0\uB0A9\uB2C8\uB2E4."

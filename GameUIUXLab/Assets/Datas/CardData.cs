@@ -57,7 +57,7 @@ public sealed class CardVersion
                 : "";
         return prefix + (Effects == null ? "" : string.Join("\n", Effects
             .Where(effect => effect != null)
-            .Select(effect => effect is DamageEffect damage ? damage.GetDescription(player, target)
+            .Select(effect => effect is DamageEffect damage ? damage.GetDescription(player, target, CardName)
                 : effect.GetDescription())));
     }
 }
