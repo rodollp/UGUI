@@ -5,6 +5,7 @@ public sealed class BattleRewardOffer
 {
     public const int ChoiceCount = 3;
     public int Gold { get; }
+    public RelicData Relic { get; }
     public IReadOnlyList<CardData> Choices { get; }
     public bool IsClaimed { get; private set; }
     public CardData SelectedCard { get; private set; }
@@ -17,7 +18,7 @@ public sealed class BattleRewardOffer
         return true;
     }
 
-    public BattleRewardOffer(int gold, IList<CardData> choices)
+    public BattleRewardOffer(int gold, IList<CardData> choices, RelicData relic = null)
     {
         if (gold < 0 || choices == null || choices.Count != ChoiceCount)
             throw new ArgumentException("카드 보상은 정확히 3개의 선택지가 필요합니다.");
@@ -29,6 +30,7 @@ public sealed class BattleRewardOffer
             copy.Add(card);
         }
         Gold = gold;
+        Relic = relic;
         Choices = copy.AsReadOnly();
     }
 

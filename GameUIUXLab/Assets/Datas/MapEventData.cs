@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using UnityEngine;
 
 [Serializable]
@@ -23,6 +24,7 @@ public class MapEventData : ScriptableObject
     public string Title;
     [TextArea(3, 8)] public string Description;
     public MapEventChoice[] Choices;
+    public BattleRewardData TreasureRelicRewards;
 
     public bool IsValid()
     {
@@ -41,8 +43,12 @@ public class MapEventData : ScriptableObject
     {
         if (Choices == null || Choices.Length != 1) return false;
         MapEventChoice choice = Choices[0];
-        return IsValidChoice(choice) && choice.GoldCost == 0 && choice.HealthCost == 0
-            && choice.GoldGain > 0 && choice.Relic != null && !choice.UpgradeCard && choice.Shop == null;
+        if (!IsValidChoice(choice) || choice.GoldCost != 0 || choice.HealthCost != 0
+            || choice.GoldGain <= 0 || choice.UpgradeCard || choice.Shop != null) return false;
+
+        return TreasureRelicRewards == null
+            ? choice.Relic != null
+            : choice.Relic == null && TreasureRelicRewards.RelicPool?.Any(relic => relic != null) == true;
     }
 
     private static bool IsValidChoice(MapEventChoice choice)

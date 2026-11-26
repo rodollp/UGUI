@@ -66,7 +66,9 @@ public class BattleRewardUI : MonoBehaviour
         if (!won) { displayedOffer = null; return; }
         string relicHealing = battleManager.HpRestoredByRelics > 0
             ? $"  ·  유물 회복 +{battleManager.HpRestoredByRelics}" : "";
-        goldText.text = $"골드 +{battleManager.GoldAwarded}  ·  보유 골드 {runManager.Gold}{relicHealing}";
+        RelicData relic = battleManager.RelicAwarded;
+        string relicReward = relic != null ? $"  ·  유물 획득 {relic.DisplayName}" : "";
+        goldText.text = $"골드 +{battleManager.GoldAwarded}  ·  보유 골드 {runManager.Gold}{relicHealing}{relicReward}";
         promptText.text = pending ? "카드 한 장을 선택하거나 다음으로 넘어가세요" :
             offer.IsSkipped ? "카드 보상을 건너뛰었습니다." :
             $"{offer.SelectedCard.CardName} 카드를 덱에 추가했습니다.";

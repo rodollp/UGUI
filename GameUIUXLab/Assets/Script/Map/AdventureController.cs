@@ -14,6 +14,7 @@ public class AdventureController : MonoBehaviour
     public ShopInventory CurrentShop { get; private set; }
     public bool IsShopping => CurrentShop != null && !EventResolved;
     public string ShopMessage { get; private set; }
+    private readonly System.Random treasureRandom = new();
     private bool shopTransaction;
     private int upgradeChoice = -1;
     public bool IsChoosingUpgrade => upgradeChoice >= 0;
@@ -114,6 +115,9 @@ public class AdventureController : MonoBehaviour
         int hp = runManager.PlayerStatus.CurrentHp;
         int gold = runManager.Gold;
         if (!runManager.TrySpendGold(choice.GoldCost)) { EventResolved = false; return false; }
+        RelicData relic = choice.Relic;
+        if (runManager.Map.ActiveNode.Type == MapNodeType.Treasure && CurrentEvent.TreasureRelicRewards != null)
+            relic = CurrentEvent.TreasureRelicRewards.RollRelic(treasureRandom, runManager.Relics);
         string originalName = card?.Version.CardName;
         if (card != null) card.TryUpgrade();
         upgradeChoice = -1;
@@ -123,11 +127,11 @@ public class AdventureController : MonoBehaviour
             + (long)runManager.PlayerStatus.MaxHp * choice.HealPercent / 100);
         runManager.PlayerStatus.Heal(heal);
         if (choice.Card != null) runManager.MasterDeck.AddCard(new CardInstance(choice.Card));
-        bool acquiredRelic = runManager.TryAddRelic(choice.Relic);
+        bool acquiredRelic = runManager.TryAddRelic(relic);
         runManager.CompleteStage();
         EventResult = choice.Result + $"\n\n체력 {runManager.PlayerStatus.CurrentHp - hp:+0;-0;0} · 골드 {runManager.Gold - gold:+0;-0;0}"
             + (choice.Card != null ? $"\n{choice.Card.CardName} 카드를 획득했습니다." : "");
-        if (acquiredRelic) EventResult += $"\n{choice.Relic.DisplayName} 유물을 획득했습니다.";
+        if (acquiredRelic) EventResult += $"\n{relic.DisplayName} 유물을 획득했습니다.";
         if (card != null) EventResult += $"\n{originalName} → {card.Version.CardName} 강화 완료";
         OnEventChanged?.Invoke();
         return true;

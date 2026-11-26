@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using TMPro;
@@ -84,6 +85,16 @@ public static class MapValidation
         Expect(data != null && data.IsValid(), "default map configuration valid");
         Expect(data.Shop != null && data.Events.All(story => story.Choices.All(choice => choice.Shop == null)),
             "default map has a dedicated shop and no shop events");
+        BattleRewardData eliteRewards = data.Elites[0].Rewards;
+        RelicData[] elitePool = eliteRewards.RelicPool.Where(relic => relic != null).Distinct().ToArray();
+        Expect(elitePool.Length == 4 && data.Treasure.TreasureRelicRewards == eliteRewards,
+            "the default chest and elite encounters share four distinct relics");
+        Expect(eliteRewards.CreateOffer(new System.Random(3), elitePool.Skip(1).ToArray()).Relic == elitePool[0]
+            && eliteRewards.CreateOffer(new System.Random(3), elitePool).Relic == null,
+            "the shared pool skips owned relics and handles an exhausted pool");
+        var drawnRelics = Enumerable.Range(0, 16)
+            .Select(seed => eliteRewards.CreateOffer(new System.Random(seed)).Relic).ToArray();
+        Expect(elitePool.All(drawnRelics.Contains), "each relic can be drawn from the shared pool");
         bool sawElite = false;
         bool sawFourthFloorRest = false;
         for (int seed = 0; seed < 16; seed++)
@@ -94,7 +105,7 @@ public static class MapValidation
                 && map.Nodes.All(n => (n.Row == 5) == (n.Type == MapNodeType.Treasure)),
                 "treasure appears on every sixth-floor node and nowhere else");
             foreach (MapNode start in map.Nodes.Where(n => n.Row == 0))
-                VerifyRoutes(map, start, 1, 0, data.TreasureFloor);
+                VerifyRoutes(map, start, 1, 0, data.TreasureFloor, elitePool.Length);
             Expect(map.Nodes.Count == (data.Rows - 1) * 3 + 1, "node count");
             Expect(map.Nodes.All(n => n.Type != MapNodeType.Elite || n.Row + 1 >= 5), "no elites before floor five");
             Expect(map.Nodes.All(n => n.Type != MapNodeType.Rest || n.Row + 1 >= 4), "no rest before floor four");
@@ -147,17 +158,21 @@ public static class MapValidation
     private static string Signature(RunMap map) => string.Join("|", map.Nodes.Select(n =>
         $"{n.Id}:{n.Type}:{n.IsUnknown}:{n.Encounter?.name}:{n.Event?.name}:{string.Join(",", n.Outgoing)}"));
 
-    private static void VerifyRoutes(RunMap map, MapNode node, int visits, int treasures, int treasureFloor)
+    private static void VerifyRoutes(RunMap map, MapNode node, int visits, int treasures, int treasureFloor,
+        int relicPoolSize, int elites = 0)
     {
+        if (node.Type == MapNodeType.Elite) elites++;
         if (node.Type == MapNodeType.Treasure)
         {
             treasures++;
             Expect(visits == treasureFloor, "every possible route reaches treasure on its configured visit");
         }
         if (node.Outgoing.Count == 0)
-            Expect(visits == map.Rows && treasures == 1 && node.Type == MapNodeType.Boss,
-                "every possible route ends at the twelfth node after exactly one treasure");
-        foreach (int id in node.Outgoing) VerifyRoutes(map, map.Find(id), visits + 1, treasures, treasureFloor);
+            Expect(visits == map.Rows && treasures == 1 && node.Type == MapNodeType.Boss
+                && elites + treasures <= relicPoolSize,
+                "every route reaches the boss and has enough distinct relics for its chest and elite rewards");
+        foreach (int id in node.Outgoing)
+            VerifyRoutes(map, map.Find(id), visits + 1, treasures, treasureFloor, relicPoolSize, elites);
     }
 
     private static IEnumerator VerifyScene()
@@ -321,6 +336,8 @@ public static class MapValidation
             {
                 foreach (Enemy enemy in battle.Enemies.ToArray()) enemy.Status.TakeDamage(int.MaxValue);
                 Expect(battle.HasPendingCardReward, "all combat node types award rewards");
+                Expect(node.Type == MapNodeType.Elite ? battle.RelicAwarded != null : battle.RelicAwarded == null,
+                    "only elite victories grant a relic on the default route");
                 ClaimCard();
                 NextButton().onClick.Invoke();
             }
@@ -328,6 +345,7 @@ public static class MapValidation
             {
                 int beforeGold = run.Gold; int beforeHp = run.PlayerStatus.CurrentHp;
                 int beforeDeck = run.MasterDeck.Cards.Count;
+                int beforeRelics = run.Relics.Count;
                 MapEventChoice choice = adventure.CurrentEvent.Choices[0];
                 Expect(adventure.ChooseEvent(0), "affordable event choice accepted");
                 Expect(!adventure.ChooseEvent(0), "event effects cannot duplicate");
@@ -342,8 +360,9 @@ public static class MapValidation
                 if (node.Type == MapNodeType.Treasure)
                 {
                     treasuresOpened++;
-                    Expect(completed == config.TreasureRow && run.Gold == beforeGold + 25,
-                        "sixth clicked node grants treasure gold");
+                    Expect(completed == config.TreasureRow && run.Gold == beforeGold + 25
+                        && run.Relics.Count == beforeRelics + 1,
+                        "sixth clicked node grants treasure gold and one unowned relic");
                 }
                 adventure.ReturnFromEvent();
             }
@@ -423,6 +442,7 @@ public static class MapValidation
         var relicChecks = VerifyRelics(run, adventure, battle);
         while (relicChecks.MoveNext()) yield return relicChecks.Current;
         VerifyStrikeRelic(config, run, adventure, battle);
+        VerifyEliteRelicReward(run, adventure, battle);
         UnityEngine.Object.Destroy(config);
         UnityEngine.Object.Destroy(paidEvent);
     }
@@ -442,6 +462,9 @@ public static class MapValidation
             Expect(run.TryEnterMapNode(previous.Id), "The route reaches the treasure");
             run.CompleteStage();
         }
+        foreach (RelicData relic in treasure.Event.TreasureRelicRewards.RelicPool.Where(relic => relic != talisman))
+            Expect(run.TryAddRelic(relic), "The test leaves only the talisman eligible at the chest");
+        int beforeRelics = run.Relics.Count;
         Expect(adventure.SelectNode(treasure.Id), "The treasure opens its event screen");
         Transform eventScreen = Find<MapEventUI>().transform;
         Button open = eventScreen.Find("Choice0").GetComponent<Button>();
@@ -451,7 +474,7 @@ public static class MapValidation
         int gold = run.Gold;
         open.onClick.Invoke();
         Expect(adventure.EventResolved && run.Gold == gold + 25
-            && run.Relics.SequenceEqual(new[] { crest, talisman })
+            && run.Relics.Count == beforeRelics + 1 && run.Relics.Contains(talisman)
             && adventure.EventResult.Contains("골드 +25") && adventure.EventResult.Contains(talisman.DisplayName),
             "Opening the treasure awards and shows both gold and relic");
         Expect(!adventure.ChooseEvent(0) && !run.TryAddRelic(talisman) && run.Gold == gold + 25,
@@ -471,8 +494,8 @@ public static class MapValidation
                 run.CompleteStage();
                 continue;
             }
-            Expect(adventure.SelectNode(next.Id) && battle.Turn == 1 && run.PlayerStatus.CurrentBlock == 4,
-                "The talisman grants four block on the first turn of combat");
+            Expect(adventure.SelectNode(next.Id) && battle.Turn == 1 && run.PlayerStatus.CurrentBlock == 10,
+                "The talisman's four block stacks with the badge's six block on the first combat turn");
             if (combats == 0)
             {
                 battle.EndPlayerTurn();
@@ -567,6 +590,69 @@ public static class MapValidation
         adventure.BeginRun();
         Expect(!run.Relics.Contains(hammer) && strike.Base.GetDescription(run.PlayerStatus) == "피해를 6 줍니다.",
             "A new run clears the hammer bonus");
+    }
+
+    private static void VerifyEliteRelicReward(RunManager run, AdventureController adventure, BattleManager battle)
+    {
+        adventure.BeginRun();
+        int treasureRow = run.Map.Nodes.First(node => node.Type == MapNodeType.Treasure).Row;
+        MapNode elite = run.Map.Nodes.First(node => node.Row > treasureRow && node.Type == MapNodeType.Elite);
+        List<RelicData> pool = elite.Encounter.Rewards.RelicPool;
+        foreach (RelicData relic in pool.Where(relic => relic.FirstTurnBlock > 0))
+            Expect(run.TryAddRelic(relic), "The fixture leaves the horn and standard available");
+
+        foreach (MapNode previous in run.Map.Nodes.Where(node => node.Row < elite.Row && node.Column == elite.Column))
+        {
+            if (previous.Type == MapNodeType.Treasure)
+            {
+                Expect(adventure.SelectNode(previous.Id) && adventure.ChooseEvent(0),
+                    "The route opens the shared chest before fighting the elite");
+                adventure.ReturnFromEvent();
+                continue;
+            }
+            Expect(run.TryEnterMapNode(previous.Id), "The route reaches the elite");
+            run.CompleteStage();
+        }
+
+        RelicData chestRelic = run.Relics.Last();
+        Expect(pool.Contains(chestRelic) && chestRelic.FirstTurnBlock == 0 && run.Gold == 25,
+            "The chest awards an unowned elite relic and its fixed gold");
+        RelicData remaining = pool.Single(relic => !run.Relics.Contains(relic));
+        int gold = run.Gold;
+        int relicCount = run.Relics.Count;
+        int cards = run.MasterDeck.Cards.Count;
+        Expect(adventure.SelectNode(elite.Id) && run.PlayerStatus.CurrentBlock == 10
+            && run.PlayerStatus.AttackPower == chestRelic.FirstTurnStrength
+            && run.PlayerStatus.CurrentEnergy == run.PlayerStatus.MaxEnergy + chestRelic.FirstTurnEnergy,
+            "The relic from the chest applies in the elite encounter");
+        foreach (Enemy enemy in battle.Enemies.ToArray()) enemy.Status.TakeDamage(int.MaxValue);
+        BattleRewardOffer offer = battle.RewardOffer;
+        Expect(battle.HasPendingCardReward && battle.RelicAwarded == remaining && run.Relics.Contains(remaining)
+            && run.Relics.Count == relicCount + 1 && run.Gold == gold + offer.Gold,
+            "Elite victory adds the unowned relic, gold and a card choice together");
+        var rewardUI = new SerializedObject(Find<BattleRewardUI>());
+        var summary = (TMP_Text)rewardUI.FindProperty("goldText").objectReferenceValue;
+        Expect(summary.gameObject.activeInHierarchy && summary.text.Contains($"유물 획득 {remaining.DisplayName}"),
+            "The victory screen identifies the awarded relic");
+
+        battle.CheckBattleEnd();
+        Expect(ReferenceEquals(offer, battle.RewardOffer) && run.Relics.Count == relicCount + 1
+            && run.Gold == gold + offer.Gold, "Repeating victory checks cannot grant rewards again");
+        NextButton().onClick.Invoke();
+        Expect(offer.IsSkipped && run.MasterDeck.Cards.Count == cards && run.Relics.Contains(remaining),
+            "Skipping the card keeps the elite relic");
+        VerifyRelicBar(Find<RunMapUI>().transform, run);
+
+        MapNode next = run.Map.Nodes.First(node => run.Map.CanEnter(node.Id));
+        while (!next.IsCombat)
+        {
+            Expect(run.TryEnterMapNode(next.Id), "The route continues after elite victory");
+            run.CompleteStage();
+            next = run.Map.Nodes.First(node => run.Map.CanEnter(node.Id));
+        }
+        Expect(adventure.SelectNode(next.Id) && run.PlayerStatus.CurrentEnergy == run.PlayerStatus.MaxEnergy + 1
+            && run.PlayerStatus.AttackPower == 1,
+            "The chest and elite drops both apply in the next battle");
     }
 
     private static void VerifyMapHealth(RunMapUI map, PlayerStatus player)

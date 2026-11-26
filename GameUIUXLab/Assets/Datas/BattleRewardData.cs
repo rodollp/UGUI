@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "BattleRewards", menuName = "Battle/Rewards")]
@@ -8,6 +9,7 @@ public class BattleRewardData : ScriptableObject
     [Min(0)] public int MinGold = 10;
     [Min(0)] public int MaxGold = 20;
     public List<CardData> CardPool = new List<CardData>();
+    public List<RelicData> RelicPool = new();
 
     private List<CardData> GetUniqueCards()
     {
@@ -21,7 +23,7 @@ public class BattleRewardData : ScriptableObject
     public bool IsValid() => MinGold >= 0 && MaxGold >= MinGold
         && GetUniqueCards().Count >= BattleRewardOffer.ChoiceCount;
 
-    public BattleRewardOffer CreateOffer(System.Random random)
+    public BattleRewardOffer CreateOffer(System.Random random, IReadOnlyList<RelicData> ownedRelics = null)
     {
         if (random == null) throw new ArgumentNullException(nameof(random));
         if (!IsValid()) throw new InvalidOperationException("보상 풀에 서로 다른 카드가 3장 이상 필요합니다.");
@@ -32,7 +34,16 @@ public class BattleRewardData : ScriptableObject
             CardData temp = cards[i]; cards[i] = cards[index]; cards[index] = temp;
         }
         int gold = (int)(MinGold + (long)(random.NextDouble() * ((long)MaxGold - MinGold + 1)));
-        return new BattleRewardOffer(gold, cards.GetRange(0, BattleRewardOffer.ChoiceCount));
+        return new BattleRewardOffer(gold, cards.GetRange(0, BattleRewardOffer.ChoiceCount),
+            RollRelic(random, ownedRelics));
+    }
+
+    internal RelicData RollRelic(System.Random random, IReadOnlyList<RelicData> ownedRelics)
+    {
+        if (RelicPool == null || RelicPool.Count == 0) return null;
+        var available = RelicPool.Where(relic => relic != null && (ownedRelics == null || !ownedRelics.Contains(relic)))
+            .Distinct().ToArray();
+        return available.Length == 0 ? null : available[random.Next(available.Length)];
     }
 }
 

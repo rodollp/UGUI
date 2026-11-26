@@ -23,4 +23,5 @@ MonoBehaviour:
     HealAmount: 0
     HealPercent: 0
     Card: {fileID: 0}
-    Relic: {fileID: 11400000, guid: 391df3524407487194e3097efed41615, type: 2}
+    Relic: {fileID: 0}
+  TreasureRelicRewards: {fileID: 11400000, guid: 46247c29f32226049978236111a932a2, type: 2}

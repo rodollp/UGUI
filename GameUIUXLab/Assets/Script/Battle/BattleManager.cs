@@ -26,6 +26,7 @@ public class BattleManager : MonoBehaviour
     private readonly System.Random rewardRandom = new System.Random();
     public BattleRewardOffer RewardOffer { get; private set; }
     public int GoldAwarded { get; private set; }
+    public RelicData RelicAwarded { get; private set; }
     public int HpRestoredByRelics { get; private set; }
     public bool HasPendingCardReward => RewardOffer != null && !RewardOffer.IsClaimed;
     public IReadOnlyList<Enemy> Enemies => enemies;
@@ -144,7 +145,11 @@ public class BattleManager : MonoBehaviour
         if (Turn == 1)
         {
             foreach (RelicData relic in runManager.Relics)
+            {
                 playerStatus.AddBlock(relic.FirstTurnBlock);
+                playerStatus.GainEnergy(relic.FirstTurnEnergy);
+                if (relic.FirstTurnStrength > 0) playerStatus.AddAttackPower(relic.FirstTurnStrength);
+            }
         }
         State = BattleState.PlayerTurn;
         cardManager.BeginPlayerTurn();
@@ -192,8 +197,9 @@ public class BattleManager : MonoBehaviour
 
     private void GrantVictoryRewards()
     {
-        RewardOffer = battleRewards.CreateOffer(rewardRandom);
+        RewardOffer = battleRewards.CreateOffer(rewardRandom, runManager.Relics);
         GoldAwarded = runManager.AddGold(RewardOffer.Gold);
+        RelicAwarded = runManager.TryAddRelic(RewardOffer.Relic) ? RewardOffer.Relic : null;
         runManager.CompleteStage();
     }
 
@@ -217,6 +223,7 @@ public class BattleManager : MonoBehaviour
         State = BattleState.None;
         RewardOffer = null;
         GoldAwarded = 0;
+        RelicAwarded = null;
         HpRestoredByRelics = 0;
         battleRewards = null;
         if (cardManager != null) cardManager.EndBattle();
