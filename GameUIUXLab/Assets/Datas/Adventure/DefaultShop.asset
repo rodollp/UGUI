@@ -27,3 +27,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 1ff62808b61df2e4c8594377b7937524, type: 2}
   - {fileID: 11400000, guid: a71151deffa9df241868a8eb705286fb, type: 2}
   - {fileID: 11400000, guid: acd52997e2c75a34d92ead398522cbbf, type: 2}
+  RelicPrice: 60
+  RelicPool:
+  - {fileID: 11400000, guid: a35457ade9c64997bc6e5e7389dbf919, type: 2}
+  - {fileID: 11400000, guid: 62816f2c4ab5442a9b86469bb7689467, type: 2}
+  - {fileID: 11400000, guid: d9aeff35ccf84f589b04907438158777, type: 2}
+  - {fileID: 11400000, guid: 391df3524407487194e3097efed41615, type: 2}
+  - {fileID: 11400000, guid: 60361d04d80842448158024fc5578589, type: 2}

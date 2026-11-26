@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "BattleRewards", menuName = "Battle/Rewards")]
@@ -41,9 +40,8 @@ public class BattleRewardData : ScriptableObject
     internal RelicData RollRelic(System.Random random, IReadOnlyList<RelicData> ownedRelics)
     {
         if (RelicPool == null || RelicPool.Count == 0) return null;
-        var available = RelicPool.Where(relic => relic != null && (ownedRelics == null || !ownedRelics.Contains(relic)))
-            .Distinct().ToArray();
-        return available.Length == 0 ? null : available[random.Next(available.Length)];
+        var available = RelicData.GetUnowned(RelicPool, ownedRelics);
+        return available.Count == 0 ? null : available[random.Next(available.Count)];
     }
 }
 

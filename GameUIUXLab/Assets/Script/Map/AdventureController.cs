@@ -71,7 +71,7 @@ public class AdventureController : MonoBehaviour
 
     private bool CanResolveChoice(MapEventChoice choice) =>
         choice.GoldCost <= runManager.Gold && choice.HealthCost < runManager.PlayerStatus.CurrentHp
-        && (choice.Relic == null || !runManager.Relics.Contains(choice.Relic));
+        && !runManager.OwnsRelic(choice.Relic);
 
     public bool ChooseEvent(int index)
     {
@@ -160,8 +160,8 @@ public class AdventureController : MonoBehaviour
 
     private void OpenShop(ShopData data)
     {
-        CurrentShop = new ShopInventory(data, new System.Random());
-        ShopMessage = "카드를 선택해 구매할 수 있습니다.";
+        CurrentShop = new ShopInventory(data, new System.Random(), runManager.Relics);
+        ShopMessage = "";
     }
 
     private bool CanUseShop => CanInteractWithVisit && IsShopping;
@@ -180,6 +180,28 @@ public class AdventureController : MonoBehaviour
             CardData card = CurrentShop.Cards[index];
             runManager.MasterDeck.AddCard(new CardInstance(card));
             ShopMessage = $"{card.CardName} 카드를 구매했습니다.";
+            OnEventChanged?.Invoke();
+            return true;
+        }
+        finally { shopTransaction = false; }
+    }
+
+    public bool CanBuyShopRelic(int index)
+    {
+        if (!CanUseShop || runManager.Gold < CurrentShop.RelicPrice) return false;
+        RelicData relic = CurrentShop.GetRelic(index);
+        return relic != null && !runManager.OwnsRelic(relic);
+    }
+
+    public bool BuyShopRelic(int index)
+    {
+        if (shopTransaction || !CanBuyShopRelic(index)) return false;
+        RelicData relic = CurrentShop.GetRelic(index);
+        shopTransaction = true;
+        try
+        {
+            if (!runManager.TryBuyRelic(relic, CurrentShop.RelicPrice)) return false;
+            ShopMessage = $"{relic.DisplayName} 유물을 구매했습니다.";
             OnEventChanged?.Invoke();
             return true;
         }

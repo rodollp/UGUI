@@ -17,6 +17,8 @@ public static class ShopSetup
                 "Assets/Datas/Rewards/DefaultBattleRewards.asset").CardPool.ToArray();
             shop.ExcludedCards = new[] { "CardDis/ATK", "CardDis/BLO", "Rewards/Bash" }
                 .Select(p => AssetDatabase.LoadAssetAtPath<CardData>("Assets/Datas/" + p + ".asset")).ToArray();
+            shop.RelicPool = new[] { "EliteGuardBadge", "MarchingHorn", "BattleStandard", "WornTalisman", "SmithHammer" }
+                .Select(name => AssetDatabase.LoadAssetAtPath<RelicData>($"Assets/Datas/Relics/{name}.asset")).ToArray();
             AssetDatabase.CreateAsset(shop, path);
         }
         var map = AssetDatabase.LoadAssetAtPath<RunMapData>("Assets/Datas/Adventure/DefaultMap.asset");

@@ -41,7 +41,7 @@ public static class MapSetup
             data.Title = "잠겨 있지 않은 상자";
             data.Description = "먼지 쌓인 상자를 발견했습니다. 안쪽에서 금속이 부딪히는 소리가 들립니다.";
             data.Choices = new[] { new MapEventChoice {
-                Label = "상자를 연다 · 골드 25 + 유물", GoldGain = 25, Result = "상자를 열었습니다."
+                Label = "상자를 연다 · 골드 25", GoldGain = 25, Result = "상자를 열었습니다."
             } };
             data.TreasureRelicRewards = eliteRewards;
         });

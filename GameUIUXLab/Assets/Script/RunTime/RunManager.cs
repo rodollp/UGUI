@@ -75,12 +75,31 @@ public class RunManager : MonoBehaviour
         CurrentEncounter = CurrentStage != null ? CurrentStage.SelectEncounter() : null;
     }
 
+    public bool OwnsRelic(RelicData relic) => relic != null && relics.Contains(relic);
+
+    private bool CanAcquireRelic(RelicData relic) =>
+        relic != null && PlayerStatus is { IsDead: false } && !OwnsRelic(relic);
+
     public bool TryAddRelic(RelicData relic)
     {
-        if (relic == null || PlayerStatus == null || PlayerStatus.IsDead || relics.Contains(relic)) return false;
+        if (!CanAcquireRelic(relic)) return false;
+        AddRelic(relic);
+        return true;
+    }
+
+    internal bool TryBuyRelic(RelicData relic, int price)
+    {
+        if (price <= 0 || Gold < price || !CanAcquireRelic(relic)) return false;
+        Gold -= price;
+        AddRelic(relic);
+        OnGoldChanged?.Invoke();
+        return true;
+    }
+
+    private void AddRelic(RelicData relic)
+    {
         relics.Add(relic);
         PlayerStatus.AddStrikeDamageBonus(relic.StrikeDamageBonus);
-        return true;
     }
 
     public int AddGold(int amount)

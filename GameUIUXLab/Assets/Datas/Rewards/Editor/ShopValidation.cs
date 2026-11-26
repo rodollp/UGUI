@@ -18,7 +18,11 @@ public static class ShopValidation
         Expect(data != null && data.IsValid(), "configured shop valid");
         for (int seed = 0; seed < 20; seed++)
         {
-            var inventory = new ShopInventory(data, new System.Random(seed));
+            RelicData[] owned = { data.RelicPool[0] };
+            var inventory = new ShopInventory(data, new System.Random(seed), owned);
+            Expect(inventory.Relics.Count == ShopInventory.RelicCount && inventory.Relics.Distinct().Count() == 3
+                && inventory.Relics.All(relic => !owned.Contains(relic)) && inventory.RelicPrice == data.RelicPrice,
+                "exactly three different unowned relics appear when available");
             Expect(inventory.Cards.Count == 5 && inventory.Cards.Distinct().Count() == 5, "five distinct offers");
             Expect(inventory.Cards.All(c => !data.ExcludedCards.Contains(c)), "basic cards excluded");
             Expect(Enumerable.Range(0, 5).Count(i => inventory.Price(i) == data.CardPrice / 2) == 1,
@@ -27,6 +31,12 @@ public static class ShopValidation
                 "one purchase per slot");
             Expect(!inventory.TryMarkPurchased(-1) && !inventory.TryMarkPurchased(5), "invalid slots rejected");
         }
+        var nearlySoldOut = new ShopInventory(data, new System.Random(0), data.RelicPool.Skip(1).ToArray());
+        Expect(nearlySoldOut.Relics.Count == 1 && nearlySoldOut.GetRelic(0) == data.RelicPool[0]
+            && nearlySoldOut.GetRelic(1) == null, "remaining stock can leave empty relic slots");
+        var soldOut = new ShopInventory(data, new System.Random(0), data.RelicPool);
+        Expect(soldOut.Relics.Count == 0 && soldOut.Cards.Count == ShopInventory.CardCount,
+            "exhausted relic stock does not affect cards");
         var starter = ScriptableObject.CreateInstance<StarterDeckData>();
         starter.StartingCards.Add(new StartingCardEntry { CardData = data.CardPool[0], Count = 3 });
         var player = ScriptableObject.CreateInstance<PlayerData>(); player.MaxHp = 80; player.StarterDeck = starter;

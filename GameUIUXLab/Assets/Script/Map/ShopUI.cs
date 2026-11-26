@@ -8,10 +8,11 @@ public class ShopUI : MonoBehaviour
     private AdventureController adventure;
     private CardUI template;
     private TMP_Text fontTemplate;
-    private TMP_Text wallet, message, removalHeading, detailNote;
-    private Button removeButton, confirmButton;
+    private TMP_Text wallet, message, removalHeading, detailNote, relicDetail;
+    private Button removeButton, confirmButton, detailBackButton;
     private readonly List<CardUI> offers = new();
     private readonly List<TMP_Text> prices = new();
+    private readonly Button[] relicOffers = new Button[ShopInventory.RelicCount];
     private readonly List<CardUI> removalViews = new();
     private GameObject removalPanel, detailPanel;
     private RectTransform removalContent;
@@ -21,6 +22,7 @@ public class ShopUI : MonoBehaviour
     private CardInstance selectedRemoval;
     private CardInstance previewCard;
     private int selectedOffer = -1;
+    private int selectedRelicOffer = -1;
     private bool balancesDirty;
     public IReadOnlyList<CardUI> OfferViews => offers;
     public IReadOnlyList<CardUI> RemovalViews => removalViews;
@@ -42,7 +44,17 @@ public class ShopUI : MonoBehaviour
             offers.Add(view);
             prices.Add(Text(slot, "Price", "", new Vector2(0, -200), new Vector2(280, 90)));
         }
-        message = Text(transform, "Message", "", new Vector2(0, 245), new Vector2(1500, 60), new Vector2(.5f, 0), 26);
+        var relicRow = Rect("RelicOffers", transform);
+        Place(relicRow, new Vector2(.5f, 0), new Vector2(0, 318), new Vector2(1400, 82));
+        Text(relicRow, "Heading", "유물", new Vector2(-600, 0), new Vector2(100, 60), fontSize: 27);
+        for (int i = 0; i < relicOffers.Length; i++)
+        {
+            int index = i;
+            relicOffers[i] = Button(relicRow, "RelicOffer" + i, "", new Vector2((i - 1) * 350, 0),
+                () => SelectRelicOffer(index), new Vector2(.5f, .5f), 326);
+            relicOffers[i].GetComponentInChildren<TMP_Text>().fontSize = 23;
+        }
+        message = Text(transform, "Message", "", new Vector2(0, 235), new Vector2(1500, 54), new Vector2(.5f, 0), 26);
         removeButton = Button(transform, "RemoveCard", "", new Vector2(0, 155), OpenRemoval, new Vector2(.5f, 0), 460);
         Button(transform, "LeaveShop", "상점 나가기", new Vector2(0, 65), adventure.LeaveShop, new Vector2(.5f, 0));
         BuildRemoval(); BuildDetail();
@@ -93,6 +105,15 @@ public class ShopUI : MonoBehaviour
             prices[i].color = sold ? Color.gray : i == shop.DiscountIndex
                 ? new Color(1, .8f, .35f) : new Color(.95f, .9f, .78f);
             offers[i].GetComponent<Button>().interactable = !sold;
+        }
+        for (int i = 0; i < relicOffers.Length; i++)
+        {
+            RelicData relic = shop.GetRelic(i);
+            bool available = relic != null && !run.OwnsRelic(relic);
+            var label = relicOffers[i].GetComponentInChildren<TMP_Text>();
+            label.text = available ? $"{relic.DisplayName}\n{shop.RelicPrice}골드" : "품절";
+            label.color = available ? new Color(.95f, .9f, .78f) : Color.gray;
+            relicOffers[i].interactable = available;
         }
         removeButton.GetComponentInChildren<TMP_Text>().text = shop.CardRemovalUsed
             ? "카드 제거 · 이용 완료" : $"카드 제거 · {run.CardRemovalPrice}골드";
@@ -172,9 +193,11 @@ public class ShopUI : MonoBehaviour
         previewToggle.targetGraphic = background; previewToggle.graphic = check;
         Text(toggleRoot, "Caption", "강화 적용시", new Vector2(40, 0), new Vector2(260, 60));
         previewToggle.onValueChanged.AddListener(Preview);
+        relicDetail = Text(detailPanel.transform, "RelicDetail", "", new Vector2(0, 45), new Vector2(1050, 240), fontSize: 30);
         detailNote = Text(detailPanel.transform, "Note", "", new Vector2(0, -390), new Vector2(1300, 55), fontSize: 25);
         confirmButton = Button(detailPanel.transform, "Confirm", "", new Vector2(-200, 60), Confirm, new Vector2(.5f, 0), 360);
-        Button(detailPanel.transform, "Back", "돌아가기 (ESC)", new Vector2(200, 60), CloseDetail, new Vector2(.5f, 0), 320);
+        detailBackButton = Button(detailPanel.transform, "Back", "돌아가기 (ESC)", new Vector2(200, 60),
+            CloseDetail, new Vector2(.5f, 0), 320);
         detailPanel.SetActive(false);
     }
     private void SelectOffer(int index)
@@ -190,10 +213,42 @@ public class ShopUI : MonoBehaviour
     }
     private void ShowDetail(CardInstance card)
     {
+        selectedRelicOffer = -1;
         previewCard = card;
+        SetRelicDetailMode(false);
         previewToggle.SetIsOnWithoutNotify(card.IsUpgraded); previewToggle.interactable = card.CanUpgrade;
+        Preview(previewToggle.isOn);
+        OpenDetailPanel();
+    }
+
+    private void SelectRelicOffer(int index)
+    {
+        if (!adventure.IsShopping) return;
+        RelicData relic = adventure.CurrentShop.GetRelic(index);
+        if (relic == null || adventure.Run.OwnsRelic(relic)) return;
+        selectedOffer = -1; selectedRemoval = null; previewCard = null;
+        selectedRelicOffer = index;
+        SetRelicDetailMode(true);
+        relicDetail.text = $"<size=42><color=#F4C778>{relic.DisplayName}</color></size>\n\n{relic.GetEffectDescription()}";
+        OpenDetailPanel();
+    }
+
+    private void SetRelicDetailMode(bool showRelic)
+    {
+        relicDetail.gameObject.SetActive(showRelic);
+        detailCard.transform.parent.gameObject.SetActive(!showRelic);
+        previewToggle.gameObject.SetActive(!showRelic);
+
+        float buttonY = showRelic ? 370 : 60;
+        ((RectTransform)confirmButton.transform).anchoredPosition = new Vector2(-200, buttonY);
+        ((RectTransform)detailBackButton.transform).anchoredPosition = new Vector2(200, buttonY);
+        detailNote.rectTransform.anchoredPosition = new Vector2(0, showRelic ? -70 : -390);
+    }
+
+    private void OpenDetailPanel()
+    {
         detailPanel.SetActive(true); detailPanel.transform.SetAsLastSibling();
-        Preview(previewToggle.isOn); RefreshDetailAction();
+        RefreshDetailAction();
         if (UnityEngine.EventSystems.EventSystem.current != null)
             UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);
     }
@@ -204,23 +259,40 @@ public class ShopUI : MonoBehaviour
     }
     private void RefreshDetailAction()
     {
-        int price = selectedRemoval != null ? adventure.Run.CardRemovalPrice : adventure.CurrentShop.Price(selectedOffer);
-        bool canPay = adventure.Run.Gold >= price;
-        confirmButton.GetComponentInChildren<TMP_Text>().text = $"{(selectedRemoval != null ? "제거 확정" : "구매 확정")} · {price}골드";
-        confirmButton.interactable = canPay;
-        detailNote.text = !canPay ? $"골드가 부족합니다. · 보유 {adventure.Run.Gold}골드"
-            : selectedRemoval != null ? "확정하면 선택한 카드 한 장을 덱에서 제거합니다."
-            : "확정하면 현재 카드를 구매합니다. 강화 체크는 미리보기입니다.";
+        if (selectedRelicOffer >= 0)
+        {
+            SetConfirmation("구매 확정", adventure.CurrentShop.RelicPrice, "",
+                adventure.CanBuyShopRelic(selectedRelicOffer));
+        }
+        else if (selectedRemoval != null)
+        {
+            SetConfirmation("제거 확정", adventure.Run.CardRemovalPrice,
+                "확정하면 선택한 카드 한 장을 덱에서 제거합니다.");
+        }
+        else
+        {
+            SetConfirmation("구매 확정", adventure.CurrentShop.Price(selectedOffer),
+                "확정하면 현재 카드를 구매합니다. 강화 체크는 미리보기입니다.");
+        }
+    }
+
+    private void SetConfirmation(string label, int price, string note, bool available = true)
+    {
+        int gold = adventure.Run.Gold;
+        confirmButton.GetComponentInChildren<TMP_Text>().text = $"{label} · {price}골드";
+        confirmButton.interactable = available && gold >= price;
+        detailNote.text = gold < price ? $"골드가 부족합니다. · 보유 {gold}골드" : note;
     }
     private void Confirm()
     {
         if (selectedRemoval != null) adventure.RemoveShopCard(selectedRemoval);
         else if (selectedOffer >= 0) adventure.BuyShopCard(selectedOffer);
+        else if (selectedRelicOffer >= 0) adventure.BuyShopRelic(selectedRelicOffer);
     }
     private void CloseDetail()
     {
         if (detailPanel != null) detailPanel.SetActive(false);
-        selectedRemoval = null; previewCard = null; selectedOffer = -1;
+        selectedRemoval = null; previewCard = null; selectedOffer = -1; selectedRelicOffer = -1;
     }
     public bool HandleBack()
     {

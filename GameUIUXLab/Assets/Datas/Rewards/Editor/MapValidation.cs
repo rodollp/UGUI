@@ -43,7 +43,7 @@ public static class MapValidation
 
     public static void Run()
     {
-        try { VerifyModels(); RewardValidation.VerifyModels(); UpgradeValidation.VerifyModels(); }
+        try { VerifyModels(); RewardValidation.VerifyModels(); UpgradeValidation.VerifyModels(); ShopValidation.VerifyModels(); }
         catch (Exception error)
         {
             Debug.LogException(error);
@@ -590,6 +590,12 @@ public static class MapValidation
         adventure.BeginRun();
         Expect(!run.Relics.Contains(hammer) && strike.Base.GetDescription(run.PlayerStatus) == "피해를 6 줍니다.",
             "A new run clears the hammer bonus");
+        Expect(run.TryAddRelic(hammer), "The fixture reenters the smith with the hammer already owned");
+        Expect(run.TryEnterMapNode(approach.Id), "The route reaches the smith with the hammer");
+        run.CompleteStage();
+        Expect(adventure.SelectNode(eventNode.Id)
+            && !Find<MapEventUI>().transform.Find("Choice" + choice).gameObject.activeSelf
+            && !adventure.ChooseEvent(choice), "An owned relic disappears from the smith's options");
     }
 
     private static void VerifyEliteRelicReward(RunManager run, AdventureController adventure, BattleManager battle)
@@ -711,13 +717,28 @@ public static class MapValidation
             run.CompleteStage();
         }
         Expect(button.interactable, "adjacent shop becomes selectable");
-        run.AddGold(250);
+        foreach (RelicData owned in node.Shop.RelicPool.Where(relic => relic.FirstTurnBlock > 0))
+            Expect(run.TryAddRelic(owned), "The run already owns two shop relics");
         button.onClick.Invoke();
         ShopUI shop = Find<ShopUI>();
         Expect(flow.IsEvent && adventure.IsShopping && adventure.CurrentEvent == null
             && shop.gameObject.activeInHierarchy && shop.OfferViews.Count == 5,
             "shop button immediately opens card offers");
         var inventory = adventure.CurrentShop;
+        Transform relicRow = shop.transform.Find("RelicOffers");
+        Expect(inventory.Relics.Count == ShopInventory.RelicCount && inventory.Relics.All(relic => !run.OwnsRelic(relic))
+            && relicRow.GetComponentsInChildren<Button>().Count(offerButton => offerButton.interactable) == 3,
+            "The shop shows three unowned relics");
+        int relicIndex = Array.FindIndex(inventory.Relics.ToArray(), relic => relic.FirstTurnEnergy > 0);
+        Button relicButton = relicRow.Find("RelicOffer" + relicIndex).GetComponent<Button>();
+        RelicData relicReward = inventory.GetRelic(relicIndex);
+        relicButton.onClick.Invoke();
+        TMP_Text detail = shop.transform.Find("ShopCardDetail/RelicDetail").GetComponent<TMP_Text>();
+        Expect(detail.gameObject.activeInHierarchy && detail.text.Contains(relicReward.GetEffectDescription())
+            && !shop.ConfirmButton.interactable && !adventure.BuyShopRelic(relicIndex) && run.Gold == 0
+            && !run.OwnsRelic(relicReward), "The relic effect is readable before purchase and insufficient funds are rejected");
+        Expect(shop.HandleBack(), "The relic detail closes back to the shop");
+        run.AddGold(250);
         flow.ShowPauseScreen(); flow.ResumeGame();
         Expect(ReferenceEquals(adventure.CurrentShop, inventory) && shop.gameObject.activeInHierarchy,
             "pause and resume preserve shop inventory");
@@ -736,9 +757,25 @@ public static class MapValidation
         Expect(!adventure.RemoveShopCard(run.MasterDeck.Cards[0]) && run.Gold == 175
             && run.MasterDeck.Cards.Count == cards && run.CardRemovalPrice == 100,
             "second removal is rejected even when the player can afford it");
+
+        int goldBeforeRelic = run.Gold;
+        int relicsBefore = run.Relics.Count;
+        relicButton.onClick.Invoke();
+        Expect(shop.ConfirmButton.interactable, "The shop enables confirmation when the player can pay");
+        shop.ConfirmButton.onClick.Invoke();
+        shop.ConfirmButton.onClick.Invoke();
+        Expect(run.Gold == goldBeforeRelic - inventory.RelicPrice && run.Relics.Count == relicsBefore + 1
+            && run.OwnsRelic(relicReward) && !adventure.BuyShopRelic(relicIndex)
+            && !relicButton.interactable && relicButton.GetComponentInChildren<TMP_Text>().text == "품절",
+            "Purchasing awards the relic once and removes it from the shop display");
+        var sharedRewards = run.Map.Nodes.First(n => n.Type == MapNodeType.Treasure).Event.TreasureRelicRewards;
+        RelicData nextDrop = sharedRewards.CreateOffer(new System.Random(0), run.Relics).Relic;
+        Expect(nextDrop != null && !run.OwnsRelic(nextDrop), "Chest and elite drops skip the purchased relic");
+
         shop.transform.Find("LeaveShop").GetComponent<Button>().onClick.Invoke();
         Expect(flow.IsMap && node.Completed && run.Map.ActiveNode == null && !adventure.SelectNode(node.Id),
             "leaving closes the shop and completes its node once");
+        VerifyRelicBar(Find<RunMapUI>().transform, run);
     }
     private static Button NodeButton(int id) => UnityEngine.Object.FindObjectsByType<Button>(FindObjectsSortMode.None)
         .Single(b => b.name == "MapNode_" + id);

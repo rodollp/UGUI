@@ -877,7 +877,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardManager
   playerHand: {fileID: 632313514}
   playHUD: {fileID: 94125204}
-  uiManager: {fileID: 1291257164}
   runManager: {fileID: 878746020}
   targetSelector: {fileID: 1668874630}
   drawCount: 5
@@ -4419,7 +4418,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\uc804\ud22c \uc870\uc791\n\ub300\uc0c1\uc744 \uace0\ub974\ub294 \uce74\ub4dc\ub294 \uc801\uc5d0\uac8c \ub4dc\ub798\uadf8\ud558\uc138\uc694\n\ub300\uc0c1\uc774 \uc5c6\ub294 \uce74\ub4dc\ub294 \ud654\uba74 \uc704\ub85c \ub4dc\ub798\uadf8\ud558\uc138\uc694\n\ud134 \uc885\ub8cc\ub97c \ub204\ub974\uba74 \uc801\uc774 \ud589\ub3d9\ud569\ub2c8\ub2e4\nEsc \ud0a4\ub85c \uc77c\uc2dc\uc815\uc9c0\ud558\uac70\ub098 \uc7ac\uac1c\ud558\uc138\uc694"
+  m_text: "\uC804\uD22C \uC870\uC791\n\uB300\uC0C1\uC744 \uACE0\uB974\uB294 \uCE74\uB4DC\uB294 \uC801\uC5D0\uAC8C \uB4DC\uB798\uADF8\uD558\uC138\uC694\n\uB300\uC0C1\uC774 \uC5C6\uB294 \uCE74\uB4DC\uB294 \uD654\uBA74 \uC704\uB85C \uB4DC\uB798\uADF8\uD558\uC138\uC694\n\uD134 \uC885\uB8CC\uB97C \uB204\uB974\uBA74 \uC801\uC774 \uD589\uB3D9\uD569\uB2C8\uB2E4\nEsc \uD0A4\uB85C \uC77C\uC2DC\uC815\uC9C0\uD558\uAC70\uB098 \uC7AC\uAC1C\uD558\uC138\uC694"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 9e445eb1987ab4b4b8c544dbdba3ee2a, type: 2}
   m_sharedMaterial: {fileID: -6457117907365858009, guid: 9e445eb1987ab4b4b8c544dbdba3ee2a, type: 2}
@@ -5826,7 +5825,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4281479730
+    rgba: 4278850330
   m_fontColor: {r: 0.1, g: 0.075, b: 0.04, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -6691,7 +6690,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4290306288
   m_fontColor: {r: 0.94, g: 0.88, b: 0.72, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3

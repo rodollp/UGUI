@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Serialization;
 
@@ -13,6 +14,10 @@ public class RelicData : ScriptableObject
     [Min(0)] public int FirstTurnEnergy;
     [Min(0)] public int FirstTurnStrength;
     [Min(0)] public int StrikeDamageBonus;
+
+    internal static List<RelicData> GetUnowned(IEnumerable<RelicData> pool, IReadOnlyList<RelicData> owned) =>
+        pool?.Where(relic => relic != null && (owned == null || !owned.Contains(relic))).Distinct().ToList()
+        ?? new List<RelicData>();
 
     public string GetEffectDescription()
     {
