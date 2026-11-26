@@ -23,6 +23,7 @@ public class RunMapUI : MonoBehaviour
     private readonly List<NodeView> nodeViews = new List<NodeView>();
     private readonly List<PathView> pathViews = new List<PathView>();
     private (int Gold, int Cards) displayedStatus = (-1, -1);
+    private TMP_Text goldValue;
     private MapHealthView healthView;
     private RelicBarView relicBar;
     private bool? displayedComplete;
@@ -76,6 +77,17 @@ public class RunMapUI : MonoBehaviour
         var healthPosition = relicPosition + Vector2.down * (RelicBarView.BarHeight + panelGap);
         relicBar = new RelicBarView(statusText, relicPosition, tooltipGap: MapHealthView.Height + 2 * panelGap);
         healthView = new MapHealthView(statusText, healthPosition);
+
+        goldValue = Instantiate(statusText, transform);
+        goldValue.name = "MapGold";
+        goldValue.color = new Color(.98f, .79f, .41f);
+        goldValue.fontSize = 23;
+        goldValue.alignment = TextAlignmentOptions.MidlineLeft;
+        goldValue.raycastTarget = false;
+        RectTransform goldRect = goldValue.rectTransform;
+        goldRect.anchorMin = goldRect.anchorMax = goldRect.pivot = Vector2.up;
+        goldRect.anchoredPosition = healthPosition + new Vector2(250, -5);
+        goldRect.sizeDelta = new Vector2(270, 38);
     }
 
     private void OnEnable()
@@ -175,7 +187,8 @@ public class RunMapUI : MonoBehaviour
         if (displayedStatus != status)
         {
             displayedStatus = status;
-            statusText.text = $"골드 {status.Gold}   ·   덱 {status.Cards}장";
+            goldValue.text = $"골드 {status.Gold}";
+            statusText.text = $"덱 {status.Cards}장";
         }
         if (displayedComplete != run.IsRunComplete)
         {

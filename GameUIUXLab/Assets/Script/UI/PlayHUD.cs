@@ -146,12 +146,12 @@ public class PlayHUD : MonoBehaviour
         }
         if (nextBattleButton != null)
         {
-            bool visible = won && (battleManager.HasPendingCardReward || runManager.HasMap
-                || (runManager.HasStageSequence && !runManager.IsRunComplete));
-            if (nextBattleButton.gameObject.activeSelf != visible) nextBattleButton.gameObject.SetActive(visible);
+            if (nextBattleButton.gameObject.activeSelf != won) nextBattleButton.gameObject.SetActive(won);
             if (nextBattleLabel != null)
             {
-                string text = "다음으로";
+                string text = battleManager.HasPendingRewards ? "보상 넘기기"
+                    : !runManager.HasMap && (!runManager.HasStageSequence || runManager.IsRunComplete)
+                        ? "완료" : "다음으로";
                 if (nextBattleLabel.text != text) nextBattleLabel.text = text;
             }
         }

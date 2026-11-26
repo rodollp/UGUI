@@ -79,7 +79,10 @@ public static class UpgradeValidation
     {
         BattleManager battle = Find<BattleManager>();
         foreach (var enemy in battle.Enemies.ToArray()) enemy.Status.TakeDamage(int.MaxValue);
-        battle.TrySelectRewardCard(0); battle.StartNextBattle();
+        battle.TryClaimGoldReward();
+        battle.TryClaimRelicReward();
+        battle.TrySelectRewardCard(0);
+        battle.StartNextBattle();
     }
     public static IEnumerator VerifyScene(RunMapData config)
     {

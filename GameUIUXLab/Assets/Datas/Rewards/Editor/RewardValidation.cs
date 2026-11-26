@@ -96,11 +96,11 @@ public static class RewardValidation
         BattleRewardOffer offer = battle.RewardOffer;
         Expect(battle.State == BattleState.Victory && offer != null && battle.HasPendingCardReward,
             "victory has a pending offer");
-        Expect(run.Gold == previousGold + battle.GoldAwarded && battle.GoldAwarded == offer.Gold,
-            "gold is awarded once on victory");
+        Expect(run.Gold == previousGold && battle.HasPendingGoldReward,
+            "victory offers gold without adding it to the wallet");
         battle.CheckBattleEnd();
-        Expect(run.Gold == previousGold + offer.Gold && ReferenceEquals(offer, battle.RewardOffer),
-            "reopening victory does not reroll or pay again");
+        Expect(run.Gold == previousGold && ReferenceEquals(offer, battle.RewardOffer),
+            "reopening victory does not reroll or pay");
         Expect(offer.Choices.Count == 3 && offer.Choices.Distinct().Count() == 3, "three distinct cards displayed");
         battle.StartNextBattle();
         battle.StartBattle();
@@ -112,8 +112,16 @@ public static class RewardValidation
         var serialized = new SerializedObject(ui);
         var choicesRoot = (GameObject)serialized.FindProperty("choicesRoot").objectReferenceValue;
         var rewardCards = serialized.FindProperty("rewardCards");
-        Expect(ui.gameObject.activeInHierarchy && choicesRoot.activeInHierarchy && rewardCards.arraySize == 3,
-            "reward panel visible");
+        var summary = ui.transform.Find("RewardSummary");
+        Expect(summary.gameObject.activeInHierarchy && !choicesRoot.activeSelf && rewardCards.arraySize == 3,
+            "reward summary precedes card choices");
+        var goldRow = summary.Find("GoldRow").GetComponent<Button>();
+        goldRow.onClick.Invoke();
+        goldRow.onClick.Invoke();
+        Expect(run.Gold == previousGold + offer.Gold && !goldRow.gameObject.activeSelf,
+            "clicking the gold row pays once and removes it");
+        summary.Find("OpenCardReward").GetComponent<Button>().onClick.Invoke();
+        Expect(choicesRoot.activeInHierarchy && !summary.gameObject.activeSelf, "card choices open on request");
         for (int i = 0; i < 3; i++)
         {
             CardUI choice = (CardUI)rewardCards.GetArrayElementAtIndex(i).objectReferenceValue;
@@ -133,7 +141,7 @@ public static class RewardValidation
         Expect(!battle.TrySelectRewardCard(0) && run.MasterDeck.Cards.Count == deckCount + 1,
             "double click cannot add another card");
         Expect(!choicesRoot.activeSelf && run.Gold == previousGold + offer.Gold, "selection closes without extra gold");
-        Expect(next.gameObject.activeSelf == !run.IsRunComplete, "next floor unlocked only after choice");
+        Expect(next.gameObject.activeSelf && !battle.HasPendingRewards, "the resolved offer can be closed");
         Debug.Log($"REWARD_SCENE_VALIDATION_OK: {checks - startChecks} assertions passed.");
     }
 }

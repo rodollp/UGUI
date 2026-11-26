@@ -258,6 +258,9 @@ public static class MapValidation
         run.PlayerStatus.TakeDamage(4);
         mapShortcut.onClick.Invoke();
         VerifyMapHealth(mapUI, run.PlayerStatus);
+        var previewGold = mapUI.transform.Find("MapGold").GetComponent<TMP_Text>();
+        Expect(previewGold.gameObject.activeInHierarchy && previewGold.text == $"골드 {run.Gold}",
+            "the combat map preview shows the current wallet");
         MapNodeIcon currentIcon = NodeButton(entry.Id).GetComponentInChildren<MapNodeIcon>();
         Expect(flow.IsMapPreviewOpen && flow.IsPlaying && !flow.IsMap && Time.timeScale == 0
             && currentIcon.Available && !NodeButton(entry.Id).interactable,
@@ -288,6 +291,17 @@ public static class MapValidation
         Expect(!adventure.SelectNode(story.Id), "cannot leave result before reward");
         battle.StartNextBattle();
         Expect(!flow.IsMap, "pending reward blocks return");
+        BattleRewardUI rewardScreen = Find<BattleRewardUI>();
+        Transform rewardSummary = rewardScreen.transform.Find("RewardSummary");
+        Expect(!rewardSummary.Find("RewardRelic").gameObject.activeSelf, "Normal victories hide the relic row");
+        Expect(!rewardScreen.transform.Find("TitleButton").gameObject.activeInHierarchy,
+            "Victory rewards hide the return-to-title button");
+        Expect(rewardScreen.transform.Find("RewardBackdrop").gameObject.activeInHierarchy
+            && Find<Player>().gameObject.activeInHierarchy, "The victory reward overlay leaves the player visible behind it");
+        rewardSummary.Find("OpenCardReward").GetComponent<Button>().onClick.Invoke();
+        rewardScreen.transform.Find("BackToRewards").GetComponent<Button>().onClick.Invoke();
+        Expect(rewardSummary.gameObject.activeInHierarchy && battle.HasPendingCardReward,
+            "Returning to the reward list keeps the card offer pending");
         ClaimCard();
         int gold = run.Gold; int hp = run.PlayerStatus.CurrentHp; int deck = run.MasterDeck.Cards.Count;
         NextButton().onClick.Invoke();
@@ -297,6 +311,8 @@ public static class MapValidation
             "cached node icon updates its visited state after battle");
         Expect(run.Gold == gold && run.PlayerStatus.CurrentHp == hp && run.MasterDeck.Cards.Count == deck,
             "resources persist on map");
+        Expect(Find<RunMapUI>().transform.Find("MapGold").GetComponent<TMP_Text>().text == $"골드 {gold}",
+            "the map shows the gold claimed in the previous battle");
         Expect(!adventure.SelectNode(entry.Id), "completed node cannot replay");
         yield return null;
         NodeButton(story.Id).onClick.Invoke();
@@ -336,8 +352,8 @@ public static class MapValidation
             {
                 foreach (Enemy enemy in battle.Enemies.ToArray()) enemy.Status.TakeDamage(int.MaxValue);
                 Expect(battle.HasPendingCardReward, "all combat node types award rewards");
-                Expect(node.Type == MapNodeType.Elite ? battle.RelicAwarded != null : battle.RelicAwarded == null,
-                    "only elite victories grant a relic on the default route");
+                Expect(node.Type == MapNodeType.Elite ? battle.HasPendingRelicReward : !battle.HasPendingRelicReward,
+                    "only elite victories offer a relic on the default route");
                 ClaimCard();
                 NextButton().onClick.Invoke();
             }
@@ -633,20 +649,24 @@ public static class MapValidation
             "The relic from the chest applies in the elite encounter");
         foreach (Enemy enemy in battle.Enemies.ToArray()) enemy.Status.TakeDamage(int.MaxValue);
         BattleRewardOffer offer = battle.RewardOffer;
-        Expect(battle.HasPendingCardReward && battle.RelicAwarded == remaining && run.Relics.Contains(remaining)
-            && run.Relics.Count == relicCount + 1 && run.Gold == gold + offer.Gold,
-            "Elite victory adds the unowned relic, gold and a card choice together");
-        var rewardUI = new SerializedObject(Find<BattleRewardUI>());
-        var summary = (TMP_Text)rewardUI.FindProperty("goldText").objectReferenceValue;
-        Expect(summary.gameObject.activeInHierarchy && summary.text.Contains($"유물 획득 {remaining.DisplayName}"),
-            "The victory screen identifies the awarded relic");
+        Expect(battle.HasPendingCardReward && battle.HasPendingGoldReward && battle.HasPendingRelicReward
+            && offer.Relic == remaining && run.Relics.Count == relicCount && run.Gold == gold,
+            "Elite victory offers gold, an unowned relic and a card without granting them");
+        var relicButton = Find<BattleRewardUI>().transform.Find("RewardSummary/RewardRelic").GetComponent<Button>();
+        var relicLabel = relicButton.transform.Find("RewardRelicText").GetComponent<TMP_Text>();
+        Expect(relicButton.gameObject.activeInHierarchy && relicLabel.text.Contains(remaining.DisplayName),
+            "The victory screen identifies the offered relic");
 
+        relicButton.onClick.Invoke();
+        relicButton.onClick.Invoke();
         battle.CheckBattleEnd();
         Expect(ReferenceEquals(offer, battle.RewardOffer) && run.Relics.Count == relicCount + 1
-            && run.Gold == gold + offer.Gold, "Repeating victory checks cannot grant rewards again");
+            && run.Relics.Contains(remaining) && !relicButton.gameObject.activeSelf && run.Gold == gold,
+            "Clicking the relic pays it once without adding the unclaimed gold");
         NextButton().onClick.Invoke();
-        Expect(offer.IsSkipped && run.MasterDeck.Cards.Count == cards && run.Relics.Contains(remaining),
-            "Skipping the card keeps the elite relic");
+        Expect(offer.IsSkipped && run.MasterDeck.Cards.Count == cards && run.Relics.Contains(remaining)
+            && run.Gold == gold,
+            "Continuing skips unclaimed gold and card rewards while keeping the claimed relic");
         VerifyRelicBar(Find<RunMapUI>().transform, run);
 
         MapNode next = run.Map.Nodes.First(node => run.Map.CanEnter(node.Id));
@@ -783,9 +803,23 @@ public static class MapValidation
         .FindProperty("nextBattleButton").objectReferenceValue;
     private static void ClaimCard()
     {
-        var rewardUI = new SerializedObject(Find<BattleRewardUI>());
+        BattleRewardUI ui = Find<BattleRewardUI>();
+        var rewardUI = new SerializedObject(ui);
+        var choices = (GameObject)rewardUI.FindProperty("choicesRoot").objectReferenceValue;
+        Transform summary = ui.transform.Find("RewardSummary");
+        Button open = summary.Find("OpenCardReward").GetComponent<Button>();
+        var gold = summary.Find("GoldRow").GetComponent<Button>();
+        if (gold.gameObject.activeSelf) gold.onClick.Invoke();
+        var relic = summary.Find("RewardRelic").GetComponent<Button>();
+        if (relic.gameObject.activeSelf) relic.onClick.Invoke();
+        Expect(summary.gameObject.activeInHierarchy && !choices.activeSelf,
+            "A new victory opens the reward list with its cards folded");
+        open.onClick.Invoke();
+        Expect(choices.activeInHierarchy && !summary.gameObject.activeSelf, "The reward button opens the card choices");
         var card = (CardUI)rewardUI.FindProperty("rewardCards").GetArrayElementAtIndex(0).objectReferenceValue;
         card.GetComponent<Button>().onClick.Invoke();
+        Expect(summary.gameObject.activeInHierarchy && !choices.activeSelf && !open.gameObject.activeSelf,
+            "Claiming a card returns to the reward list");
         Expect(!Find<BattleManager>().HasPendingCardReward, "actual reward card click completes selection");
     }
     private static void Capture(string name)

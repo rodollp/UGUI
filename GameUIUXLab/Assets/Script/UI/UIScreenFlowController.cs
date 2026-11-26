@@ -185,7 +185,9 @@ public class UIScreenFlowController : MonoBehaviour
         if (mapScreen != null) mapScreen.SetActive(next == UIScreenState.Map);
         if (eventScreen != null) eventScreen.SetActive(next == UIScreenState.Event);
         bool inBattle = next == UIScreenState.Play || (next == UIScreenState.Pause && pausedFrom == UIScreenState.Play);
-        if (worldPlayer != null) worldPlayer.SetActive(inBattle);
+        bool showVictoryBackdrop = next == UIScreenState.Result && battleManager != null
+            && battleManager.State == BattleState.Victory;
+        if (worldPlayer != null) worldPlayer.SetActive(inBattle || showVictoryBackdrop);
         if (worldEnemies != null) worldEnemies.SetActive(inBattle);
     }
 }

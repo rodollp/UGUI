@@ -25,10 +25,16 @@ public class BattleManager : MonoBehaviour
     private BattleRewardData battleRewards;
     private readonly System.Random rewardRandom = new System.Random();
     public BattleRewardOffer RewardOffer { get; private set; }
-    public int GoldAwarded { get; private set; }
-    public RelicData RelicAwarded { get; private set; }
+    private bool goldRewardClaimed;
+    private bool remainingRewardsSkipped;
     public int HpRestoredByRelics { get; private set; }
+    public bool HasPendingGoldReward => !remainingRewardsSkipped && !goldRewardClaimed && RewardOffer?.Gold > 0;
+    public bool HasPendingRelicReward => !remainingRewardsSkipped && RewardOffer?.Relic != null
+        && !runManager.OwnsRelic(RewardOffer.Relic);
     public bool HasPendingCardReward => RewardOffer != null && !RewardOffer.IsClaimed;
+    public bool HasPendingRewards => HasPendingGoldReward || HasPendingRelicReward || HasPendingCardReward;
+    private bool CanResolveRewards => State == BattleState.Victory && RewardOffer != null
+        && ReferenceEquals(playerStatus, runManager.PlayerStatus);
     public IReadOnlyList<Enemy> Enemies => enemies;
     public BattleState State { get; private set; }
     public int Turn { get; private set; }
@@ -43,7 +49,7 @@ public class BattleManager : MonoBehaviour
     {
         if (State == BattleState.Preparing || State == BattleState.PlayerTurn || State == BattleState.EnemyTurn)
             return;
-        if (State == BattleState.Victory && HasPendingCardReward) return;
+        if (State == BattleState.Victory && HasPendingRewards) return;
         if (runManager != null && runManager.HasMap
             && (runManager.Map.ActiveNode == null || !runManager.Map.ActiveNode.IsCombat)) return;
         EncounterData selected = runManager != null && (runManager.HasMap || runManager.HasStageSequence)
@@ -189,18 +195,44 @@ public class BattleManager : MonoBehaviour
         foreach (RelicData relic in runManager.Relics)
             playerStatus.Heal(relic.BattleEndHeal);
         HpRestoredByRelics = playerStatus.CurrentHp - hpBeforeHealing;
-        if (won) GrantVictoryRewards();
+        if (won)
+        {
+            RewardOffer = battleRewards.CreateOffer(rewardRandom, runManager.Relics);
+            runManager.CompleteStage();
+        }
         NotifyChanged();
         OnBattleEnded?.Invoke(won);
         if (screenFlowController != null) screenFlowController.ShowResultScreen();
     }
 
-    private void GrantVictoryRewards()
+    public bool TryClaimGoldReward()
     {
-        RewardOffer = battleRewards.CreateOffer(rewardRandom, runManager.Relics);
-        GoldAwarded = runManager.AddGold(RewardOffer.Gold);
-        RelicAwarded = runManager.TryAddRelic(RewardOffer.Relic) ? RewardOffer.Relic : null;
-        runManager.CompleteStage();
+        if (!CanResolveRewards || !HasPendingGoldReward) return false;
+        goldRewardClaimed = true;
+        runManager.AddGold(RewardOffer.Gold);
+        NotifyChanged();
+        return true;
+    }
+
+    public bool TryClaimRelicReward()
+    {
+        if (!CanResolveRewards || !HasPendingRelicReward || !runManager.TryAddRelic(RewardOffer.Relic))
+            return false;
+        NotifyChanged();
+        return true;
+    }
+
+    public void ContinueAfterRewards()
+    {
+        if (!CanResolveRewards) return;
+        remainingRewardsSkipped = true;
+        RewardOffer.TrySkip();
+        if (!runManager.HasMap && (!runManager.HasStageSequence || runManager.IsRunComplete))
+        {
+            screenFlowController?.ShowTitleScreen();
+            return;
+        }
+        StartNextBattle();
     }
 
     public void StartNextBattle()
@@ -210,7 +242,7 @@ public class BattleManager : MonoBehaviour
             if (adventure != null) adventure.ReturnToMap();
             return;
         }
-        if (State != BattleState.Victory || HasPendingCardReward
+        if (State != BattleState.Victory || HasPendingRewards
             || !runManager.HasStageSequence || runManager.IsRunComplete)
             return;
         if (screenFlowController != null) screenFlowController.ShowPlayScreen();
@@ -222,8 +254,8 @@ public class BattleManager : MonoBehaviour
         StopAllCoroutines();
         State = BattleState.None;
         RewardOffer = null;
-        GoldAwarded = 0;
-        RelicAwarded = null;
+        goldRewardClaimed = false;
+        remainingRewardsSkipped = false;
         HpRestoredByRelics = 0;
         battleRewards = null;
         if (cardManager != null) cardManager.EndBattle();
@@ -259,19 +291,9 @@ public class BattleManager : MonoBehaviour
 
     private void NotifyChanged() => OnBattleChanged?.Invoke();
 
-    public bool TrySkipCardReward()
-    {
-        if (State != BattleState.Victory || !HasPendingCardReward
-            || !ReferenceEquals(playerStatus, runManager.PlayerStatus)
-            || !RewardOffer.TrySkip()) return false;
-        NotifyChanged();
-        return true;
-    }
-
     public bool TrySelectRewardCard(int index)
     {
-        if (State != BattleState.Victory || !HasPendingCardReward || runManager.MasterDeck == null
-            || !ReferenceEquals(playerStatus, runManager.PlayerStatus)
+        if (!CanResolveRewards || runManager.MasterDeck == null
             || !RewardOffer.TryClaim(index, out CardData card)) return false;
         runManager.MasterDeck.AddCard(new CardInstance(card));
         NotifyChanged();

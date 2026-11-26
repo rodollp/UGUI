@@ -358,7 +358,7 @@ public static class BattleValidation
         Expect(!buffRow.gameObject.activeSelf && playerDebuffs.rectTransform.anchoredPosition == debuffPosition,
             "End of combat hides the buff row and restores the debuff position");
         UnityEngine.Object.Destroy(deterministicData);
-        VerifyResultText("전투 승리!", false);
+        VerifyResultText("전투 승리!", true);
         if (SystemInfo.graphicsDeviceType != UnityEngine.Rendering.GraphicsDeviceType.Null)
         {
             yield return null;
@@ -409,9 +409,13 @@ public static class BattleValidation
             }
         }
         Expect(run.IsRunComplete, "Final floor completes run");
-        VerifyResultText("모든 층을 클리어했습니다!", false);
+        VerifyResultText("모든 층을 클리어했습니다!", true);
         battle.StartNextBattle();
         Expect(battle.State == BattleState.Victory && run.StageIndex == 3, "Final floor cannot be restarted");
+        var finish = (UnityEngine.UI.Button)new SerializedObject(Find<PlayHUD>())
+            .FindProperty("nextBattleButton").objectReferenceValue;
+        finish.onClick.Invoke();
+        Expect(battle.State == BattleState.None, "The completed reward screen can be closed");
     }
 
     private static void VerifyResultText(string expected, bool nextVisible)
@@ -423,7 +427,7 @@ public static class BattleValidation
             "Result heading visible: " + expected);
         Expect(next.gameObject.activeInHierarchy == nextVisible, "Next-floor visibility");
         Transform screen = result.transform.parent;
-        foreach (var button in screen.GetComponentsInChildren<UnityEngine.UI.Button>(true))
+        foreach (var button in screen.GetComponentsInChildren<UnityEngine.UI.Button>())
         {
             TMP_Text label = button.GetComponentInChildren<TMP_Text>(true);
             Expect(label != null && label.gameObject.activeSelf && label.enabled

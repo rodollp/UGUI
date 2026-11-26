@@ -147,7 +147,7 @@ public class AdventureController : MonoBehaviour
     public void ReturnToMap()
     {
         if (!runManager.HasMap || battleManager.State != BattleState.Victory
-            || battleManager.HasPendingCardReward) return;
+            || battleManager.HasPendingRewards) return;
         battleManager.AbortBattle();
         screenFlow.ShowMapScreen();
     }
