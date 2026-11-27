@@ -86,7 +86,7 @@ public class BattleRewardUI : MonoBehaviour
         if (!won) return;
 
         goldRewardButton.gameObject.SetActive(battleManager.HasPendingGoldReward);
-        goldText.text = $"골드 {offer.Gold} 받기 · 보유 {runManager.Gold}";
+        goldText.text = $"골드 {offer.Gold}";
         relicRewardButton.gameObject.SetActive(battleManager.HasPendingRelicReward);
         if (offer.Relic != null) relicText.text = $"{offer.Relic.DisplayName} 받기";
         cardRewardButton.gameObject.SetActive(pending);
