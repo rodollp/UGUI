@@ -54,7 +54,17 @@ public class BattleRewardUI : MonoBehaviour
             battleManager.TrySelectRewardCard(Array.IndexOf(rewardCards, card));
     }
 
-    public void Continue() => battleManager.ContinueAfterRewards();
+    public void Continue()
+    {
+        if (!TryBackToSummary()) battleManager.ContinueAfterRewards();
+    }
+
+    public bool TryBackToSummary()
+    {
+        if (!cardChoicesOpen) return false;
+        SetCardChoicesOpen(false);
+        return true;
+    }
 
     private void SetCardChoicesOpen(bool open)
     {
@@ -83,6 +93,7 @@ public class BattleRewardUI : MonoBehaviour
         choicesRoot.SetActive(cardChoicesOpen);
         promptText.gameObject.SetActive(cardChoicesOpen);
         backButton.gameObject.SetActive(cardChoicesOpen);
+        if (continueButton != null) continueButton.interactable = !cardChoicesOpen;
         if (!won) return;
 
         goldRewardButton.gameObject.SetActive(battleManager.HasPendingGoldReward);
@@ -165,10 +176,10 @@ public class BattleRewardUI : MonoBehaviour
         }
 
         promptText.text = "카드 한 장을 선택하세요";
-        backButton = AddButton(transform, "BackToRewards", "보상 목록으로", () => SetCardChoicesOpen(false));
+        backButton = AddButton(transform, "BackToRewards", "보상 목록으로 (ESC)", () => TryBackToSummary());
         var backRect = (RectTransform)backButton.transform;
-        backRect.anchorMin = backRect.anchorMax = new Vector2(.5f, .5f);
-        backRect.anchoredPosition = new Vector2(0, -208);
+        backRect.anchorMin = backRect.anchorMax = new Vector2(.5f, 0);
+        backRect.anchoredPosition = new Vector2(0, 76);
         backRect.sizeDelta = new Vector2(280, 52);
     }
 

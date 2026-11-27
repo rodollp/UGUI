@@ -45,7 +45,7 @@ public class RunMapUI : MonoBehaviour
     private static readonly Color Gold = new Color(.54f,.29f,.08f);
     public bool HasMap => adventure.Run.HasMap;
 
-    public bool TryShowPreview(UnityEngine.Events.UnityAction close)
+    public bool TryShowPreview(UnityEngine.Events.UnityAction close, string closeLabel)
     {
         if (closePreviewButton == null)
         {
@@ -55,8 +55,8 @@ public class RunMapUI : MonoBehaviour
             closePreviewButton.name = "CloseMapPreview";
             closePreviewButton.onClick = new Button.ButtonClickedEvent();
             closePreviewButton.onClick.AddListener(close);
-            closePreviewButton.GetComponentInChildren<TMP_Text>(true).text = "전투로 (ESC)";
         }
+        closePreviewButton.GetComponentInChildren<TMP_Text>(true).text = closeLabel;
         isPreview = true;
         focusedRow = -1;
         returnTitleButton.gameObject.SetActive(false);
@@ -169,7 +169,7 @@ public class RunMapUI : MonoBehaviour
         }
 
         int row = run.Map.IsComplete ? run.Map.Rows - 1 : (run.Map.LastCompletedNode?.Row + 1 ?? 0);
-        if (isPreview && run.Map.ActiveNode != null) row = run.Map.ActiveNode.Row;
+        if (isPreview) row = (run.Map.ActiveNode ?? run.Map.LastCompletedNode)?.Row ?? 0;
         if (shownVersion != run.RunVersion || focusedRow != row)
         {
             shownVersion = run.RunVersion; focusedRow = row;

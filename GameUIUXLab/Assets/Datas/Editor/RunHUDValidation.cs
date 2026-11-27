@@ -91,18 +91,46 @@ public static class RunHUDValidation
         yield return null; hud.Refresh();
         Expect(hud.gameObject.activeInHierarchy && flow.IsPlaying, "battle retains same HUD");
         Click(Ref<Button>(hud, "mapButton")); yield return null;
-        Expect(flow.IsMapPreviewOpen && hud.gameObject.activeInHierarchy, "minimap preview retains HUD");
+        Expect(flow.IsMapPreviewOpen && hud.gameObject.activeInHierarchy && Time.timeScale == 0,
+            "battle map preview retains HUD and pauses combat");
         Click(Ref<Button>(hud, "mapButton"));
+        Expect(flow.IsPlaying && !flow.IsMapPreviewOpen && battle.CanPlayCards, "closing map resumes the same battle");
         foreach (Enemy enemy in battle.Enemies.ToArray()) enemy.Status.TakeDamage(int.MaxValue);
         yield return null; hud.Refresh();
         Expect(flow.IsResult && battle.HasPendingCardReward && hud.gameObject.activeInHierarchy, "victory rewards retain HUD");
         var reward = Find<BattleRewardUI>();
+        var offer = battle.RewardOffer;
+        int goldBeforePreview = run.Gold;
+        var timer = Find<RunTimer>();
+        float rewardTime = timer.PlayTime;
+        Click(Ref<Button>(hud, "mapButton")); yield return null;
+        Expect(flow.IsResult && flow.IsMapPreviewOpen && !reward.gameObject.activeInHierarchy,
+            "map covers reward summary");
+        var map = Find<RunMapUI>();
+        var closeMap = map.transform.Find("CloseMapPreview").GetComponent<Button>();
+        Expect(closeMap.GetComponentInChildren<TMP_Text>().text == "보상으로 (ESC)", "map names the reward return destination");
+        Expect(!Ref<RectTransform>(map, "graphRoot").GetComponentsInChildren<Button>().Any(b => b.interactable),
+            "reward map is read-only");
+        Click(closeMap);
+        Expect(reward.gameObject.activeInHierarchy && !flow.IsMapPreviewOpen && timer.PlayTime == rewardTime
+            && run.Gold == goldBeforePreview && ReferenceEquals(offer, battle.RewardOffer), "map returns to the same rewards");
         var cardReward = reward.transform.Find("RewardSummary/CardReward");
         // Reward rows may use a different display name; invoke the existing private selector through its button.
         if (cardReward == null)
             cardReward = reward.GetComponentsInChildren<Button>(true).First(b => b.name.Contains("CardReward")).transform;
         cardReward.GetComponent<Button>().onClick.Invoke(); yield return null;
-        Expect(Ref<GameObject>(reward, "choicesRoot").activeSelf && hud.gameObject.activeInHierarchy, "card selection retains HUD");
+        var choices = Ref<GameObject>(reward, "choicesRoot");
+        Expect(choices.activeInHierarchy && hud.gameObject.activeInHierarchy, "card selection retains HUD");
+        Expect(!Ref<Button>(reward, "continueButton").IsInteractable(), "card selection disables skipping remaining rewards");
+        Click(Ref<Button>(hud, "mapButton"));
+        Expect(flow.IsMapPreviewOpen && !choices.activeInHierarchy, "map covers card selection");
+        Expect(flow.TryCloseMapPreview() && choices.activeInHierarchy, "closing map restores card selection");
+        Click(reward.transform.Find("BackToRewards").GetComponent<Button>());
+        Expect(!choices.activeInHierarchy && battle.HasPendingCardReward, "back button preserves the pending card reward");
+        cardReward.GetComponent<Button>().onClick.Invoke();
+        Expect(flow.TryBackFromRewards() && !choices.activeInHierarchy && ReferenceEquals(offer, battle.RewardOffer),
+            "escape back returns to the same reward summary");
+        cardReward.GetComponent<Button>().onClick.Invoke();
         hud.Refresh(); Click(Ref<Button>(hud, "settingsButton"));
         Expect(flow.IsPaused && hud.gameObject.activeInHierarchy, "settings work during rewards");
         Click(Ref<Button>(hud, "settingsButton"));

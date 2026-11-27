@@ -33,7 +33,7 @@ public sealed class RunHUD : MonoBehaviour
     private RunRelicItem hovered;
     private (int Version, int Count) relicState = (-1, -1);
     private (PlayerStatus Player, int Hp, int MaxHp, int Gold, int Cards, int Second,
-        int Version, MapNode Node, int Floor, bool Paused, bool Deck, bool Map, bool Playing) displayed;
+        int Version, MapNode Node, int Floor, bool Paused, bool Deck, bool Map, bool CanPreviewMap) displayed;
     private bool initialized;
 
     private void Awake()
@@ -55,7 +55,7 @@ public sealed class RunHUD : MonoBehaviour
         MapNode node = run.Map?.ActiveNode ?? run.Map?.LastCompletedNode;
         var state = (run.RunVersion, run.Relics.Count);
         var values = (status, status.CurrentHp, status.MaxHp, run.Gold, run.MasterDeck?.Cards.Count ?? 0,
-            seconds, run.RunVersion, node, run.Floor, flow.IsPaused, flow.IsDeckOpen, flow.IsMapPreviewOpen, flow.IsPlaying);
+            seconds, run.RunVersion, node, run.Floor, flow.IsPaused, flow.IsDeckOpen, flow.IsMapPreviewOpen, flow.CanOpenMapPreview);
         if (initialized && displayed.Equals(values) && relicState == state) return;
         initialized = true;
         displayed = values;
@@ -71,7 +71,7 @@ public sealed class RunHUD : MonoBehaviour
         SetText(nodeText, $"{(node != null ? node.Row + 1 : run.Floor)}층 · {location}");
         SetText(deckText, $"덱 {run.MasterDeck?.Cards.Count ?? 0}");
         deckButton.interactable = !flow.IsPaused && !flow.IsMapPreviewOpen && run.MasterDeck != null;
-        mapButton.interactable = flow.IsMapPreviewOpen || (run.HasMap && flow.IsPlaying && !flow.IsDeckOpen);
+        mapButton.interactable = flow.IsMapPreviewOpen || (run.HasMap && flow.CanOpenMapPreview);
         settingsButton.interactable = !flow.IsOverlayOpen;
         if (relicState == state) return;
         relicState = state;

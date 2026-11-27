@@ -69,7 +69,7 @@ public class DeckViewUI : MonoBehaviour
         if (openButton == null) return;
         bool available = run.MasterDeck != null && (flow.IsAdventureActive || flow.IsResult);
         openButton.gameObject.SetActive(available && !flow.IsOverlayOpen);
-        mapButton.gameObject.SetActive(run.HasMap && flow.IsPlaying && !flow.IsOverlayOpen);
+        mapButton.gameObject.SetActive(run.HasMap && flow.CanOpenMapPreview);
     }
 
     public void Open()

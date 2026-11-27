@@ -31,6 +31,8 @@ public class UIScreenFlowController : MonoBehaviour
     public bool IsDeckOpen { get; private set; }
     public bool IsMapPreviewOpen => previewMap != null;
     public bool IsOverlayOpen => IsDeckOpen || IsMapPreviewOpen;
+    public bool CanOpenMapPreview => !IsOverlayOpen && (IsPlaying
+        || (IsResult && battleManager != null && battleManager.State == BattleState.Victory));
 
     public void SetDeckOpen(bool open)
     {
@@ -55,9 +57,9 @@ public class UIScreenFlowController : MonoBehaviour
 
     public void OpenMapPreview(Transform overlayRoot)
     {
-        if (!IsPlaying || IsOverlayOpen || overlayRoot == null || mapScreen == null
+        if (!CanOpenMapPreview || overlayRoot == null || mapScreen == null
             || !mapScreen.TryGetComponent(out RunMapUI map) || !map.HasMap
-            || !map.TryShowPreview(CloseMapPreview)) return;
+            || !map.TryShowPreview(CloseMapPreview, IsResult ? "보상으로 (ESC)" : "전투로 (ESC)")) return;
 
         Transform mapTransform = mapScreen.transform;
         mapParent = mapTransform.parent;
@@ -66,6 +68,7 @@ public class UIScreenFlowController : MonoBehaviour
         UpdateOverlayPause();
         mapTransform.SetParent(overlayRoot, false);
         mapTransform.SetAsLastSibling();
+        if (IsResult) resultScreen.SetActive(false);
         mapScreen.SetActive(true);
         if (UnityEngine.EventSystems.EventSystem.current != null)
             UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);
@@ -87,6 +90,13 @@ public class UIScreenFlowController : MonoBehaviour
         mapScreen.transform.SetSiblingIndex(mapSiblingIndex);
         previewMap = null;
         UpdateOverlayPause();
+        if (IsResult) resultScreen.SetActive(true);
+    }
+
+    public bool TryBackFromRewards()
+    {
+        return IsResult && !IsOverlayOpen && resultScreen != null
+            && resultScreen.TryGetComponent(out BattleRewardUI rewards) && rewards.TryBackToSummary();
     }
 
     public bool TryBackFromUpgrade()
