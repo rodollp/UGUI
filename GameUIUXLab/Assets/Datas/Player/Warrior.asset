@@ -15,3 +15,4 @@ MonoBehaviour:
   CharacterName: "\uB3CC"
   MaxHp: 80
   StarterDeck: {fileID: 11400000, guid: 61a700418a0f3ee4890ad5ad50308ed0, type: 2}
+  StartingRelic: {fileID: 11400000, guid: 01e1d0b65ade4ccf80f492d0e54cc6d5, type: 2}

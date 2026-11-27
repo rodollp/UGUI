@@ -3,12 +3,14 @@ using System.Collections.Generic;
 
 public class BattleDeck
 {
-    private List<CardInstance> drawPile = new(); // µå·Î¿ì ´õ¹Ì
-    private List<CardInstance> hand = new(); // ¼Õ ÆĞ
-    private List<CardInstance> discardPile = new(); // ¹ö¸° Ä«µå ´õ¹Ì
+    private List<CardInstance> drawPile = new(); // ë“œë¡œìš° ë”ë¯¸
+    private List<CardInstance> hand = new(); // ì† íŒ¨
+    private List<CardInstance> discardPile = new(); // ë²„ë¦° ì¹´ë“œ ë”ë¯¸
 
 
     private Random random = new Random();
+    public int DrawCount => drawPile.Count;
+    public int DiscardCount => discardPile.Count;
 
 
     public BattleDeck(MasterDeck masterDeck)
@@ -16,7 +18,7 @@ public class BattleDeck
 
         foreach (CardInstance card in masterDeck.Cards)
         {
-            drawPile.Add(new CardInstance(card.CardData));
+            drawPile.Add(card.CopyForBattle());
         }
 
     }
@@ -74,6 +76,24 @@ public class BattleDeck
         Shuffle();
     }
 
+
+    public bool ContainsInHand(CardInstance card) => hand.Contains(card);
+
+    public bool PlayCard(CardInstance card, Action resolveEffects = null)
+    {
+        if (!hand.Remove(card)) return false;
+        bool discardAfterPlay = card.Version.Type != CardType.Power;
+        try
+        {
+            resolveEffects?.Invoke();
+        }
+        finally
+        {
+            // ë“œë¡œìš° íš¨ê³¼ë¥¼ ì²˜ë¦¬í•œ ë’¤ ì‚¬ìš©í•œ ì¹´ë“œë¥¼ ë²„ë¦° ë”ë¯¸ì— ë„£ìŠµë‹ˆë‹¤.
+            if (discardAfterPlay) discardPile.Add(card);
+        }
+        return true;
+    }
 
     public bool DiscardCard(CardInstance card)
     {

@@ -1,4 +1,4 @@
-
+using System;
 using UnityEngine;
 
 public class CardManager : MonoBehaviour
@@ -6,18 +6,16 @@ public class CardManager : MonoBehaviour
     [Header("References")]
     [SerializeField] private PlayerHand playerHand;
     [SerializeField] private PlayHUD playHUD;
-    [SerializeField] private UIManager uiManager;
     [SerializeField] private RunManager runManager;
     [SerializeField] private TargetSelector targetSelector;
-
     [Header("Deck Settings")]
     [SerializeField] private int drawCount = 5;
-
     [Header("Card Use Settings")]
-    [SerializeField, Range(0f, 1f)]
-    private float useHeightRatio = 0.35f;
+    [SerializeField, Range(0f, 1f)] private float useHeightRatio = 0.35f;
 
     private BattleDeck battleDeck;
+    private BattleManager battleManager;
+    public bool IsResolvingCard { get; private set; }
 
     private void Awake()
     {
@@ -26,150 +24,132 @@ public class CardManager : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (playerHand != null)
-        {
-            playerHand.OnCardDropped -= HandleCardDropped;
-        }
+        if (playerHand != null) playerHand.OnCardDropped -= HandleCardDropped;
     }
 
-    public void StartBattle()
+    public void InitializeBattle(BattleManager manager)
     {
-        if (runManager.MasterDeck == null)
-        {
-            Debug.LogError("MasterDeck이 생성되지 않았습니다.");
-            return;
-        }
-
+        battleManager = manager;
         battleDeck = new BattleDeck(runManager.MasterDeck);
         battleDeck.Shuffle();
-
-        playHUD.ResetHUD();
         playerHand.ClearHand();
-
-        DrawCards();
+        RefreshPileCounts();
+        playHUD.ResetHUD();
     }
 
-    private void DrawCards()
-    {
-        if (battleDeck == null)
-            return;
+    public void BeginPlayerTurn() => DrawCards(drawCount);
 
-        for (int i = 0; i < drawCount; i++)
+    private void DrawCards(int amount)
+    {
+        if (battleDeck == null) return;
+        PlayerStatus player = runManager.PlayerStatus;
+        Func<Vector2, EnemyStatus> getPreviewTarget = GetDamagePreviewTarget;
+        Action onInsufficientEnergy = ShowEnergyShortfall;
+        for (int i = 0; i < amount && playerHand.HasRoom; i++)
         {
             CardInstance card = battleDeck.Draw();
-
-            if (card == null)
-                return;
-
-            playerHand.AddCard(card);
+            if (card == null) break;
+            bool previewsTarget = card.Version.TargetType is CardTargetType.Enemy or CardTargetType.AllEnemies;
+            playerHand.AddCard(card, player, previewsTarget ? getPreviewTarget : null, onInsufficientEnergy);
         }
+        RefreshPileCounts();
     }
 
-    private void DiscardHand()
+    public void DiscardPlayerHand()
     {
-        if (battleDeck == null)
-            return;
+        if (battleDeck != null) battleDeck.DiscardHand();
+        if (playerHand != null) playerHand.ClearHand();
+        RefreshPileCounts();
+    }
 
-        battleDeck.DiscardHand();
-        playerHand.ClearHand();
+    public void EndBattle()
+    {
+        battleDeck = null;
+        if (playerHand != null) playerHand.ClearHand();
+        RefreshPileCounts();
+    }
+
+    private EnemyStatus GetDamagePreviewTarget(Vector2 screenPosition)
+    {
+        if (targetSelector == null || !battleManager.CanPlayCards) return null;
+        Enemy target = targetSelector.GetTarget(screenPosition);
+        return battleManager.IsValidTarget(target) ? target.Status : null;
     }
 
     private void HandleCardDropped(CardUI cardUI, Vector2 screenPosition)
     {
-        if (battleDeck == null || cardUI == null)
-            return;
-
-        CardInstance card = cardUI.CardInstance;
-
-        if (card == null)
-            return;
-
-        CardData data = card.CardData;
-
-        switch (data.TargetType)
+        if (battleManager == null || !battleManager.CanPlayCards || cardUI == null
+            || cardUI.CardInstance == null) return;
+        if (cardUI.CardInstance.Version.TargetType != CardTargetType.Enemy)
         {
-            case CardTargetType.None:
-                {
-                    float useHeight = Screen.height * useHeightRatio;
-
-                    if (screenPosition.y < useHeight)
-                        return;
-
-                    UseCard(cardUI);
-                    break;
-                }
-
-            case CardTargetType.Enemy:
-                {
-                    if (targetSelector == null)
-                        return;
-
-                    Enemy target = targetSelector.GetTarget(screenPosition);
-
-                    if (target == null)
-                    {
-                        Debug.Log("선택된 적이 없습니다.");
-                        return;
-                    }
-
-                    Debug.Log($"선택된 적: {target.name}");
-
-                    UseCard(cardUI, target);
-                    break;
-                }
+            if (screenPosition.y >= Screen.height * useHeightRatio) UseCard(cardUI);
+        }
+        else if (targetSelector != null)
+        {
+            UseCard(cardUI, targetSelector.GetTarget(screenPosition));
         }
     }
 
     public void UseCard(CardUI cardUI, Enemy target = null)
     {
-        if (battleDeck == null || cardUI == null)
-            return;
-
+        BattleDeck deck = battleDeck;
+        if (IsResolvingCard || battleManager == null || !battleManager.CanPlayCards
+            || deck == null || cardUI == null || !playerHand.OwnsCard(cardUI)) return;
         CardInstance card = cardUI.CardInstance;
-
-        if (card == null)
-            return;
-
-        if (runManager.PlayerStatus == null)
+        if (card == null || card.CardData == null || !deck.ContainsInHand(card)) return;
+        CardVersion version = card.Version;
+        if (!CardTargetResolver.TryResolve(version.TargetType, battleManager.Enemies,
+            target, out EnemyStatus[] targets)) return;
+        PlayerStatus status = runManager.PlayerStatus;
+        if (!status.CanUseEnergy(card.CurrentCost))
         {
-            Debug.LogError("PlayerStatus가 생성되지 않았습니다.");
+            ShowEnergyShortfall();
             return;
         }
 
-        // 카드 효과에 필요한 정보 생성
-        CardEffectContext context = new CardEffectContext(
-            runManager.PlayerStatus,
-            target != null ? target.Status : null
-        );
-
-        // 카드에 등록된 효과 실행
-        foreach (CardEffect effect in card.CardData.Effects)
+        IsResolvingCard = true;
+        try
         {
-            if (effect == null)
-                continue;
-
-            effect.Execute(context);
+            if (!status.TryUseEnergy(card.CurrentCost)) return;
+            deck.PlayCard(card, () =>
+            {
+                playerHand.RemoveCard(cardUI);
+                CardEffectContext context = new CardEffectContext(status,
+                    targets.Length == 1 ? targets[0] : null, targets, DrawCards, version.CardName);
+                ExecuteEffects(version, context);
+            });
         }
-
-        // 사용한 카드를 버린 더미로 이동
-        if (!battleDeck.DiscardCard(card))
-            return;
-
-        // 손패 UI에서 제거
-        playerHand.RemoveCard(cardUI);
-
-        uiManager.ShowToast("카드를 사용했습니다.");
+        finally
+        {
+            IsResolvingCard = false;
+            RefreshPileCounts();
+            battleManager.CheckBattleEnd();
+        }
     }
 
+    private void ShowEnergyShortfall()
+    {
+        if (battleManager != null && battleManager.CanPlayCards)
+            playHUD?.ShowEnergyShortfall();
+    }
+
+    private static void ExecuteEffects(CardVersion data, CardEffectContext context)
+    {
+        if (data.Effects == null) return;
+        foreach (CardEffect effect in data.Effects)
+            if (effect != null) effect.Execute(context);
+    }
+
+    private void RefreshPileCounts()
+    {
+        if (playHUD != null)
+            playHUD.SetPileCounts(battleDeck?.DrawCount ?? 0, battleDeck?.DiscardCount ?? 0);
+    }
+
+    // 기존 턴 종료 버튼의 연결을 유지하고 BattleManager에 위임합니다.
     public void EndTurn()
     {
-        if (battleDeck == null)
-            return;
-
-        DiscardHand();
-
-        playHUD.NextTurn();
-
-        DrawCards();
+        if (battleManager != null) battleManager.EndPlayerTurn();
     }
 }
+

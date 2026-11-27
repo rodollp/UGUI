@@ -1,0 +1,133 @@
+using System;
+using System.Linq;
+using TMPro;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.UI;
+
+public static class UpgradeSetup
+{
+    [MenuItem("Tools/Cards/Configure Upgrades")]
+    public static void Configure()
+    {
+        Upgrade("Assets/Datas/CardDis/ATK.asset", 9, 0);
+        Upgrade("Assets/Datas/CardDis/BLO.asset", 8, 0);
+        Upgrade("Assets/Datas/Rewards/Bash.asset", 12, 3);
+        Upgrade("Assets/Datas/Rewards/Intimidate.asset", 0, 3);
+        Upgrade("Assets/Datas/Rewards/IronGuard.asset", 11, 0);
+        var rest = AssetDatabase.LoadAssetAtPath<MapEventData>("Assets/Datas/Adventure/Rest.asset");
+        if (!rest.Choices.Any(c => c.UpgradeCard))
+        {
+            var choices = rest.Choices.ToList();
+            choices.Insert(Math.Min(1, choices.Count), UpgradeChoice());
+            rest.Choices = choices.ToArray(); EditorUtility.SetDirty(rest);
+        }
+        var map = AssetDatabase.LoadAssetAtPath<RunMapData>("Assets/Datas/Adventure/DefaultMap.asset");
+        var hammer = AssetDatabase.LoadAssetAtPath<RelicData>("Assets/Datas/Relics/SmithHammer.asset");
+        var smith = MapSetup.GetOrCreateEvent(map, "Smith", "길가의 대장장이",
+            "대장장이가 카드 한 장을 강화해 주거나 직접 쓰던 망치를 건네겠다고 합니다.",
+            UpgradeChoice(), new MapEventChoice {
+                Label = "대장장이의 망치를 받는다", Result = "대장장이가 손때 묻은 망치를 건넸습니다.", Relic = hammer },
+            new MapEventChoice { Label = "지나간다", Result = "대장장이에게 인사하고 길을 떠납니다." });
+        var events = map.Events ?? Array.Empty<MapEventData>();
+        if (!events.Contains(smith))
+        {
+            map.Events = events.Concat(new[] { smith }).ToArray();
+            EditorUtility.SetDirty(map);
+        }
+
+        var scene = EditorSceneManager.OpenScene("Assets/Scenes/CardGame.unity");
+        var ui = UnityEngine.Object.FindObjectsByType<MapEventUI>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single();
+        var adventure = UnityEngine.Object.FindObjectsByType<AdventureController>(FindObjectsInactive.Include, FindObjectsSortMode.None).Single();
+        var data = new SerializedObject(ui);
+        TMP_Text text = (TMP_Text)data.FindProperty("titleText").objectReferenceValue;
+        Button template = (Button)data.FindProperty("continueButton").objectReferenceValue;
+        Transform existing = ui.transform.Find("UpgradePanel");
+        GameObject panel = existing != null ? existing.gameObject : new GameObject("UpgradePanel", typeof(RectTransform), typeof(Image));
+        panel.transform.SetParent(ui.transform, false);
+        RectTransform rect = panel.GetComponent<RectTransform>();
+        rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one; rect.offsetMin = rect.offsetMax = Vector2.zero;
+        panel.GetComponent<Image>().color = new Color(0.055f, 0.065f, 0.08f, 1);
+        var upgradeUI = panel.GetComponent<CardUpgradeUI>();
+        if (upgradeUI == null) upgradeUI = panel.AddComponent<CardUpgradeUI>();
+        Set(upgradeUI, "adventure", adventure);
+        Set(upgradeUI, "prompt", Label(panel.transform, text, "Prompt", new Vector2(0, 350), new Vector2(1450, 230), 26));
+        var serialized = new SerializedObject(upgradeUI);
+        var cards = serialized.FindProperty("cards"); cards.arraySize = 3;
+        var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/UI/CardUI.prefab");
+        for (int i = 0; i < 3; i++)
+        {
+            Transform child = panel.transform.Find("UpgradeCard" + i);
+            if (child == null)
+            {
+                child = ((GameObject)PrefabUtility.InstantiatePrefab(prefab, panel.transform)).transform;
+                child.name = "UpgradeCard" + i;
+            }
+            Center(child.GetComponent<RectTransform>(), new Vector2((i - 1) * 340, -10), new Vector2(240, 380));
+            child.localScale = Vector3.one * 1.1f;
+            cards.GetArrayElementAtIndex(i).objectReferenceValue = child.GetComponent<CardUI>();
+        }
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+        Set(upgradeUI, "previous", Button(panel.transform, template, "Previous", new Vector2(-430, -300), "이전"));
+        Set(upgradeUI, "next", Button(panel.transform, template, "Next", new Vector2(430, -300), "다음"));
+        Set(upgradeUI, "confirm", Button(panel.transform, template, "Confirm", new Vector2(0, -300), "강화 확정"));
+        Set(upgradeUI, "cancel", Button(panel.transform, template, "Cancel", new Vector2(0, -410), "돌아가기"));
+        Set(ui, "upgradePanel", panel);
+        panel.SetActive(false);
+        EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene); AssetDatabase.SaveAssets();
+        Debug.Log("UPGRADE_SETUP_OK");
+    }
+    public static void ConfigureAndRun() { Configure(); KoreanFontSetup.ConfigureAndRun(); }
+    private static MapEventChoice UpgradeChoice() => new MapEventChoice {
+        Label = "카드 한 장을 강화한다", UpgradeCard = true, Result = "카드를 강화했습니다." };
+    private static void Upgrade(string path, int amount, int turns)
+    {
+        CardData source = AssetDatabase.LoadAssetAtPath<CardData>(path);
+        if (source.HasUpgrade) return;
+        CardVersion basic = source.Base;
+        source.Upgrade = new CardVersion
+        {
+            CardName = basic.CardName + "+", Type = basic.Type, TargetType = basic.TargetType,
+            EnergyCost = basic.EnergyCost, Artwork = basic.Artwork
+        };
+        foreach (CardEffect effect in basic.Effects)
+        {
+            CardEffect copy = UnityEngine.Object.Instantiate(effect);
+            var serialized = new SerializedObject(copy);
+            if (effect is DamageEffect) serialized.FindProperty("damage").intValue = amount;
+            if (effect is BlockEffect) serialized.FindProperty("block").intValue = amount;
+            if (effect is ApplyDebuffEffect) serialized.FindProperty("turns").intValue = turns;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            CardDataEditor.EmbedEffect(source, source.Upgrade, copy);
+        }
+        source.HasUpgrade = true;
+        EditorUtility.SetDirty(source);
+    }
+    private static void Set(UnityEngine.Object target, string field, UnityEngine.Object value)
+    {
+        var serialized = new SerializedObject(target); serialized.FindProperty(field).objectReferenceValue = value;
+        serialized.ApplyModifiedPropertiesWithoutUndo();
+    }
+    private static void Center(RectTransform rect, Vector2 pos, Vector2 size)
+    {
+        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = pos; rect.sizeDelta = size;
+    }
+    private static TMP_Text Label(Transform parent, TMP_Text template, string name, Vector2 pos, Vector2 size, int fontSize)
+    {
+        Transform old = parent.Find(name);
+        TMP_Text label = old != null ? old.GetComponent<TMP_Text>() : UnityEngine.Object.Instantiate(template, parent);
+        label.name = name; label.text = ""; label.fontSize = fontSize; label.enableAutoSizing = false;
+        label.alignment = TextAlignmentOptions.Center; label.raycastTarget = false;
+        Center(label.rectTransform, pos, size); return label;
+    }
+    private static Button Button(Transform parent, Button template, string name, Vector2 pos, string caption)
+    {
+        Transform old = parent.Find(name);
+        Button button = old != null ? old.GetComponent<Button>() : UnityEngine.Object.Instantiate(template, parent);
+        button.name = name; button.onClick = new Button.ButtonClickedEvent(); button.gameObject.SetActive(true);
+        Center(button.GetComponent<RectTransform>(), pos, new Vector2(270, 70));
+        button.GetComponentInChildren<TMP_Text>(true).text = caption; return button;
+    }
+}

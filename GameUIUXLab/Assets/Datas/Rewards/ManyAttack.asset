@@ -1,0 +1,61 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d294650987922a247ac3dc72a809c028, type: 3}
+  m_Name: ManyAttack
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  CardID: 117
+  Rarity: 1
+  Base:
+    CardName: "\uC5F0\uC18D\uBCA0\uAE30"
+    Type: 0
+    TargetType: 1
+    EnergyCost: 1
+    Artwork: {fileID: 21300000, guid: 1e171cf2eb2109947aa9d2f0d2c8b696, type: 3}
+    Effects:
+    - {fileID: 5447356406623314755}
+  HasUpgrade: 1
+  Upgrade:
+    CardName: "\uC5F0\uC18D\uBCA0\uAE30+"
+    Type: 0
+    TargetType: 1
+    EnergyCost: 1
+    Artwork: {fileID: 21300000, guid: 1e171cf2eb2109947aa9d2f0d2c8b696, type: 3}
+    Effects:
+    - {fileID: 567687218189732739}
+--- !u!114 &567687218189732739
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 825039c3ceac7db4fa62f2377d0843bc, type: 3}
+  m_Name: Damage Effect
+  m_EditorClassIdentifier: Assembly-CSharp::DamageEffect
+  damage: 4
+  hits: 2
+--- !u!114 &5447356406623314755
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 825039c3ceac7db4fa62f2377d0843bc, type: 3}
+  m_Name: Damage Effect
+  m_EditorClassIdentifier: Assembly-CSharp::DamageEffect
+  damage: 3
+  hits: 2

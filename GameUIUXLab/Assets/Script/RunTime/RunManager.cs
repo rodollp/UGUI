@@ -1,32 +1,147 @@
-
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class RunManager : MonoBehaviour
 {
     [Header("Player Data")]
     [SerializeField] private PlayerData playerData;
+    [Header("Stages (in floor order)")]
+    [SerializeField] private StageData[] stages;
+    [SerializeField] private RunMapData mapData;
+    public RunMap Map { get; private set; }
+    public bool HasMap => Map != null;
+    public int RunVersion { get; private set; }
+    public event Action OnMapChanged;
 
     public MasterDeck MasterDeck { get; private set; }
     public PlayerStatus PlayerStatus { get; private set; }
+    private readonly List<RelicData> relics = new();
+    public IReadOnlyList<RelicData> Relics => relics;
+    public int Gold { get; private set; }
+    public int CardsRemoved { get; private set; }
+    public int CardRemovalPrice => (int)Math.Min(int.MaxValue, 50L + 50L * CardsRemoved);
+    private bool removingCard;
+    public event Action OnGoldChanged;
+    public int StageIndex { get; private set; }
+    public int Floor => StageIndex + 1;
+    public bool HasStageSequence => stages != null && stages.Length > 0;
+    public bool IsRunComplete => HasMap ? Map.IsComplete : HasStageSequence && StageIndex >= stages.Length;
+    public StageData CurrentStage => !HasMap && HasStageSequence && !IsRunComplete ? stages[StageIndex] : null;
+    public EncounterData CurrentEncounter { get; private set; }
 
     public void StartNewRun()
     {
-        if (playerData == null)
+        if (playerData == null || playerData.StarterDeck == null)
         {
-            Debug.LogError("PlayerData°¡ ¼³Á¤µÇÁö ¾Ê¾Ò½À´Ï´Ù.");
+            Debug.LogError("PlayerData ë˜ëŠ” ì‹œìž‘ ë±ì´ ì„¤ì •ë˜ì§€ ì•Šì•˜ìŠµë‹ˆë‹¤.");
             return;
         }
-
-        if (playerData.StarterDeck == null)
+        if (mapData != null && !mapData.IsValid())
         {
-            Debug.LogError("½ÃÀÛ µ¦ÀÌ ¼³Á¤µÇÁö ¾Ê¾Ò½À´Ï´Ù.");
+            Debug.LogError("ë§µì˜ ì „íˆ¬Â·ì‚¬ê±´Â·íœ´ì‹Â·ë³´ë¬¼Â·ìƒì  ì„¤ì •ì„ í™•ì¸í•˜ì„¸ìš”.");
             return;
         }
-
         MasterDeck = new MasterDeck(playerData.StarterDeck);
         PlayerStatus = new PlayerStatus(playerData.MaxHp);
+        relics.Clear();
+        TryAddRelic(playerData.StartingRelic);
+        Gold = 0;
+        CardsRemoved = 0;
+        OnGoldChanged?.Invoke();
+        StageIndex = 0;
+        Map = mapData == null ? null : RunMapGenerator.Generate(mapData,
+            mapData.UseFixedSeed ? mapData.Seed : Guid.NewGuid().GetHashCode());
+        RunVersion++;
+        SelectCurrentEncounter();
+        OnMapChanged?.Invoke();
+    }
 
-        Debug.Log($"»õ °ÔÀÓ ½ÃÀÛ! º¸À¯ Ä«µå: {MasterDeck.Cards.Count}Àå");
-        Debug.Log($"½ÃÀÛ Ã¼·Â: {PlayerStatus.CurrentHp}/{PlayerStatus.MaxHp}");
+    // í˜„ìž¬ ë…¸ë“œì˜ ì§„í–‰ì„ í™•ì •í•©ë‹ˆë‹¤.
+    public void CompleteStage()
+    {
+        if (HasMap)
+        {
+            if (Map.CompleteActiveNode()) OnMapChanged?.Invoke();
+            return;
+        }
+        if (!HasStageSequence || IsRunComplete) return;
+        StageIndex++;
+        SelectCurrentEncounter();
+    }
+
+    private void SelectCurrentEncounter()
+    {
+        CurrentEncounter = CurrentStage != null ? CurrentStage.SelectEncounter() : null;
+    }
+
+    public bool OwnsRelic(RelicData relic) => relic != null && relics.Contains(relic);
+
+    private bool CanAcquireRelic(RelicData relic) =>
+        relic != null && PlayerStatus is { IsDead: false } && !OwnsRelic(relic);
+
+    public bool TryAddRelic(RelicData relic)
+    {
+        if (!CanAcquireRelic(relic)) return false;
+        AddRelic(relic);
+        return true;
+    }
+
+    internal bool TryBuyRelic(RelicData relic, int price)
+    {
+        if (price <= 0 || Gold < price || !CanAcquireRelic(relic)) return false;
+        Gold -= price;
+        AddRelic(relic);
+        OnGoldChanged?.Invoke();
+        return true;
+    }
+
+    private void AddRelic(RelicData relic)
+    {
+        relics.Add(relic);
+        PlayerStatus.AddStrikeDamageBonus(relic.StrikeDamageBonus);
+    }
+
+    public int AddGold(int amount)
+    {
+        if (amount <= 0 || PlayerStatus == null) return 0;
+        int added = Math.Min(amount, int.MaxValue - Gold);
+        Gold += added;
+        if (added > 0) OnGoldChanged?.Invoke();
+        return added;
+    }
+
+    public bool TrySpendGold(int amount)
+    {
+        if (amount < 0 || PlayerStatus == null || amount > Gold) return false;
+        Gold -= amount;
+        if (amount > 0) OnGoldChanged?.Invoke();
+        return true;
+    }
+
+    public bool TryEnterMapNode(int id)
+    {
+        if (!HasMap || PlayerStatus == null || PlayerStatus.IsDead || !Map.TryEnter(id)) return false;
+        StageIndex = Map.ActiveNode.Row;
+        CurrentEncounter = Map.ActiveNode.Encounter;
+        OnMapChanged?.Invoke();
+        return true;
+    }
+
+    public bool TryRemoveCard(CardInstance card)
+    {
+        if (removingCard || PlayerStatus == null || PlayerStatus.IsDead || MasterDeck == null
+            || card == null || !System.Linq.Enumerable.Contains(MasterDeck.Cards, card)
+            || Gold < CardRemovalPrice) return false;
+        removingCard = true;
+        try
+        {
+            if (!TrySpendGold(CardRemovalPrice)) return false;
+            MasterDeck.RemoveCard(card);
+            if (CardsRemoved < int.MaxValue) CardsRemoved++;
+            return true;
+        }
+        finally { removingCard = false; }
     }
 }
+

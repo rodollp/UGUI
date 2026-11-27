@@ -6,5 +6,5 @@ public class PlayerData : ScriptableObject
     public string CharacterName;
     public int MaxHp;
     public StarterDeckData StarterDeck;
-    
+    public RelicData StartingRelic;
 }

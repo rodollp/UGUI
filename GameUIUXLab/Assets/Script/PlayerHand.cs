@@ -11,9 +11,12 @@ public class PlayerHand : MonoBehaviour
     [Header("Hand Layout")]
     [SerializeField] private float cardSpacing = 220f;
     [SerializeField] private float maxHandWidth = 1200f;
-    [SerializeField] private float cardHigh = -100f;
+    [SerializeField] private float cardHigh;
 
     private readonly List<CardUI> cardPool = new();
+    private readonly List<CardUI> activeCards = new();
+
+    public bool HasRoom => activeCards.Count < cardPool.Count;
 
     public event Action<CardUI> OnCardClicked;
     public event Action<CardUI, Vector2> OnCardDropped;
@@ -46,7 +49,8 @@ public class PlayerHand : MonoBehaviour
     {
         OnCardDropped?.Invoke(card, screenPosition);
     }
-    public void AddCard(CardInstance cardInstance)
+    public void AddCard(CardInstance cardInstance, PlayerStatus player = null,
+        Func<Vector2, EnemyStatus> getDamagePreviewTarget = null, Action onInsufficientEnergy = null)
     {
         if (cardInstance == null)
             return;
@@ -55,7 +59,7 @@ public class PlayerHand : MonoBehaviour
         {
             if (!card.gameObject.activeSelf)
             {
-                card.SetCard(cardInstance);
+                card.SetCard(cardInstance, player, getDamagePreviewTarget, onInsufficientEnergy);
                 card.gameObject.SetActive(true);
 
                 RefreshLayout();
@@ -64,6 +68,9 @@ public class PlayerHand : MonoBehaviour
         }
     }
 
+
+    public bool OwnsCard(CardUI card) => card != null && cardPool.Contains(card)
+        && card.gameObject.activeSelf;
 
     public void RemoveCard(CardUI card)
     {
@@ -80,7 +87,7 @@ public class PlayerHand : MonoBehaviour
 
     private void RefreshLayout()
     {
-        List<CardUI> activeCards = new();
+        activeCards.Clear();
 
         foreach (CardUI card in cardPool)
         {
@@ -99,12 +106,14 @@ public class PlayerHand : MonoBehaviour
 
         if (cardCount > 1)
         {
-            float requiredWidth = spacing * (cardCount - 1);
-
-            if (requiredWidth > maxHandWidth)
+            float availableWidth = maxHandWidth;
+            if (transform is RectTransform handRect && handRect.rect.width > 0)
             {
-                spacing = maxHandWidth / (cardCount - 1);
+                // Leave both lower corners clear for the combat controls.
+                float cardWidth = ((RectTransform)activeCards[0].transform).rect.width;
+                availableWidth = Mathf.Min(availableWidth, Mathf.Max(0, handRect.rect.width - 470f - cardWidth));
             }
+            spacing = Mathf.Min(spacing, availableWidth / (cardCount - 1));
         }
 
         float totalWidth = spacing * (cardCount - 1);
@@ -114,11 +123,12 @@ public class PlayerHand : MonoBehaviour
         {
             float x = startX + spacing * i;
 
-            activeCards[i].SetBasePosition(
-                new Vector2(x, cardHigh)
-            );
+            float edgeOffset = totalWidth > 0 ? 18f * Mathf.Abs(x) / (totalWidth * .5f) : 0f;
+            activeCards[i].SetBasePosition(new Vector2(x, cardHigh - edgeOffset));
         }
     }
+
+    private void OnRectTransformDimensionsChange() => RefreshLayout();
 
     public void ClearHand()
     {

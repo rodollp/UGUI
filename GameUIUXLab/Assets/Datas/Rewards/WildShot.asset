@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d294650987922a247ac3dc72a809c028, type: 3}
+  m_Name: WildShot
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  CardID: 110
+  Rarity: 0
+  Base:
+    CardName: "\uC720\uD0C4"
+    Type: 0
+    TargetType: 2
+    EnergyCost: 1
+    Artwork: {fileID: 21300000, guid: 1e171cf2eb2109947aa9d2f0d2c8b696, type: 3}
+    Effects:
+    - {fileID: 11400001}
+  HasUpgrade: 1
+  Upgrade:
+    CardName: "\uC720\uD0C4+"
+    Type: 0
+    TargetType: 2
+    EnergyCost: 1
+    Artwork: {fileID: 21300000, guid: 1e171cf2eb2109947aa9d2f0d2c8b696, type: 3}
+    Effects:
+    - {fileID: 11400002}
+--- !u!114 &11400001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 825039c3ceac7db4fa62f2377d0843bc, type: 3}
+  m_Name: WildShotDamage
+  m_EditorClassIdentifier: Assembly-CSharp::DamageEffect
+  damage: 10
+--- !u!114 &11400002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 825039c3ceac7db4fa62f2377d0843bc, type: 3}
+  m_Name: WildShotPlusDamage
+  m_EditorClassIdentifier: Assembly-CSharp::DamageEffect
+  damage: 14
