@@ -76,10 +76,10 @@ public class CardUpgradeUI : MonoBehaviour
         backdrop.transition = Selectable.Transition.None; backdrop.onClick.AddListener(CloseDetail);
         RectTransform holder = Rect("EnlargedCard", detailPanel.transform);
         Place(holder, new Vector2(.5f, .5f), new Vector2(0, 65), new Vector2(240, 380));
-        holder.localScale = Vector3.one * 1.8f;
+        holder.localScale = Vector3.one * Mathf.Clamp((((RectTransform)transform).rect.height - 360) / 380, 1, 1.8f);
         detailCard = MakeCard(holder);
         RectTransform toggleRoot = Rect("UpgradePreview", detailPanel.transform);
-        Place(toggleRoot, new Vector2(.5f, .5f), new Vector2(0, -325), new Vector2(360, 60));
+        Place(toggleRoot, new Vector2(.5f, 0), new Vector2(0, 200), new Vector2(360, 60));
         toggleRoot.gameObject.AddComponent<Image>().color = Color.clear;
         upgradeToggle = toggleRoot.gameObject.AddComponent<Toggle>();
         RectTransform box = Rect("Checkbox", toggleRoot);
@@ -92,7 +92,7 @@ public class CardUpgradeUI : MonoBehaviour
         Place(caption.rectTransform, new Vector2(.5f, .5f), new Vector2(40, 0), new Vector2(260, 60));
         upgradeToggle.onValueChanged.AddListener(Preview);
         detailNote = Label(detailPanel.transform, "PreviewNote", "", 24);
-        Place(detailNote.rectTransform, new Vector2(.5f, .5f), new Vector2(0, -390), new Vector2(1200, 55));
+        Place(detailNote.rectTransform, new Vector2(.5f, 0), new Vector2(0, 130), new Vector2(1200, 55));
         confirm.transform.SetParent(detailPanel.transform, false);
         Place((RectTransform)confirm.transform, new Vector2(.5f, 0), new Vector2(-160, 60), new Vector2(270, 70));
         var back = Rect("BackToList", detailPanel.transform);

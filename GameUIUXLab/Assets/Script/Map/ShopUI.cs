@@ -179,10 +179,10 @@ public class ShopUI : MonoBehaviour
         backdrop.transition = Selectable.Transition.None; backdrop.onClick.AddListener(CloseDetail);
         RectTransform holder = Rect("EnlargedCard", detailPanel.transform);
         Place(holder, new Vector2(.5f, .5f), new Vector2(0, 65), new Vector2(240, 380));
-        holder.localScale = Vector3.one * 1.8f;
+        holder.localScale = Vector3.one * Mathf.Clamp((((RectTransform)transform).rect.height - 360) / 380, 1, 1.8f);
         detailCard = Card(holder, Vector2.zero);
         RectTransform toggleRoot = Rect("UpgradePreview", detailPanel.transform);
-        Place(toggleRoot, new Vector2(.5f, .5f), new Vector2(0, -325), new Vector2(360, 60));
+        Place(toggleRoot, new Vector2(.5f, 0), new Vector2(0, 200), new Vector2(360, 60));
         toggleRoot.gameObject.AddComponent<Image>().color = Color.clear;
         previewToggle = toggleRoot.gameObject.AddComponent<Toggle>();
         RectTransform box = Rect("Checkbox", toggleRoot);
@@ -194,7 +194,7 @@ public class ShopUI : MonoBehaviour
         Text(toggleRoot, "Caption", "강화 적용시", new Vector2(40, 0), new Vector2(260, 60));
         previewToggle.onValueChanged.AddListener(Preview);
         relicDetail = Text(detailPanel.transform, "RelicDetail", "", new Vector2(0, 45), new Vector2(1050, 240), fontSize: 30);
-        detailNote = Text(detailPanel.transform, "Note", "", new Vector2(0, -390), new Vector2(1300, 55), fontSize: 25);
+        detailNote = Text(detailPanel.transform, "Note", "", new Vector2(0, 130), new Vector2(1300, 55), new Vector2(.5f, 0), 25);
         confirmButton = Button(detailPanel.transform, "Confirm", "", new Vector2(-200, 60), Confirm, new Vector2(.5f, 0), 360);
         detailBackButton = Button(detailPanel.transform, "Back", "돌아가기 (ESC)", new Vector2(200, 60),
             CloseDetail, new Vector2(.5f, 0), 320);

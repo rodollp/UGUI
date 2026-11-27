@@ -6,6 +6,7 @@ public class RunManager : MonoBehaviour
 {
     [Header("Player Data")]
     [SerializeField] private PlayerData playerData;
+    public PlayerData PlayerData => playerData;
     [Header("Stages (in floor order)")]
     [SerializeField] private StageData[] stages;
     [SerializeField] private RunMapData mapData;

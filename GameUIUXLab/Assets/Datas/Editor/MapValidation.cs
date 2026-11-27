@@ -249,17 +249,20 @@ public static class MapValidation
         VerifyRelicBar(turnLabel.transform.parent, run);
         yield return null;
         var shortcuts = UnityEngine.Object.FindObjectsByType<Button>(FindObjectsSortMode.None);
-        Button mapShortcut = shortcuts.Single(b => b.name == "OpenMapPreview");
-        Button deckShortcut = shortcuts.Single(b => b.name == "OpenDeck");
-        Expect(mapShortcut.GetComponentInChildren<AdventureShortcutIcon>().ShowMap
+        Button mapShortcut = shortcuts.Single(b => b.name == (flow.HasCommonHUD ? "MapButton" : "OpenMapPreview"));
+        Button deckShortcut = shortcuts.Single(b => b.name == (flow.HasCommonHUD ? "DeckButton" : "OpenDeck"));
+        if (flow.HasCommonHUD)
+            Expect(mapShortcut.transform.IsChildOf(Find<RunHUD>().transform)
+                && deckShortcut.transform.IsChildOf(Find<RunHUD>().transform), "map and deck shortcuts belong to common HUD");
+        else Expect(mapShortcut.GetComponentInChildren<AdventureShortcutIcon>().ShowMap
             && !deckShortcut.GetComponentInChildren<AdventureShortcutIcon>().ShowMap,
             "battle shows distinct map and card shortcut icons");
         int turn = battle.Turn;
         run.PlayerStatus.TakeDamage(4);
         mapShortcut.onClick.Invoke();
         VerifyMapHealth(mapUI, run.PlayerStatus);
-        var previewGold = mapUI.transform.Find("MapGold").GetComponent<TMP_Text>();
-        Expect(previewGold.gameObject.activeInHierarchy && previewGold.text == $"골드 {run.Gold}",
+        var previewGold = MapGoldText();
+        Expect(previewGold.gameObject.activeInHierarchy && previewGold.text.EndsWith(run.Gold.ToString()),
             "the combat map preview shows the current wallet");
         MapNodeIcon currentIcon = NodeButton(entry.Id).GetComponentInChildren<MapNodeIcon>();
         Expect(flow.IsMapPreviewOpen && flow.IsPlaying && !flow.IsMap && Time.timeScale == 0
@@ -311,7 +314,7 @@ public static class MapValidation
             "cached node icon updates its visited state after battle");
         Expect(run.Gold == gold && run.PlayerStatus.CurrentHp == hp && run.MasterDeck.Cards.Count == deck,
             "resources persist on map");
-        Expect(Find<RunMapUI>().transform.Find("MapGold").GetComponent<TMP_Text>().text == $"골드 {gold}",
+        Expect(MapGoldText().text.EndsWith(gold.ToString()),
             "the map shows the gold claimed in the previous battle");
         Expect(!adventure.SelectNode(entry.Id), "completed node cannot replay");
         yield return null;
@@ -683,6 +686,17 @@ public static class MapValidation
 
     private static void VerifyMapHealth(RunMapUI map, PlayerStatus player)
     {
+        if (Find<UIScreenFlowController>().HasCommonHUD)
+        {
+            RunHUD hud = Find<RunHUD>(); hud.Refresh();
+            var data = new SerializedObject(hud);
+            var label = (TMP_Text)data.FindProperty("healthText").objectReferenceValue;
+            var image = (Image)data.FindProperty("healthFill").objectReferenceValue;
+            Expect(hud.gameObject.activeInHierarchy && label.text == $"{player.CurrentHp} / {player.MaxHp}"
+                && Mathf.Approximately(image.fillAmount, (float)player.CurrentHp / player.MaxHp),
+                "shared HUD health remains visible and current on map");
+            return;
+        }
         var health = map.transform.Find("MapHealth") as RectTransform;
         Expect(health != null && health.gameObject.activeInHierarchy
             && health.anchorMin == Vector2.up && health.anchorMax == Vector2.up,
@@ -696,6 +710,27 @@ public static class MapValidation
 
     private static void VerifyRelicBar(Transform screen, RunManager run)
     {
+        if (Find<UIScreenFlowController>().HasCommonHUD)
+        {
+            RunHUD hud = Find<RunHUD>(); hud.Refresh();
+            var data = new SerializedObject(hud);
+            var tip = (RectTransform)data.FindProperty("tooltip").objectReferenceValue;
+            var name = (TMP_Text)data.FindProperty("tooltipTitle").objectReferenceValue;
+            var effect = (TMP_Text)data.FindProperty("tooltipDescription").objectReferenceValue;
+            var items = hud.GetComponentsInChildren<RunRelicItem>();
+            Expect(hud.gameObject.activeInHierarchy && items.Length == run.Relics.Count,
+                "one shared HUD entry per owned relic");
+            for (int i = 0; i < items.Length; i++)
+            {
+                items[i].OnPointerEnter(null);
+                Expect(tip.gameObject.activeInHierarchy && name.text == run.Relics[i].DisplayName
+                    && effect.text == run.Relics[i].GetEffectDescription(), "shared relic tooltip identifies effect");
+                if (i > 0) { items[i - 1].OnPointerExit(null); Expect(tip.gameObject.activeSelf, "old relic exit keeps current tooltip"); }
+            }
+            if (items.Length > 0) items.Last().OnPointerExit(null);
+            Expect(!tip.gameObject.activeSelf && !tip.GetComponent<Image>().raycastTarget, "shared tooltip closes and does not block input");
+            return;
+        }
         var bar = screen.Find("RelicBar") as RectTransform;
         Expect(bar != null && bar.gameObject.activeInHierarchy && bar.anchorMin == Vector2.up
             && bar.anchorMax == Vector2.up && bar.pivot == Vector2.up, "Relic bar is visible at the upper left");
@@ -722,6 +757,14 @@ public static class MapValidation
         }
         targets.Last().OnPointerExit(null);
         Expect(!tooltip.gameObject.activeSelf, "Leaving the current relic hides the tooltip");
+    }
+
+    private static TMP_Text MapGoldText()
+    {
+        if (!Find<UIScreenFlowController>().HasCommonHUD)
+            return Find<RunMapUI>().transform.Find("MapGold").GetComponent<TMP_Text>();
+        RunHUD hud = Find<RunHUD>(); hud.Refresh();
+        return (TMP_Text)new SerializedObject(hud).FindProperty("goldText").objectReferenceValue;
     }
 
     private static void VerifyShopNode(RunManager run, AdventureController adventure, UIScreenFlowController flow)

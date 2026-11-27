@@ -9,6 +9,7 @@ public class RelicData : ScriptableObject
     public const string StrikeCardName = "타격";
 
     public string DisplayName;
+    public Sprite Icon;
     [FormerlySerializedAs("VictoryHeal"), Min(0)] public int BattleEndHeal;
     [Min(0)] public int FirstTurnBlock;
     [Min(0)] public int FirstTurnEnergy;

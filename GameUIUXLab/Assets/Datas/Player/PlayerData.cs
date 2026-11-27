@@ -4,6 +4,7 @@ using UnityEngine;
 public class PlayerData : ScriptableObject
 {
     public string CharacterName;
+    public Sprite Portrait;
     public int MaxHp;
     public StarterDeckData StarterDeck;
     public RelicData StartingRelic;

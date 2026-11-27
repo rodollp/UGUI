@@ -15,7 +15,7 @@ public class BattleRewardUI : MonoBehaviour
     private BattleRewardOffer activeOffer, displayedOffer;
     private RectTransform summary;
     private GameObject backdrop;
-    private TMP_Text relicText, healingText, cardResultText;
+    private TMP_Text relicText, cardResultText;
     private Button goldRewardButton, relicRewardButton, cardRewardButton, backButton;
     private Transform titleButton;
     private bool cardChoicesOpen;
@@ -89,9 +89,6 @@ public class BattleRewardUI : MonoBehaviour
         goldText.text = $"골드 {offer.Gold} 받기 · 보유 {runManager.Gold}";
         relicRewardButton.gameObject.SetActive(battleManager.HasPendingRelicReward);
         if (offer.Relic != null) relicText.text = $"{offer.Relic.DisplayName} 받기";
-        int healed = battleManager.HpRestoredByRelics;
-        healingText.transform.parent.gameObject.SetActive(healed > 0);
-        if (healed > 0) healingText.text = $"유물 회복 · 체력 +{healed}";
         cardRewardButton.gameObject.SetActive(pending);
         cardResultText.transform.parent.gameObject.SetActive(!pending && offer.SelectedCard != null);
         if (offer.SelectedCard != null)
@@ -146,13 +143,11 @@ public class BattleRewardUI : MonoBehaviour
         divider.gameObject.AddComponent<LayoutElement>().preferredHeight = 2;
 
         relicText = AddLabel(summary, "RewardRelicText", "", 25);
-        healingText = AddLabel(summary, "RewardHealingText", "", 24);
         cardResultText = AddLabel(summary, "CardRewardResultText", "", 24);
         goldRewardButton = AddRewardRow("GoldRow", goldText, new Color(.95f, .72f, .32f),
             () => battleManager.TryClaimGoldReward());
         relicRewardButton = AddRewardRow("RewardRelic", relicText, new Color(.69f, .57f, .85f),
             () => battleManager.TryClaimRelicReward());
-        AddRewardRow("RewardHealing", healingText, new Color(.49f, .76f, .61f));
         cardRewardButton = AddButton(summary, "OpenCardReward", "카드 보상   ›", () => SetCardChoicesOpen(true));
         cardRewardButton.image.color = new Color(.26f, .37f, .47f);
         cardRewardButton.gameObject.AddComponent<LayoutElement>().preferredHeight = 54;

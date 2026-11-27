@@ -29,8 +29,11 @@ public class DeckViewUI : MonoBehaviour
 
     private void Start()
     {
-        openButton = MakeShortcut("OpenDeck", "덱", false, -35, Open);
-        mapButton = MakeShortcut("OpenMapPreview", "지도", true, -151, () => flow.OpenMapPreview(canvasRoot));
+        if (!flow.HasCommonHUD)
+        {
+            openButton = MakeShortcut("OpenDeck", "덱", false, -35, Open);
+            mapButton = MakeShortcut("OpenMapPreview", "지도", true, -151, () => flow.OpenMapPreview(canvasRoot));
+        }
         panel = Rect("DeckOverlay", canvasRoot).gameObject;
         Stretch((RectTransform)panel.transform, Vector2.zero, Vector2.zero);
         panel.AddComponent<Image>().color = new Color(.035f, .045f, .06f, .99f);
@@ -94,7 +97,7 @@ public class DeckViewUI : MonoBehaviour
             UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(null);
         Canvas.ForceUpdateCanvases(); scroll.verticalNormalizedPosition = 1;
         flow.SetDeckOpen(true);
-        openButton.gameObject.SetActive(false);
+        if (openButton != null) openButton.gameObject.SetActive(false);
     }
 
     public void Close()
@@ -125,13 +128,14 @@ public class DeckViewUI : MonoBehaviour
         // Scale the wrapper so CardUI's hover/reset logic cannot undo the enlargement.
         RectTransform holder = Rect("EnlargedCard", detailPanel.transform);
         Place(holder, new Vector2(.5f, .5f), new Vector2(0, 65), new Vector2(240, 380));
-        holder.localScale = Vector3.one * 1.8f;
+        float availableHeight = ((RectTransform)canvasRoot).rect.height;
+        holder.localScale = Vector3.one * Mathf.Clamp((availableHeight - 340) / 380, 1, 1.8f);
         detailCard = Instantiate(cardPrefab, holder);
         Place((RectTransform)detailCard.transform, new Vector2(.5f, .5f), Vector2.zero, new Vector2(240, 380));
         detailCard.SetRewardMode(); detailCard.SetBasePosition(Vector2.zero); detailCard.CancelDrag();
 
         RectTransform toggleRoot = Rect("UpgradePreview", detailPanel.transform);
-        Place(toggleRoot, new Vector2(.5f, .5f), new Vector2(0, -325), new Vector2(360, 60));
+        Place(toggleRoot, new Vector2(.5f, 0), new Vector2(0, 180), new Vector2(360, 60));
         var hitArea = toggleRoot.gameObject.AddComponent<Image>(); hitArea.color = Color.clear;
         upgradeToggle = toggleRoot.gameObject.AddComponent<Toggle>();
         RectTransform box = Rect("Checkbox", toggleRoot);
@@ -145,9 +149,9 @@ public class DeckViewUI : MonoBehaviour
         Place(caption.rectTransform, new Vector2(.5f, .5f), new Vector2(40, 0), new Vector2(260, 60));
         upgradeToggle.onValueChanged.AddListener(ShowUpgradePreview);
         detailNote = Label(detailPanel.transform, "PreviewNote", ""); detailNote.fontSize = 24;
-        Place(detailNote.rectTransform, new Vector2(.5f, .5f), new Vector2(0, -390), new Vector2(1050, 55));
+        Place(detailNote.rectTransform, new Vector2(.5f, 0), new Vector2(0, 120), new Vector2(1050, 55));
         Button back = MakeButton(detailPanel.transform, "BackToDeck", "덱으로 (ESC)", CloseCardDetail);
-        Place((RectTransform)back.transform, new Vector2(.5f, .5f), new Vector2(0, -465), new Vector2(280, 65));
+        Place((RectTransform)back.transform, new Vector2(.5f, 0), new Vector2(0, 60), new Vector2(280, 65));
         detailPanel.SetActive(false);
     }
 

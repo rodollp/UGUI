@@ -10,6 +10,7 @@ public class RunMapUI : MonoBehaviour
     [SerializeField] private Button nodeTemplate;
     [SerializeField] private TMP_Text titleText;
     [SerializeField] private TMP_Text statusText;
+    [SerializeField] private bool useCommonHUD;
     private const float RowSpacing = 126f;
     private const float IconSize = 68f;
     private ScrollRect scroll;
@@ -72,6 +73,7 @@ public class RunMapUI : MonoBehaviour
 
     private void Awake()
     {
+        if (useCommonHUD) return;
         const float panelGap = 12f;
         var relicPosition = new Vector2(50, -38);
         var healthPosition = relicPosition + Vector2.down * (RelicBarView.BarHeight + panelGap);
@@ -100,7 +102,7 @@ public class RunMapUI : MonoBehaviour
     {
         adventure.Run.OnMapChanged -= Refresh;
         adventure.Run.OnGoldChanged -= RefreshStatus;
-        healthView.Bind(null);
+        healthView?.Bind(null);
     }
 
     private Vector2 Position(MapNode node, int rows)
@@ -147,9 +149,9 @@ public class RunMapUI : MonoBehaviour
     public void Refresh()
     {
         RunManager run = adventure.Run;
-        healthView.Bind(run.HasMap ? run.PlayerStatus : null);
+        healthView?.Bind(run.HasMap ? run.PlayerStatus : null);
         if (!run.HasMap || run.PlayerStatus == null) return;
-        relicBar.Refresh(run);
+        relicBar?.Refresh(run);
         RefreshStatus();
         bool rebuilt = !ReferenceEquals(builtMap, run.Map);
         if (rebuilt) BuildMap(run);
@@ -187,7 +189,7 @@ public class RunMapUI : MonoBehaviour
         if (displayedStatus != status)
         {
             displayedStatus = status;
-            goldValue.text = $"골드 {status.Gold}";
+            if (goldValue != null) goldValue.text = $"골드 {status.Gold}";
             statusText.text = $"덱 {status.Cards}장";
         }
         if (displayedComplete != run.IsRunComplete)

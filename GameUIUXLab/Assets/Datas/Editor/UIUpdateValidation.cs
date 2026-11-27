@@ -23,7 +23,14 @@ public static class UIUpdateValidation
         Expect(instances.SequenceEqual(root.GetComponentsInChildren<Transform>(true)),
             "gold and repeated refresh reuse all map objects");
         var text = (TMP_Text)new SerializedObject(ui).FindProperty("statusText").objectReferenceValue;
-        Expect(text.text.Contains($"골드 {run.Gold}"), "gold status still updates immediately");
+        var common = UnityEngine.Object.FindObjectsByType<RunHUD>(FindObjectsInactive.Include, FindObjectsSortMode.None).FirstOrDefault();
+        if (common != null)
+        {
+            common.Refresh();
+            text = (TMP_Text)new SerializedObject(common).FindProperty("goldText").objectReferenceValue;
+            Expect(text.text == run.Gold.ToString(), "common HUD gold updates on map");
+        }
+        else Expect(text.text.Contains($"골드 {run.Gold}"), "gold status still updates immediately");
         run.TrySpendGold(1);
         scroll.verticalNormalizedPosition = 0;
         Debug.Log($"UI_MAP_CACHE_VALIDATION_OK: 200 unchanged refresh calls allocated {allocated} managed bytes.");

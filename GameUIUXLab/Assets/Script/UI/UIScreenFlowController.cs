@@ -14,6 +14,8 @@ public class UIScreenFlowController : MonoBehaviour
     [SerializeField] private GameObject worldEnemies;
     [SerializeField] private RunTimer runTimer;
     [SerializeField] private BattleManager battleManager;
+    [SerializeField] private GameObject commonHUD;
+    public bool HasCommonHUD => commonHUD != null;
     private UIScreenState currentState;
     private UIScreenState pausedFrom = UIScreenState.Play;
     private RunMapUI previewMap;
@@ -142,7 +144,7 @@ public class UIScreenFlowController : MonoBehaviour
 
     public void ShowPauseScreen()
     {
-        if (!IsAdventureActive) return;
+        if ((!IsAdventureActive && !IsResult) || IsOverlayOpen) return;
         pausedFrom = currentState;
         SetActiveScreen(UIScreenState.Pause);
         Time.timeScale = 0;
@@ -154,7 +156,7 @@ public class UIScreenFlowController : MonoBehaviour
         if (!IsPaused) return;
         SetActiveScreen(pausedFrom);
         Time.timeScale = 1;
-        runTimer.ResumeTimer();
+        if (IsAdventureActive) runTimer.ResumeTimer(); else runTimer.StopTimer();
     }
 
     public void ShowResultScreen()
@@ -184,6 +186,9 @@ public class UIScreenFlowController : MonoBehaviour
         refreshScreen.SetActive(next == UIScreenState.Refresh);
         if (mapScreen != null) mapScreen.SetActive(next == UIScreenState.Map);
         if (eventScreen != null) eventScreen.SetActive(next == UIScreenState.Event);
+        if (commonHUD != null)
+            commonHUD.SetActive(next is UIScreenState.Play or UIScreenState.Map or UIScreenState.Event
+                or UIScreenState.Result or UIScreenState.Pause);
         bool inBattle = next == UIScreenState.Play || (next == UIScreenState.Pause && pausedFrom == UIScreenState.Play);
         bool showVictoryBackdrop = next == UIScreenState.Result && battleManager != null
             && battleManager.State == BattleState.Victory;
